@@ -19,6 +19,10 @@ pub fn create_login(gdata: Arc<Mutex<GlobalData>>, stack: Stack) -> Box {
     let login_box = Box::builder()
         .orientation(Orientation::Vertical)
         .spacing(8)
+        .margin_start(64)
+        .margin_end(64)
+        .margin_bottom(16)
+        .margin_top(16)
         .halign(Align::Center)
         .valign(Align::Center)
         .build();

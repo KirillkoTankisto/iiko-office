@@ -1,6 +1,7 @@
 use gtk4::Application;
 use gtk4::{ApplicationWindow, prelude::*};
 
+pub mod common;
 mod login;
 mod main;
 
