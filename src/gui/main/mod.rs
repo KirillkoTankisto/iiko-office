@@ -18,7 +18,7 @@ pub fn create_main(gdata: Arc<GlobalData>, stack: Stack, app: &Application) -> B
         .build();
 
     let menubar = create_menubar(gdata.clone(), stack, app);
-    let menu = create_menu(&gdata.language);
+    let menu = create_menu(gdata);
 
     main_box.append(&menubar);
     main_box.append(&menu);

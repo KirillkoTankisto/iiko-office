@@ -9,10 +9,11 @@ pub struct CashShiftsList {
     pub status: String,
 }
 
-type CashShifts = Vec<CashShift>;
+pub type CashShifts = Vec<CashShift>;
 
 #[allow(nonstandard_style)]
 #[derive(serde::Deserialize)]
+#[derive(Debug)]
 pub enum SessionStatus {
     OPEN,
     CLOSED,
@@ -23,6 +24,7 @@ pub enum SessionStatus {
 
 #[allow(nonstandard_style)]
 #[derive(serde::Deserialize)]
+#[derive(Debug)]
 pub struct CashShift {
     pub id: String,
     pub sessionNumber: u32,
@@ -42,11 +44,11 @@ pub struct CashShift {
     pub payIn: u32,
     pub payOut: u32,
     pub payIncome: i64,
-    pub cashRemain: i64,
+    pub cashRemain: Option<i64>,
     pub cashDiff: i64,
     pub sessionStatus: SessionStatus,
-    pub conception: Option<String>,
-    pub pointOfSale: String,
+    pub conceptionId: Option<String>,
+    pub pointOfSaleId: String,
 }
 
 impl CashShiftsList {
@@ -74,6 +76,7 @@ impl CashShiftsList {
         )
         .run()?;
         result.sort_by_key(|shift| shift.sessionNumber);
+
         Ok(result)
     }
 }

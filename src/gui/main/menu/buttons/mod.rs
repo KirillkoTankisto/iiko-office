@@ -1,12 +1,14 @@
+use std::sync::Arc;
+
 use gtk4::{Box, Notebook, Orientation::Vertical, prelude::BoxExt};
 
 use crate::gui::{
-    main::menu::buttons::cashshifts::create_cashshifts_button, translation::CurrentLanguage,
+    GlobalData, main::menu::buttons::cashshifts::create_cashshifts_button
 };
 
 mod cashshifts;
 
-pub fn create_buttons(view: &Notebook, language: &CurrentLanguage) -> Box {
+pub fn create_buttons(gdata: Arc<GlobalData>, view: &Notebook) -> Box {
     let buttons_box = Box::builder()
         .spacing(8)
         .margin_start(8)
@@ -16,7 +18,7 @@ pub fn create_buttons(view: &Notebook, language: &CurrentLanguage) -> Box {
         .orientation(Vertical)
         .build();
 
-    let cashshifts = create_cashshifts_button(view, language);
+    let cashshifts = create_cashshifts_button(gdata, view);
 
     buttons_box.append(&cashshifts);
 

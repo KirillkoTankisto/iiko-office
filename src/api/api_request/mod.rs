@@ -36,6 +36,7 @@ impl<const N: usize> ApiRequest<N> {
 
         let mut url: Url = Url::parse(&self.address)?;
         url.set_path(&self.path);
+        url.query_pairs_mut().extend_pairs(&self.args.value);
 
         let result: T = client.get(url).send()?.error_for_status()?.json()?;
 

@@ -2,7 +2,16 @@ use std::sync::Arc;
 
 use gtk4::{Application, PopoverMenuBar, Stack, gio::Menu, gio::prelude::*};
 
-use crate::{api::logout::Logout, gui::{GlobalData, translation::{Line::{FILE, LOGOUT}, translate}}};
+use crate::{
+    api::logout::Logout,
+    gui::{
+        GlobalData,
+        translation::{
+            Line::{FILE, LOGOUT},
+            translate,
+        },
+    },
+};
 
 pub fn create_menubar(gdata: Arc<GlobalData>, stack: Stack, app: &Application) -> PopoverMenuBar {
     let menu = Menu::new();
@@ -10,8 +19,10 @@ pub fn create_menubar(gdata: Arc<GlobalData>, stack: Stack, app: &Application) -
 
     let logout_action = gtk4::gio::SimpleAction::new("logout", None);
 
-
-    file_menu.append(Some(translate(gdata.language.clone(), LOGOUT)), Some("app.logout"));
+    file_menu.append(
+        Some(translate(gdata.language.clone(), LOGOUT)),
+        Some("app.logout"),
+    );
     menu.append_submenu(Some(translate(gdata.language.clone(), FILE)), &file_menu);
 
     logout_action.connect_activate(move |_, _| {

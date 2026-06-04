@@ -12,6 +12,7 @@ use crate::gui::translation::CurrentLanguage;
 use crate::gui::translation::Line::CLOSE;
 use crate::gui::translation::translate;
 
+#[derive(Clone)]
 pub struct DatePicker {
     label: Label,
     entry: Entry,

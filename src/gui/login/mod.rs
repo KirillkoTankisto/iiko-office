@@ -91,7 +91,7 @@ fn login_callback(
 
     button.set_sensitive(false);
 
-    let (sender, receiver) = async_channel::bounded(1);
+    let (sender, receiver) = async_channel::bounded::<bool>(1);
 
     std::thread::spawn(move || {
         let password_hashed = get_password_hash(&password_text);
