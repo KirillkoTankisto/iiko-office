@@ -2,7 +2,7 @@ use reqwest::{Url, blocking::Client};
 use serde::de::DeserializeOwned;
 use std::error::Error;
 
-const UAGENT: &'static str = "iiko-office-free/0.1";
+const UAGENT: &str = "iiko-office-free/0.1";
 
 pub struct ApiArgs<const N: usize> {
     value: [(String, String); N],
@@ -37,7 +37,7 @@ impl<const N: usize> ApiRequest<N> {
         let mut url: Url = Url::parse(&self.address)?;
         url.set_path(&self.path);
 
-        let result: T = client.get(url).send()?.json()?;
+        let result: T = client.get(url).send()?.error_for_status()?.json()?;
 
         Ok(result)
     }
@@ -49,7 +49,7 @@ impl<const N: usize> ApiRequest<N> {
         url.set_path(&self.path);
         url.query_pairs_mut().extend_pairs(&self.args.value);
 
-        let result: String = client.get(url).send()?.text()?;
+        let result: String = client.get(url).send()?.error_for_status()?.text()?;
 
         Ok(result)
     }

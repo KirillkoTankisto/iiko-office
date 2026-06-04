@@ -1,10 +1,12 @@
 use gtk4::{Box, Notebook, Orientation::Vertical, prelude::BoxExt};
 
-use crate::gui::main::menu::buttons::cashshifts::create_cashshifts_button;
+use crate::gui::{
+    main::menu::buttons::cashshifts::create_cashshifts_button, translation::CurrentLanguage,
+};
 
 mod cashshifts;
 
-pub fn create_buttons(view: &Notebook) -> Box {
+pub fn create_buttons(view: &Notebook, language: &CurrentLanguage) -> Box {
     let buttons_box = Box::builder()
         .spacing(8)
         .margin_start(8)
@@ -14,9 +16,9 @@ pub fn create_buttons(view: &Notebook) -> Box {
         .orientation(Vertical)
         .build();
 
-    let cashshifts = create_cashshifts_button(view);
+    let cashshifts = create_cashshifts_button(view, language);
 
     buttons_box.append(&cashshifts);
 
-    return buttons_box;
+    buttons_box
 }

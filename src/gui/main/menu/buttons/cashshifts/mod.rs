@@ -1,41 +1,15 @@
-use gtk4::{Box, Button, Label, Notebook, prelude::*};
+use gtk4::{Button, Notebook, prelude::*};
 
-use crate::gui::common::datepicker::DatePicker;
+use crate::gui::{main::menu::tabs::cashshifts::create_cashshifts, translation::{CurrentLanguage, Line::CASH_SHIFTS, translate}};
 
-pub fn create_cashshifts_button(view: &Notebook) -> Button {
-    let button = Button::with_label("Cash Shifts");
+pub fn create_cashshifts_button<'a>(view: &'a Notebook, language: &'a CurrentLanguage) -> Button {
+    let button = Button::with_label(translate(language.clone(), CASH_SHIFTS));
 
     let view = view.clone();
+    let language = language.clone();
     button.connect_clicked(move |_| {
-        create_cashshifts(&view);
+        create_cashshifts(&view, &language);
     });
 
-    return button;
-}
-
-fn create_cashshifts(view: &Notebook) {
-    let cashshifts_box = Box::builder()
-        .spacing(8)
-        .margin_start(8)
-        .margin_end(8)
-        .margin_top(8)
-        .margin_bottom(8)
-        .build();
-
-    let grid = gtk4::Grid::builder()
-        .column_spacing(8)
-        .row_spacing(8)
-        .build();
-
-    let date_from = DatePicker::new("Date From");
-    let date_to = DatePicker::new("Date To");
-
-    date_from.attach_to(&grid, 0);
-    date_to.attach_to(&grid, 1);
-
-    cashshifts_box.append(&grid);
-
-    view.append_page(&cashshifts_box, Some(&Label::new("Cash Shifts".into())));
-
-    return;
+    button
 }

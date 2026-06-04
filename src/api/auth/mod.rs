@@ -20,8 +20,8 @@ impl Auth {
     }
 
     pub fn run(&self) -> Result<String, Box<dyn Error>> {
-        let args = ApiArgs::new([("user", &self.user), ("pass", &self.pass)]);
-        Ok(ApiRequest::new(self.address.clone(), "/resto/api/auth".into(), args).run_string()?)
+        let args = ApiArgs::new([("login", &self.user), ("pass", &self.pass)]);
+        ApiRequest::new(self.address.clone(), "/resto/api/auth".into(), args).run_string()
     }
 }
 
@@ -31,5 +31,5 @@ pub fn get_password_hash(password: &String) -> String {
         .map(|byte| format!("{:02x}", byte))
         .collect();
 
-    return password_hashed;
+    password_hashed
 }

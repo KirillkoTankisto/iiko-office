@@ -8,16 +8,20 @@ use gtk4::Orientation::Vertical;
 use gtk4::Popover;
 use gtk4::prelude::*;
 
+use crate::gui::translation::CurrentLanguage;
+use crate::gui::translation::Line::CLOSE;
+use crate::gui::translation::translate;
+
 pub struct DatePicker {
-    pub label: Label,
-    pub entry: Entry,
-    pub menu_button: MenuButton,
+    label: Label,
+    entry: Entry,
+    menu_button: MenuButton,
 }
 
 impl DatePicker {
-    pub fn new<'a, S: Into<&'a str>>(label: S) -> Self {
+    pub fn new<'a, S: Into<&'a str>>(label: S, language: &CurrentLanguage) -> Self {
         let calendar = Calendar::new();
-        let close_button = Button::with_label("Close");
+        let close_button = Button::with_label(translate(language.clone(), CLOSE));
 
         let menu_box = Box::new(Vertical, 8);
         menu_box.append(&calendar);
@@ -26,8 +30,13 @@ impl DatePicker {
         let popup = Popover::builder().child(&menu_box).build();
 
         let label = Label::builder().label(label.into()).xalign(0.0).build();
-        let entry = Entry::builder().placeholder_text("YYYY-MM-DD").build();
-        let menu_button = MenuButton::builder().popover(&popup).build();
+        let entry = Entry::builder()
+            .text(calendar.date().format("%F").unwrap_or_default())
+            .build();
+        let menu_button = MenuButton::builder()
+            .icon_name("x-office-calendar-symbolic")
+            .popover(&popup)
+            .build();
 
         close_button.connect_clicked(move |_| {
             popup.popdown();
