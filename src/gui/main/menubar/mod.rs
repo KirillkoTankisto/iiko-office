@@ -1,34 +1,44 @@
 use std::sync::Arc;
 
-use gtk4::{Application, PopoverMenuBar, Stack, gio::Menu, gio::prelude::*};
+use gtk4::{Application, ApplicationWindow, PopoverMenuBar, Stack, gio::{Menu, prelude::*}};
 
 use crate::{
     api::logout::Logout,
     gui::{
-        GlobalData,
-        translation::{
+        GlobalData, about::create_about, translation::{
             Line::{FILE, LOGOUT},
             translate,
-        },
+        }
     },
 };
 
-pub fn create_menubar(gdata: Arc<GlobalData>, stack: Stack, app: &Application) -> PopoverMenuBar {
+pub fn create_menubar(gdata: Arc<GlobalData>, stack: Stack, app: &Application, window: &ApplicationWindow) -> PopoverMenuBar {
     let menu = Menu::new();
     let file_menu = Menu::new();
 
     let logout_action = gtk4::gio::SimpleAction::new("logout", None);
+    let about_action = gtk4::gio::SimpleAction::new("about", None);
 
     file_menu.append(
         Some(translate(gdata.language.clone(), LOGOUT)),
         Some("app.logout"),
     );
+
+    file_menu.append(Some("About"), Some("app.about"));
+
     menu.append_submenu(Some(translate(gdata.language.clone(), FILE)), &file_menu);
 
     logout_action.connect_activate(move |_, _| {
         logout_callback(gdata.clone(), stack.clone());
     });
+
+    let window = window.clone();
+    about_action.connect_activate(move |_, _| {
+        create_about(&window);
+    });
+
     app.add_action(&logout_action);
+    app.add_action(&about_action);
 
     PopoverMenuBar::from_model(Some(&menu))
 }

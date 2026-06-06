@@ -2,11 +2,11 @@ use crate::api::api_request::*;
 use std::error::Error;
 
 pub struct CashShiftsList {
-    pub address: String,
-    pub token: String,
-    pub date_from: String,
-    pub date_to: String,
-    pub status: String,
+    address: String,
+    token: String,
+    date_from: String,
+    date_to: String,
+    status: String,
 }
 
 pub type CashShifts = Vec<CashShift>;

@@ -12,6 +12,7 @@ pub fn add_tab<'a, S: Into<&'a str>>(view: &Notebook, tab: &Box, label: S) -> Bo
     let label = Label::new(Some(label.into()));
     let close_btn = Button::builder()
         .icon_name("window-close-symbolic")
+        .has_frame(false)
         .halign(gtk4::Align::End)
         .build();
 

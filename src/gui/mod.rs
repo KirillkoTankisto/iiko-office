@@ -1,6 +1,7 @@
 use gtk4::Application;
 use gtk4::{ApplicationWindow, prelude::*};
 
+pub mod about;
 pub mod common;
 pub mod translation;
 
@@ -54,7 +55,7 @@ fn build_ui(app: &Application) {
     });
 
     let login = create_login(gdata.clone(), stack.clone());
-    let main = create_main(gdata.clone(), stack.clone(), app);
+    let main = create_main(gdata.clone(), stack.clone(), app, &window);
     stack.add_named(&login, Some("login"));
     stack.add_named(&main, Some("main"));
 

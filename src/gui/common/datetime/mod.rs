@@ -6,10 +6,10 @@ pub fn reformat_date(some_str: &Option<String>) -> String
         && let Ok(datetime) = DateTime::from_iso8601(s, Some(&TimeZone::local()))
         && let Ok(gstr) = datetime.format("%d.%m.%Y %H:%M")
     {
-        return gstr.into();
+        gstr.into()
     }
     else
     {
-        return "...".into();
+        "...".into()
     }
 }

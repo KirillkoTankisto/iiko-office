@@ -2,7 +2,7 @@ use reqwest::{Url, blocking::Client};
 use serde::de::DeserializeOwned;
 use std::error::Error;
 
-const UAGENT: &str = "iiko-office-free/0.1";
+const UAGENT: &str = concat!("iiko-office-free/", env!("CARGO_PKG_VERSION"));
 
 pub struct ApiArgs<const N: usize> {
     value: [(String, String); N],
