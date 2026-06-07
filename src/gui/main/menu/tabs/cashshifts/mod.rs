@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use gtk4::Align::{self, Fill};
 use gtk4::{
     Box, Button, ColumnView, Notebook, Orientation::Vertical, ScrolledWindow, SingleSelection,
     gio::ListStore, glib::BoxedAnyObject,
@@ -45,6 +46,8 @@ pub fn create_cashshifts(gdata: Arc<GlobalData>, view: &Notebook) {
     let (table, store) = build_empty_table(gdata.clone(), view);
     let scrolled_window = ScrolledWindow::builder()
         .child(&table)
+        .halign(Align::Fill)
+        .valign(Align::Fill)
         .hexpand(true)
         .vexpand(true)
         .build();
@@ -88,7 +91,7 @@ fn cashshifts_callback(
     let date_to = date_to.get_date();
     button.set_sensitive(false);
 
-    let (sender, receiver) = async_channel::bounded::<CashShifts>(1);
+    let (sender, receiver) = async_channel::bounded::<Option<CashShifts>>(1);
 
     std::thread::spawn(move || {
         if let Some((address, token)) = {
@@ -97,21 +100,20 @@ fn cashshifts_callback(
             } else {
                 None
             }
-        } && let Ok(result) = {
+        } {
             let cashshifts_list =
                 CashShiftsList::new(address, token, date_from, date_to, "ANY".into());
-            cashshifts_list.run()
-        } {
-            let _ = sender.send_blocking(result);
-        } else {
-            let _ = sender.send_blocking(Vec::default());
+            let _ = sender.send_blocking(cashshifts_list.run().ok());
+        }
+         else {
+            let _ = sender.send_blocking(None);
         }
     });
 
     let store = store.clone();
     let button = button.clone();
     gtk4::glib::spawn_future_local(async move {
-        if let Ok(cashshifts) = receiver.recv().await {
+        if let Ok(received) = receiver.recv().await && let Some(cashshifts) = received {
             store.remove_all();
             for s in cashshifts {
                 store.append(&BoxedAnyObject::new(s));
@@ -127,29 +129,30 @@ fn build_empty_table(gdata: Arc<GlobalData>, view: &Notebook) -> (ColumnView, Li
     let selection = SingleSelection::new(Some(store.clone()));
     let column_view = ColumnView::new(Some(selection));
     column_view.set_hexpand(true);
+    column_view.set_halign(Fill);
 
-    add_col(&column_view, "Open Date", |s: &CashShift| {
+    add_col(&column_view, "Open Date", Align::Start,|s: &CashShift| {
         reformat_date(&Some(s.openDate.clone()))
     });
-    add_col(&column_view, "Close Date", |s: &CashShift| {
+    add_col(&column_view, "Close Date", Align::Start, |s: &CashShift| {
         reformat_date(&s.closeDate.clone())
     });
-    add_col(&column_view, "Accept Date", |s: &CashShift| {
+    add_col(&column_view, "Accept Date", Align::Start, |s: &CashShift| {
         reformat_date(&s.acceptDate.clone())
     });
-    add_col(&column_view, "Sales Summary", |s: &CashShift| {
+    add_col(&column_view, "Sales Summary", Align::End, |s: &CashShift| {
         (s.salesCash + s.salesCredit + s.salesCard).to_string()
     });
-    add_col(&column_view, "Sales Card", |s: &CashShift| {
+    add_col(&column_view, "Sales Card", Align::End, |s: &CashShift| {
         s.salesCard.to_string()
     });
-    add_col(&column_view, "Sales Cash", |s: &CashShift| {
+    add_col(&column_view, "Sales Cash", Align::End, |s: &CashShift| {
         s.salesCash.to_string()
     });
-    add_col(&column_view, "Sales Credit", |s: &CashShift| {
+    add_col(&column_view, "Sales Credit", Align::End, |s: &CashShift| {
         s.salesCredit.to_string()
     });
-    add_col(&column_view, "Session Number", |s: &CashShift| {
+    add_col(&column_view, "Session Number", Align::End, |s: &CashShift| {
         s.sessionNumber.to_string()
     });
 

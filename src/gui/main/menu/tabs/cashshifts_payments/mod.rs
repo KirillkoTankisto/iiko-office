@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use gtk4::Align;
 use gtk4::ColumnView;
 use gtk4::Notebook;
 use gtk4::Orientation::Vertical;
@@ -73,13 +74,13 @@ fn build_empty_table() -> (ColumnView, ListStore) {
     let column_view = ColumnView::new(Some(selection));
     column_view.set_hexpand(true);
 
-    add_col(&column_view, "date", |p: &CashShiftsPayment| {
+    add_col(&column_view, "date", Align::Start, |p: &CashShiftsPayment| {
         p.info.creationDate.clone()
     });
-    add_col(&column_view, "sum", |p: &CashShiftsPayment| {
+    add_col(&column_view, "sum", Align::End, |p: &CashShiftsPayment| {
         p.info.sum.to_string()
     });
-    add_col(&column_view, "group", |p: &CashShiftsPayment| {
+    add_col(&column_view, "group", Align::Center, |p: &CashShiftsPayment| {
         p.info.group.to_string()
     });
 
