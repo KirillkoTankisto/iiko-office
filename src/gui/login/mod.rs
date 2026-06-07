@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use gtk4::Button;
+use gtk4::DropDown;
 use gtk4::prelude::*;
 
 use gtk4::Align;
@@ -35,8 +36,8 @@ pub fn create_login(gdata: Arc<GlobalData>, stack: Stack) -> Box {
         gdata.language.clone(),
         ADDRESS,
     ))));
-    let address_entry = Entry::builder().width_chars(32).build();
-    login_box.append(&address_entry);
+    let address_box = AddressBox::new();
+    login_box.append(&address_box.root);
 
     login_box.append(&Label::new(Some(translate(
         gdata.language.clone(),
@@ -56,7 +57,7 @@ pub fn create_login(gdata: Arc<GlobalData>, stack: Stack) -> Box {
         .label(translate(gdata.language.clone(), LOGIN))
         .margin_top(24)
         .width_request(360)
-        .halign(Align::Center)
+        .halign(Align::Fill)
         .build();
 
     button.connect_clicked(move |button| {
@@ -64,7 +65,7 @@ pub fn create_login(gdata: Arc<GlobalData>, stack: Stack) -> Box {
             gdata.clone(),
             &stack,
             button,
-            &address_entry,
+            &address_box,
             &username_entry,
             &password_entry,
         );
@@ -74,18 +75,54 @@ pub fn create_login(gdata: Arc<GlobalData>, stack: Stack) -> Box {
     login_box
 }
 
+struct AddressBox {
+    root: Box,
+    dropdown: DropDown,
+    entry: Entry,
+}
+
+impl AddressBox {
+    fn new() -> Self
+    {
+        let address_box = Box::builder().orientation(Orientation::Horizontal).spacing(8).build();
+        let dropdown = DropDown::from_strings(&["https://", "http://"]);
+        dropdown.set_size_request(90, -1);
+        let entry = Entry::builder().width_chars(32).build();
+
+        address_box.append(&dropdown);
+        address_box.append(&entry);
+
+        Self {
+            root: address_box,
+            dropdown,
+            entry,
+        }
+    }
+
+    fn get_url(&self) -> String {
+        let scheme = self.dropdown.selected_item().and_downcast::<gtk4::StringObject>().map(|s| s.string().to_string()).unwrap_or("https".into());
+        let address = self.entry.text().to_string();
+        let mut string = String::with_capacity(scheme.len() + address.len() + 1);
+
+        string.push_str(&scheme);
+        string.push_str(&address);
+
+        string
+    }
+}
+
 fn login_callback(
     gdata: Arc<GlobalData>,
     stack: &Stack,
     button: &Button,
-    address: &Entry,
+    url: &AddressBox,
     username: &Entry,
     password: &PasswordEntry,
 ) {
-    let address_text = address.text().to_string();
+    let url_text = url.get_url();
     let username_text = username.text().to_string();
     let password_text = password.text().to_string();
-    if address_text.is_empty() || username_text.is_empty() || password_text.is_empty() {
+    if url_text.is_empty() || username_text.is_empty() || password_text.is_empty() {
         return;
     }
 
@@ -97,7 +134,7 @@ fn login_callback(
         let password_hashed = get_password_hash(&password_text);
 
         let auth = Auth {
-            address: address_text.clone(),
+            address: url_text.clone(),
             user: username_text.clone(),
             pass: password_hashed.clone(),
         };
@@ -105,7 +142,7 @@ fn login_callback(
         if let Ok(token) = result
             && let Ok(mut locked) = gdata.user_data.lock()
         {
-            locked.address = address_text;
+            locked.address = url_text;
             locked.user = username_text;
             locked.password = password_hashed;
             locked.token = token;
