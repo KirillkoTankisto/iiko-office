@@ -4,8 +4,7 @@ const PROGRAMNAME: &str = "iikoOffice";
 const AUTHORS: &[&str] = &["Kirill Sergeev"];
 const WEBSITE: &str = "https://github.com/KirillkoTankisto/iiko-office";
 
-pub fn create_about(window: &ApplicationWindow)
-{
+pub fn create_about(window: &ApplicationWindow) {
     let logo_bytes = Bytes::from_static(include_bytes!("../../assets/logo.png"));
     let logo = Texture::from_bytes(&logo_bytes).expect("invalid logo image");
 

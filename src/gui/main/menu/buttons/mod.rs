@@ -2,9 +2,7 @@ use std::sync::Arc;
 
 use gtk4::{Box, Notebook, Orientation::Vertical, prelude::BoxExt};
 
-use crate::gui::{
-    GlobalData, main::menu::buttons::cashshifts::create_cashshifts_button
-};
+use crate::gui::{GlobalData, main::menu::buttons::cashshifts::create_cashshifts_button};
 
 mod cashshifts;
 

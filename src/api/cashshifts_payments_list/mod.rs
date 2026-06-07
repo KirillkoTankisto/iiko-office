@@ -1,16 +1,20 @@
 use std::error::Error;
 
 use serde::Deserialize;
+use strum_macros::Display;
 
-use crate::api::{api_request::{ApiArgs, ApiRequest}, cashshifts_list::SessionStatus};
+use crate::api::{
+    api_request::{ApiArgs, ApiRequest},
+    cashshifts_list::SessionStatus,
+};
 
 pub struct CashShiftsPaymentsList {
     address: String,
     token: String,
-    id: u32,
+    id: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 #[allow(nonstandard_style)]
 pub struct CashShiftsPayments {
     pub sessionId: String,
@@ -20,7 +24,7 @@ pub struct CashShiftsPayments {
     pub payOutsRecords: Vec<CashShiftsPayment>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 #[allow(nonstandard_style)]
 pub struct CashShiftsPayment {
     pub info: PaymentInfo,
@@ -28,13 +32,13 @@ pub struct CashShiftsPayment {
     pub originalSum: u32,
     pub editedPayAccountId: String,
     pub originalPayAccountId: String,
-    pub payAgentId: String,
+    pub payAgentId: Option<String>,
     pub paymentTypeId: Option<String>,
     pub editableComment: Option<String>,
     pub status: SessionStatus,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 #[allow(nonstandard_style)]
 pub struct PaymentInfo {
     pub id: String,
@@ -51,13 +55,13 @@ pub struct PaymentInfo {
     pub departmentId: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct PaymentAuth {
     pub user: String,
     pub card: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug, Display)]
 pub enum PaymentGroup {
     CARD,
     CREDIT,
@@ -66,17 +70,21 @@ pub enum PaymentGroup {
 }
 
 impl CashShiftsPaymentsList {
-    pub fn new<S: Into<String>>(address: S, token: S, id: u32) -> Self {
+    pub fn new<S: Into<String>>(address: S, token: S, id: S) -> Self {
         Self {
             address: address.into(),
             token: token.into(),
-            id,
+            id: id.into(),
         }
     }
 
-    pub fn run(&self) -> Result<CashShiftsPayments, Box<dyn Error>>
-    {
-        let args = ApiArgs::new([("key", &self.token)]);
-        ApiRequest::new(self.address.clone(), format!("/resto/api/v2/cashshifts/payments/{}", self.id), args).run::<CashShiftsPayments>()
+    pub fn run(&self) -> Result<CashShiftsPayments, Box<dyn Error>> {
+        let args = ApiArgs::new([("key", &self.token), ("hideAccepted", "false")]);
+        ApiRequest::new(
+            self.address.clone(),
+            format!("/resto/api/v2/cashshifts/payments/list/{}", self.id),
+            args,
+        )
+        .run::<CashShiftsPayments>()
     }
 }

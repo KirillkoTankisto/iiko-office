@@ -12,8 +12,7 @@ pub struct CashShiftsList {
 pub type CashShifts = Vec<CashShift>;
 
 #[allow(nonstandard_style)]
-#[derive(serde::Deserialize)]
-#[derive(Debug)]
+#[derive(serde::Deserialize, Debug)]
 pub enum SessionStatus {
     OPEN,
     CLOSED,
@@ -23,8 +22,7 @@ pub enum SessionStatus {
 }
 
 #[allow(nonstandard_style)]
-#[derive(serde::Deserialize)]
-#[derive(Debug)]
+#[derive(serde::Deserialize, Debug)]
 pub struct CashShift {
     pub id: String,
     pub sessionNumber: u32,

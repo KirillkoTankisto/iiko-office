@@ -3,7 +3,9 @@ use std::sync::Arc;
 use gtk4::{Button, Notebook, prelude::*};
 
 use crate::gui::{
-    GlobalData, main::menu::tabs::cashshifts::create_cashshifts, translation::{Line::CASH_SHIFTS, translate}
+    GlobalData,
+    main::menu::tabs::cashshifts::create_cashshifts,
+    translation::{Line::CASH_SHIFTS, translate},
 };
 
 pub fn create_cashshifts_button(gdata: Arc<GlobalData>, view: &Notebook) -> Button {

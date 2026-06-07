@@ -1,4 +1,6 @@
-use gtk4::{Align::Fill, Application, ApplicationWindow, Box, Orientation::Vertical, Stack, prelude::BoxExt};
+use gtk4::{
+    Align::Fill, Application, ApplicationWindow, Box, Orientation::Vertical, Stack, prelude::BoxExt,
+};
 use std::sync::Arc;
 
 mod menu;
@@ -9,7 +11,12 @@ use crate::gui::{
     main::{menu::create_menu, menubar::create_menubar},
 };
 
-pub fn create_main(gdata: Arc<GlobalData>, stack: Stack, app: &Application, window: &ApplicationWindow) -> Box {
+pub fn create_main(
+    gdata: Arc<GlobalData>,
+    stack: Stack,
+    app: &Application,
+    window: &ApplicationWindow,
+) -> Box {
     let main_box = Box::builder()
         .orientation(Vertical)
         .spacing(8)

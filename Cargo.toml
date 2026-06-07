@@ -1,6 +1,6 @@
 [package]
 name = "iiko-office"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2024"
 repository = "https://github.com/KirillkoTankisto/iiko-office"
 license = "GPL-2.0-or-later"
@@ -11,6 +11,7 @@ gtk4 = { version = "0.11.3", features = ["v4_22"] }
 reqwest = { version = "0.13.4", features = ["blocking", "json"] }
 serde = { version = "1.0.228", features = ["derive"] }
 sha1 = "0.11.0"
+strum_macros = "0.28.0"
 
 [profile.release]
 strip = true

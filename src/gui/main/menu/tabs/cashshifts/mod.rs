@@ -1,11 +1,13 @@
 use std::sync::Arc;
 
 use gtk4::{
-    Box, Button, ColumnView, Notebook, Orientation::Vertical, ScrolledWindow, SingleSelection, gio::ListStore, glib::BoxedAnyObject
+    Box, Button, ColumnView, Notebook, Orientation::Vertical, ScrolledWindow, SingleSelection,
+    gio::ListStore, glib::BoxedAnyObject,
 };
 
 use gtk4::prelude::*;
 
+use crate::gui::main::menu::tabs::cashshifts_payments::create_cashshifts_payments;
 use crate::{
     api::cashshifts_list::{CashShift, CashShifts, CashShiftsList},
     gui::{
@@ -34,11 +36,18 @@ pub fn create_cashshifts(gdata: Arc<GlobalData>, view: &Notebook) {
         .row_spacing(8)
         .build();
 
-    let date_from = DatePicker::new(translate(gdata.language.clone(), DATE_FROM), &gdata.language);
+    let date_from = DatePicker::new(
+        translate(gdata.language.clone(), DATE_FROM),
+        &gdata.language,
+    );
     let date_to = DatePicker::new(translate(gdata.language.clone(), DATE_TO), &gdata.language);
     let refresh_button = Button::with_label("Refresh");
-    let (table, store) = build_empty_table();
-    let scrolled_window = ScrolledWindow::builder().child(&table).hexpand(true).vexpand(true).build();
+    let (table, store) = build_empty_table(gdata.clone(), view);
+    let scrolled_window = ScrolledWindow::builder()
+        .child(&table)
+        .hexpand(true)
+        .vexpand(true)
+        .build();
 
     date_from.attach_to(&grid, 0);
     date_to.attach_to(&grid, 1);
@@ -82,27 +91,21 @@ fn cashshifts_callback(
     let (sender, receiver) = async_channel::bounded::<CashShifts>(1);
 
     std::thread::spawn(move || {
-        if let Ok(user_data) = gdata.user_data.lock() {
-            let cashshifts_list = CashShiftsList::new(
-                user_data.address.clone(),
-                user_data.token.clone(),
-                date_from,
-                date_to,
-                "ANY".into(),
-            );
-            let result = cashshifts_list.run();
-            if let Ok(cashshifts) = result {
-                let _ = sender.send_blocking(cashshifts);
+        if let Some((address, token)) = {
+            if let Ok(udata) = gdata.user_data.lock() {
+                Some((udata.address.clone(), udata.token.clone()))
+            } else {
+                None
             }
-            else {
-                let _ = sender.send_blocking(Vec::default());
-            }
-
+        } && let Ok(result) = {
+            let cashshifts_list =
+                CashShiftsList::new(address, token, date_from, date_to, "ANY".into());
+            cashshifts_list.run()
+        } {
+            let _ = sender.send_blocking(result);
         } else {
             let _ = sender.send_blocking(Vec::default());
         }
-
-
     });
 
     let store = store.clone();
@@ -119,13 +122,15 @@ fn cashshifts_callback(
     });
 }
 
-fn build_empty_table() -> (ColumnView, ListStore) {
+fn build_empty_table(gdata: Arc<GlobalData>, view: &Notebook) -> (ColumnView, ListStore) {
     let store = ListStore::new::<BoxedAnyObject>();
     let selection = SingleSelection::new(Some(store.clone()));
     let column_view = ColumnView::new(Some(selection));
     column_view.set_hexpand(true);
 
-    add_col(&column_view, "Open Date", |s: &CashShift| reformat_date(&Some(s.openDate.clone())));
+    add_col(&column_view, "Open Date", |s: &CashShift| {
+        reformat_date(&Some(s.openDate.clone()))
+    });
     add_col(&column_view, "Close Date", |s: &CashShift| {
         reformat_date(&s.closeDate.clone())
     });
@@ -146,6 +151,17 @@ fn build_empty_table() -> (ColumnView, ListStore) {
     });
     add_col(&column_view, "Session Number", |s: &CashShift| {
         s.sessionNumber.to_string()
+    });
+
+    let view = view.clone();
+    column_view.connect_activate(move |cview, row| {
+        let model = cview
+            .model()
+            .expect("ColumnView has no model (Cash Shifts)");
+        let item = model.item(row).expect("No item at that position");
+        let object = item.downcast_ref::<BoxedAnyObject>().unwrap();
+        let id = object.borrow::<CashShift>().id.clone();
+        create_cashshifts_payments(gdata.clone(), &view, id);
     });
 
     (column_view, store)

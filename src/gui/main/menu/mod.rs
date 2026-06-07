@@ -3,7 +3,8 @@ use std::sync::Arc;
 use gtk4::{Box, Orientation::Horizontal, prelude::BoxExt};
 
 use crate::gui::{
-    GlobalData, main::menu::{buttons::create_buttons, view::create_view}
+    GlobalData,
+    main::menu::{buttons::create_buttons, view::create_view},
 };
 
 mod buttons;

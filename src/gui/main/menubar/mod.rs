@@ -1,18 +1,28 @@
 use std::sync::Arc;
 
-use gtk4::{Application, ApplicationWindow, PopoverMenuBar, Stack, gio::{Menu, prelude::*}};
+use gtk4::{
+    Application, ApplicationWindow, PopoverMenuBar, Stack,
+    gio::{Menu, prelude::*},
+};
 
 use crate::{
     api::logout::Logout,
     gui::{
-        GlobalData, about::create_about, translation::{
+        GlobalData,
+        about::create_about,
+        translation::{
             Line::{FILE, LOGOUT},
             translate,
-        }
+        },
     },
 };
 
-pub fn create_menubar(gdata: Arc<GlobalData>, stack: Stack, app: &Application, window: &ApplicationWindow) -> PopoverMenuBar {
+pub fn create_menubar(
+    gdata: Arc<GlobalData>,
+    stack: Stack,
+    app: &Application,
+    window: &ApplicationWindow,
+) -> PopoverMenuBar {
     let menu = Menu::new();
     let file_menu = Menu::new();
 
