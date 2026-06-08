@@ -11,7 +11,7 @@ use crate::{
         GlobalData,
         about::create_about,
         translation::{
-            Line::{FILE, LOGOUT},
+            Line::{ABOUT, FILE, LOGOUT},
             translate,
         },
     },
@@ -34,17 +34,21 @@ pub fn create_menubar(
         Some("app.logout"),
     );
 
-    file_menu.append(Some("About"), Some("app.about"));
+    file_menu.append(
+        Some(translate(gdata.language.clone(), ABOUT)),
+        Some("app.about"),
+    );
 
     menu.append_submenu(Some(translate(gdata.language.clone(), FILE)), &file_menu);
 
+    let lgdata = gdata.clone();
     logout_action.connect_activate(move |_, _| {
-        logout_callback(gdata.clone(), stack.clone());
+        logout_callback(lgdata.clone(), stack.clone());
     });
 
     let window = window.clone();
     about_action.connect_activate(move |_, _| {
-        create_about(&window);
+        create_about(&window, gdata.clone());
     });
 
     app.add_action(&logout_action);

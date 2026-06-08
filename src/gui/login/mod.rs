@@ -82,9 +82,11 @@ struct AddressBox {
 }
 
 impl AddressBox {
-    fn new() -> Self
-    {
-        let address_box = Box::builder().orientation(Orientation::Horizontal).spacing(8).build();
+    fn new() -> Self {
+        let address_box = Box::builder()
+            .orientation(Orientation::Horizontal)
+            .spacing(8)
+            .build();
         let dropdown = DropDown::from_strings(&["https://", "http://"]);
         dropdown.set_size_request(90, -1);
         let entry = Entry::builder().width_chars(32).build();
@@ -100,7 +102,12 @@ impl AddressBox {
     }
 
     fn get_url(&self) -> String {
-        let scheme = self.dropdown.selected_item().and_downcast::<gtk4::StringObject>().map(|s| s.string().to_string()).unwrap_or("https".into());
+        let scheme = self
+            .dropdown
+            .selected_item()
+            .and_downcast::<gtk4::StringObject>()
+            .map(|s| s.string().to_string())
+            .unwrap_or("https".into());
         let address = self.entry.text().to_string();
         let mut string = String::with_capacity(scheme.len() + address.len() + 1);
 

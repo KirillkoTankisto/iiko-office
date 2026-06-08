@@ -9,6 +9,10 @@ use gtk4::{
 use gtk4::prelude::*;
 
 use crate::gui::main::menu::tabs::cashshifts_payments::create_cashshifts_payments;
+use crate::gui::translation::Line::{
+    ACCEPT_DATE, CLOSE_DATE, OPEN_DATE, REFRESH, SALES_CARD, SALES_CASH, SALES_CREDIT, SALES_SUM,
+    SHIFT_NUMBER,
+};
 use crate::{
     api::cashshifts_list::{CashShift, CashShifts, CashShiftsList},
     gui::{
@@ -42,7 +46,7 @@ pub fn create_cashshifts(gdata: Arc<GlobalData>, view: &Notebook) {
         &gdata.language,
     );
     let date_to = DatePicker::new(translate(gdata.language.clone(), DATE_TO), &gdata.language);
-    let refresh_button = Button::with_label("Refresh");
+    let refresh_button = Button::with_label(translate(gdata.language.clone(), REFRESH));
     let (table, store) = build_empty_table(gdata.clone(), view);
     let scrolled_window = ScrolledWindow::builder()
         .child(&table)
@@ -104,8 +108,7 @@ fn cashshifts_callback(
             let cashshifts_list =
                 CashShiftsList::new(address, token, date_from, date_to, "ANY".into());
             let _ = sender.send_blocking(cashshifts_list.run().ok());
-        }
-         else {
+        } else {
             let _ = sender.send_blocking(None);
         }
     });
@@ -113,7 +116,9 @@ fn cashshifts_callback(
     let store = store.clone();
     let button = button.clone();
     gtk4::glib::spawn_future_local(async move {
-        if let Ok(received) = receiver.recv().await && let Some(cashshifts) = received {
+        if let Ok(received) = receiver.recv().await
+            && let Some(cashshifts) = received
+        {
             store.remove_all();
             for s in cashshifts {
                 store.append(&BoxedAnyObject::new(s));
@@ -131,30 +136,54 @@ fn build_empty_table(gdata: Arc<GlobalData>, view: &Notebook) -> (ColumnView, Li
     column_view.set_hexpand(true);
     column_view.set_halign(Fill);
 
-    add_col(&column_view, "Open Date", Align::Start,|s: &CashShift| {
-        reformat_date(&Some(s.openDate.clone()))
-    });
-    add_col(&column_view, "Close Date", Align::Start, |s: &CashShift| {
-        reformat_date(&s.closeDate.clone())
-    });
-    add_col(&column_view, "Accept Date", Align::Start, |s: &CashShift| {
-        reformat_date(&s.acceptDate.clone())
-    });
-    add_col(&column_view, "Sales Summary", Align::End, |s: &CashShift| {
-        (s.salesCash + s.salesCredit + s.salesCard).to_string()
-    });
-    add_col(&column_view, "Sales Card", Align::End, |s: &CashShift| {
-        s.salesCard.to_string()
-    });
-    add_col(&column_view, "Sales Cash", Align::End, |s: &CashShift| {
-        s.salesCash.to_string()
-    });
-    add_col(&column_view, "Sales Credit", Align::End, |s: &CashShift| {
-        s.salesCredit.to_string()
-    });
-    add_col(&column_view, "Session Number", Align::End, |s: &CashShift| {
-        s.sessionNumber.to_string()
-    });
+    add_col(
+        &column_view,
+        translate(gdata.language.clone(), OPEN_DATE),
+        Align::Start,
+        |s: &CashShift| reformat_date(&Some(s.openDate.clone())),
+    );
+    add_col(
+        &column_view,
+        translate(gdata.language.clone(), CLOSE_DATE),
+        Align::Start,
+        |s: &CashShift| reformat_date(&s.closeDate.clone()),
+    );
+    add_col(
+        &column_view,
+        translate(gdata.language.clone(), ACCEPT_DATE),
+        Align::Start,
+        |s: &CashShift| reformat_date(&s.acceptDate.clone()),
+    );
+    add_col(
+        &column_view,
+        translate(gdata.language.clone(), SALES_SUM),
+        Align::End,
+        |s: &CashShift| (s.salesCash + s.salesCredit + s.salesCard).to_string(),
+    );
+    add_col(
+        &column_view,
+        translate(gdata.language.clone(), SALES_CARD),
+        Align::End,
+        |s: &CashShift| s.salesCard.to_string(),
+    );
+    add_col(
+        &column_view,
+        translate(gdata.language.clone(), SALES_CASH),
+        Align::End,
+        |s: &CashShift| s.salesCash.to_string(),
+    );
+    add_col(
+        &column_view,
+        translate(gdata.language.clone(), SALES_CREDIT),
+        Align::End,
+        |s: &CashShift| s.salesCredit.to_string(),
+    );
+    add_col(
+        &column_view,
+        translate(gdata.language.clone(), SHIFT_NUMBER),
+        Align::End,
+        |s: &CashShift| s.sessionNumber.to_string(),
+    );
 
     let view = view.clone();
     column_view.connect_activate(move |cview, row| {

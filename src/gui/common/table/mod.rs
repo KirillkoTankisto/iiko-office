@@ -13,9 +13,15 @@ where
 {
     let factory = SignalListItemFactory::new();
     factory.connect_setup(move |_, item| {
-        item.downcast_ref::<ListItem>()
-            .unwrap()
-            .set_child(Some(&Label::builder().halign(align).margin_start(4).margin_end(4).margin_top(4).margin_bottom(4).build()));
+        item.downcast_ref::<ListItem>().unwrap().set_child(Some(
+            &Label::builder()
+                .halign(align)
+                .margin_start(4)
+                .margin_end(4)
+                .margin_top(4)
+                .margin_bottom(4)
+                .build(),
+        ));
     });
     factory.connect_bind(move |_, item| {
         let item = item.downcast_ref::<ListItem>().unwrap();

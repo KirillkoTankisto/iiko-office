@@ -16,6 +16,12 @@ use crate::api::cashshifts_payments_list::CashShiftsPaymentsList;
 use crate::gui::GlobalData;
 use crate::gui::common::table::add_col;
 use crate::gui::main::menu::tabs::add_tab;
+use crate::gui::translation::CurrentLanguage;
+use crate::gui::translation::Line::DATE;
+use crate::gui::translation::Line::GROUP;
+use crate::gui::translation::Line::PAYMENTS;
+use crate::gui::translation::Line::SUM;
+use crate::gui::translation::translate;
 
 pub fn create_cashshifts_payments(gdata: Arc<GlobalData>, view: &Notebook, id: String) {
     let cashshifts_payments_box = gtk4::Box::builder()
@@ -27,7 +33,7 @@ pub fn create_cashshifts_payments(gdata: Arc<GlobalData>, view: &Notebook, id: S
         .margin_bottom(8)
         .build();
 
-    let (table, store) = build_empty_table();
+    let (table, store) = build_empty_table(gdata.language.clone());
 
     let scrolled_window = ScrolledWindow::builder()
         .child(&table)
@@ -36,7 +42,11 @@ pub fn create_cashshifts_payments(gdata: Arc<GlobalData>, view: &Notebook, id: S
         .build();
 
     cashshifts_payments_box.append(&scrolled_window);
-    let tab = add_tab(view, &cashshifts_payments_box, "Payments");
+    let tab = add_tab(
+        view,
+        &cashshifts_payments_box,
+        translate(gdata.language.clone(), PAYMENTS),
+    );
     view.append_page(&cashshifts_payments_box, Some(&tab));
 
     let (sender, receiver) = async_channel::bounded::<Option<CashShiftsPayments>>(1);
@@ -68,21 +78,30 @@ pub fn create_cashshifts_payments(gdata: Arc<GlobalData>, view: &Notebook, id: S
     });
 }
 
-fn build_empty_table() -> (ColumnView, ListStore) {
+fn build_empty_table(language: CurrentLanguage) -> (ColumnView, ListStore) {
     let store = ListStore::new::<BoxedAnyObject>();
     let selection = SingleSelection::new(Some(store.clone()));
     let column_view = ColumnView::new(Some(selection));
     column_view.set_hexpand(true);
 
-    add_col(&column_view, "date", Align::Start, |p: &CashShiftsPayment| {
-        p.info.creationDate.clone()
-    });
-    add_col(&column_view, "sum", Align::End, |p: &CashShiftsPayment| {
-        p.info.sum.to_string()
-    });
-    add_col(&column_view, "group", Align::Center, |p: &CashShiftsPayment| {
-        p.info.group.to_string()
-    });
+    add_col(
+        &column_view,
+        translate(language.clone(), DATE),
+        Align::Start,
+        |p: &CashShiftsPayment| p.info.creationDate.clone(),
+    );
+    add_col(
+        &column_view,
+        translate(language.clone(), GROUP),
+        Align::Center,
+        |p: &CashShiftsPayment| p.info.group.to_string(),
+    );
+    add_col(
+        &column_view,
+        translate(language.clone(), SUM),
+        Align::End,
+        |p: &CashShiftsPayment| p.info.sum.to_string(),
+    );
 
     (column_view, store)
 }
