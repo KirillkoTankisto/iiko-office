@@ -9,7 +9,7 @@ use crate::gui::{
 };
 
 pub fn create_cashshifts_button(gdata: Arc<GlobalData>, view: &Notebook) -> Button {
-    let button = Button::with_label(translate(gdata.language.clone(), CASH_SHIFTS));
+    let button = Button::with_label(translate(gdata.language, CASH_SHIFTS));
     let view = view.clone();
     button.connect_clicked(move |_| {
         create_cashshifts(gdata.clone(), &view);

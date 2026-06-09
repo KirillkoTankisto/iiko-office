@@ -1,6 +1,6 @@
 type Translations = &'static [&'static [&'static str]];
 
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub enum CurrentLanguage {
     EN,
     RU,

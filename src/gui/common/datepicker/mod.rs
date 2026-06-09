@@ -20,9 +20,9 @@ pub struct DatePicker {
 }
 
 impl DatePicker {
-    pub fn new<'a, S: Into<&'a str>>(label: S, language: &CurrentLanguage) -> Self {
+    pub fn new<'a, S: Into<&'a str>>(label: S, language: CurrentLanguage) -> Self {
         let calendar = Calendar::new();
-        let close_button = Button::with_label(translate(language.clone(), CLOSE));
+        let close_button = Button::with_label(translate(language, CLOSE));
 
         let menu_box = Box::new(Vertical, 8);
         menu_box.append(&calendar);

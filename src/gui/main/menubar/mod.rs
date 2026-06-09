@@ -29,17 +29,11 @@ pub fn create_menubar(
     let logout_action = gtk4::gio::SimpleAction::new("logout", None);
     let about_action = gtk4::gio::SimpleAction::new("about", None);
 
-    file_menu.append(
-        Some(translate(gdata.language.clone(), LOGOUT)),
-        Some("app.logout"),
-    );
+    file_menu.append(Some(translate(gdata.language, LOGOUT)), Some("app.logout"));
 
-    file_menu.append(
-        Some(translate(gdata.language.clone(), ABOUT)),
-        Some("app.about"),
-    );
+    file_menu.append(Some(translate(gdata.language, ABOUT)), Some("app.about"));
 
-    menu.append_submenu(Some(translate(gdata.language.clone(), FILE)), &file_menu);
+    menu.append_submenu(Some(translate(gdata.language, FILE)), &file_menu);
 
     let lgdata = gdata.clone();
     logout_action.connect_activate(move |_, _| {

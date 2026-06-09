@@ -14,6 +14,7 @@ use crate::api::cashshifts_payments_list::CashShiftsPayment;
 use crate::api::cashshifts_payments_list::CashShiftsPayments;
 use crate::api::cashshifts_payments_list::CashShiftsPaymentsList;
 use crate::gui::GlobalData;
+use crate::gui::common::datetime::reformat_date;
 use crate::gui::common::table::add_col;
 use crate::gui::main::menu::tabs::add_tab;
 use crate::gui::translation::CurrentLanguage;
@@ -33,7 +34,7 @@ pub fn create_cashshifts_payments(gdata: Arc<GlobalData>, view: &Notebook, id: S
         .margin_bottom(8)
         .build();
 
-    let (table, store) = build_empty_table(gdata.language.clone());
+    let (table, store) = build_empty_table(gdata.language);
 
     let scrolled_window = ScrolledWindow::builder()
         .child(&table)
@@ -45,7 +46,7 @@ pub fn create_cashshifts_payments(gdata: Arc<GlobalData>, view: &Notebook, id: S
     let tab = add_tab(
         view,
         &cashshifts_payments_box,
-        translate(gdata.language.clone(), PAYMENTS),
+        translate(gdata.language, PAYMENTS),
     );
     view.append_page(&cashshifts_payments_box, Some(&tab));
 
@@ -86,19 +87,19 @@ fn build_empty_table(language: CurrentLanguage) -> (ColumnView, ListStore) {
 
     add_col(
         &column_view,
-        translate(language.clone(), DATE),
+        translate(language, DATE),
         Align::Start,
-        |p: &CashShiftsPayment| p.info.creationDate.clone(),
+        |p: &CashShiftsPayment| reformat_date(&Some(p.info.creationDate.clone())),
     );
     add_col(
         &column_view,
-        translate(language.clone(), GROUP),
+        translate(language, GROUP),
         Align::Center,
         |p: &CashShiftsPayment| p.info.group.to_string(),
     );
     add_col(
         &column_view,
-        translate(language.clone(), SUM),
+        translate(language, SUM),
         Align::End,
         |p: &CashShiftsPayment| p.info.sum.to_string(),
     );

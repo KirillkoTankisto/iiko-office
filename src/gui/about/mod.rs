@@ -22,13 +22,13 @@ pub fn create_about(window: &ApplicationWindow, gdata: Arc<GlobalData>) {
         .transient_for(window)
         .modal(true)
         .program_name(PROGRAMNAME)
-        .comments(translate(gdata.language.clone(), COMMENT))
+        .comments(translate(gdata.language(), COMMENT))
         .authors(AUTHORS)
         .license_type(Gpl20)
         .logo(&logo)
         .version(env!("CARGO_PKG_VERSION"))
         .website(WEBSITE)
-        .website_label(translate(gdata.language.clone(), SOURCE_CODE))
+        .website_label(translate(gdata.language(), SOURCE_CODE))
         .build();
 
     dialog.present();

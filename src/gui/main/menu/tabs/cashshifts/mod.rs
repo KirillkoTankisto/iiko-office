@@ -41,12 +41,9 @@ pub fn create_cashshifts(gdata: Arc<GlobalData>, view: &Notebook) {
         .row_spacing(8)
         .build();
 
-    let date_from = DatePicker::new(
-        translate(gdata.language.clone(), DATE_FROM),
-        &gdata.language,
-    );
-    let date_to = DatePicker::new(translate(gdata.language.clone(), DATE_TO), &gdata.language);
-    let refresh_button = Button::with_label(translate(gdata.language.clone(), REFRESH));
+    let date_from = DatePicker::new(translate(gdata.language, DATE_FROM), gdata.language());
+    let date_to = DatePicker::new(translate(gdata.language, DATE_TO), gdata.language());
+    let refresh_button = Button::with_label(translate(gdata.language, REFRESH));
     let (table, store) = build_empty_table(gdata.clone(), view);
     let scrolled_window = ScrolledWindow::builder()
         .child(&table)
@@ -79,7 +76,7 @@ pub fn create_cashshifts(gdata: Arc<GlobalData>, view: &Notebook) {
         Some(&add_tab(
             view,
             &cashshifts_box,
-            translate(gdata.language.clone(), CASH_SHIFTS),
+            translate(gdata.language, CASH_SHIFTS),
         )),
     );
 }
@@ -138,49 +135,49 @@ fn build_empty_table(gdata: Arc<GlobalData>, view: &Notebook) -> (ColumnView, Li
 
     add_col(
         &column_view,
-        translate(gdata.language.clone(), OPEN_DATE),
+        translate(gdata.language, OPEN_DATE),
         Align::Start,
         |s: &CashShift| reformat_date(&Some(s.openDate.clone())),
     );
     add_col(
         &column_view,
-        translate(gdata.language.clone(), CLOSE_DATE),
+        translate(gdata.language, CLOSE_DATE),
         Align::Start,
         |s: &CashShift| reformat_date(&s.closeDate.clone()),
     );
     add_col(
         &column_view,
-        translate(gdata.language.clone(), ACCEPT_DATE),
+        translate(gdata.language, ACCEPT_DATE),
         Align::Start,
         |s: &CashShift| reformat_date(&s.acceptDate.clone()),
     );
     add_col(
         &column_view,
-        translate(gdata.language.clone(), SALES_SUM),
+        translate(gdata.language, SALES_SUM),
         Align::End,
         |s: &CashShift| (s.salesCash + s.salesCredit + s.salesCard).to_string(),
     );
     add_col(
         &column_view,
-        translate(gdata.language.clone(), SALES_CARD),
+        translate(gdata.language, SALES_CARD),
         Align::End,
         |s: &CashShift| s.salesCard.to_string(),
     );
     add_col(
         &column_view,
-        translate(gdata.language.clone(), SALES_CASH),
+        translate(gdata.language, SALES_CASH),
         Align::End,
         |s: &CashShift| s.salesCash.to_string(),
     );
     add_col(
         &column_view,
-        translate(gdata.language.clone(), SALES_CREDIT),
+        translate(gdata.language, SALES_CREDIT),
         Align::End,
         |s: &CashShift| s.salesCredit.to_string(),
     );
     add_col(
         &column_view,
-        translate(gdata.language.clone(), SHIFT_NUMBER),
+        translate(gdata.language, SHIFT_NUMBER),
         Align::End,
         |s: &CashShift| s.sessionNumber.to_string(),
     );
