@@ -32,7 +32,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: install dependencies
-      run: apt install gtk4 gtk4-devel
+      run: sudo apt update && sudo apt install -y gtk4 gtk4-devel
     - name: build
       run: cargo build --release
     - uses: actions/upload-artifact@v4
