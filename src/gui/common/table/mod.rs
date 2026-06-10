@@ -6,7 +6,7 @@ use gtk4::{
     ColumnView, ColumnViewColumn, Label, ListItem, SignalListItemFactory, glib::object::Cast,
 };
 
-pub fn add_col<T, F>(cv: &ColumnView, title: &str, align: Align, getter: F)
+pub fn add_col<T, F>(cv: &ColumnView, title: &str, align: Align, expand: bool, getter: F)
 where
     T: 'static,
     F: Fn(&T) -> String + 'static,
@@ -32,6 +32,6 @@ where
     });
     let col = ColumnViewColumn::new(Some(title), Some(factory));
     col.set_resizable(true);
-    col.set_expand(true);
+    col.set_expand(expand);
     cv.append_column(&col);
 }

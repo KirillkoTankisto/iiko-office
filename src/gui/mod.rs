@@ -21,6 +21,7 @@ const PRIMARY_KEY: &str = if cfg!(target_os = "macos") {
     "<Ctrl>"
 };
 
+#[derive(Clone)]
 pub struct UserData {
     address: String,
     user: String,
@@ -47,8 +48,17 @@ impl GlobalData {
             language: get_language(),
         })
     }
+
     pub fn language(&self) -> CurrentLanguage {
         self.language
+    }
+
+    pub fn get_credentials(&self) -> Option<UserData> {
+        if let Ok(udata) = self.user_data.lock() {
+            Some(udata.clone())
+        } else {
+            None
+        }
     }
 }
 

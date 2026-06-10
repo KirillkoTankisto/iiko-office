@@ -102,8 +102,7 @@ fn cashshifts_callback(
                 None
             }
         } {
-            let cashshifts_list =
-                CashShiftsList::new(address, token, date_from, date_to, "ANY".into());
+            let cashshifts_list = CashShiftsList::new(address, token, date_from, date_to, "ANY");
             let _ = sender.send_blocking(cashshifts_list.run().ok());
         } else {
             let _ = sender.send_blocking(None);
@@ -137,48 +136,56 @@ fn build_empty_table(gdata: Arc<GlobalData>, view: &Notebook) -> (ColumnView, Li
         &column_view,
         translate(gdata.language, OPEN_DATE),
         Align::Start,
+        true,
         |s: &CashShift| reformat_date(&Some(s.openDate.clone())),
     );
     add_col(
         &column_view,
         translate(gdata.language, CLOSE_DATE),
         Align::Start,
+        false,
         |s: &CashShift| reformat_date(&s.closeDate.clone()),
     );
     add_col(
         &column_view,
         translate(gdata.language, ACCEPT_DATE),
         Align::Start,
+        false,
         |s: &CashShift| reformat_date(&s.acceptDate.clone()),
     );
     add_col(
         &column_view,
         translate(gdata.language, SALES_SUM),
         Align::End,
+        false,
         |s: &CashShift| (s.salesCash + s.salesCredit + s.salesCard).to_string(),
     );
     add_col(
         &column_view,
         translate(gdata.language, SALES_CARD),
         Align::End,
+        false,
         |s: &CashShift| s.salesCard.to_string(),
     );
     add_col(
         &column_view,
         translate(gdata.language, SALES_CASH),
         Align::End,
+        false,
         |s: &CashShift| s.salesCash.to_string(),
     );
     add_col(
         &column_view,
         translate(gdata.language, SALES_CREDIT),
         Align::End,
+        false,
         |s: &CashShift| s.salesCredit.to_string(),
     );
     add_col(
         &column_view,
         translate(gdata.language, SHIFT_NUMBER),
         Align::End,
+        false,
         |s: &CashShift| s.sessionNumber.to_string(),
     );
 

@@ -21,11 +21,11 @@ impl Auth {
 
     pub fn run(&self) -> Result<String, Box<dyn Error>> {
         let args = ApiArgs::new([("login", &self.user), ("pass", &self.pass)]);
-        ApiRequest::new(self.address.clone(), "/resto/api/auth".into(), args).run_string()
+        ApiRequest::new(self.address.clone(), "/resto/api/auth", args).run_string()
     }
 }
 
-pub fn get_password_hash(password: &String) -> String {
+pub fn get_password_hash(password: &str) -> String {
     let password_hashed: String = Sha1::digest(password.as_bytes())
         .iter()
         .map(|byte| format!("{:02x}", byte))

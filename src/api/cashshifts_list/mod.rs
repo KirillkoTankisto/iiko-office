@@ -50,7 +50,13 @@ pub struct CashShift {
 }
 
 impl CashShiftsList {
-    pub fn new<S: Into<String>>(address: S, token: S, date_from: S, date_to: S, status: S) -> Self {
+    pub fn new(
+        address: impl Into<String>,
+        token: impl Into<String>,
+        date_from: impl Into<String>,
+        date_to: impl Into<String>,
+        status: impl Into<String>,
+    ) -> Self {
         Self {
             address: address.into(),
             token: token.into(),
@@ -67,12 +73,8 @@ impl CashShiftsList {
             ("openDateTo", &self.date_to),
             ("status", &self.status),
         ]);
-        let mut result: CashShifts = ApiRequest::new(
-            self.address.clone(),
-            "/resto/api/v2/cashshifts/list".into(),
-            args,
-        )
-        .run()?;
+        let mut result: CashShifts =
+            ApiRequest::new(self.address.clone(), "/resto/api/v2/cashshifts/list", args).run()?;
         result.sort_by_key(|shift| shift.sessionNumber);
 
         Ok(result)

@@ -46,7 +46,7 @@ pub struct PaymentInfo {
     pub creationDate: String,
     pub group: PaymentGroup,
     pub accountId: String,
-    pub paymenTypeId: Option<String>,
+    pub paymentTypeId: Option<String>,
     pub sum: u32,
     pub comment: Option<String>,
     pub auth: PaymentAuth,
@@ -70,7 +70,11 @@ pub enum PaymentGroup {
 }
 
 impl CashShiftsPaymentsList {
-    pub fn new<S: Into<String>>(address: S, token: S, id: S) -> Self {
+    pub fn new(
+        address: impl Into<String>,
+        token: impl Into<String>,
+        id: impl Into<String>,
+    ) -> Self {
         Self {
             address: address.into(),
             token: token.into(),
@@ -79,7 +83,7 @@ impl CashShiftsPaymentsList {
     }
 
     pub fn run(&self) -> Result<CashShiftsPayments, Box<dyn Error>> {
-        let args = ApiArgs::new([("key", &self.token), ("hideAccepted", "false")]);
+        let args = ApiArgs::new([("key", self.token.as_str()), ("hideAccepted", "false")]);
         ApiRequest::new(
             self.address.clone(),
             format!("/resto/api/v2/cashshifts/payments/list/{}", self.id),

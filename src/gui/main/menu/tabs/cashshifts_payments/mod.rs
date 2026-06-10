@@ -72,11 +72,23 @@ pub fn create_cashshifts_payments(gdata: Arc<GlobalData>, view: &Notebook, id: S
         if let Ok(received) = receiver.recv().await
             && let Some(payments) = received
         {
-            for payment in payments.cashlessRecords {
+            let all_payments = connect_payments([
+                payments.cashlessRecords,
+                payments.payInRecords,
+                payments.payOutsRecords,
+            ]);
+
+            for payment in all_payments {
                 store.append(&BoxedAnyObject::new(payment));
             }
         }
     });
+}
+
+fn connect_payments<const N: usize>(list: [Vec<CashShiftsPayment>; N]) -> Vec<CashShiftsPayment> {
+    let mut connected: Vec<CashShiftsPayment> = list.into_iter().flatten().collect();
+    connected.sort_by_key(|c| c.info.creationDate.clone());
+    connected
 }
 
 fn build_empty_table(language: CurrentLanguage) -> (ColumnView, ListStore) {
@@ -89,18 +101,21 @@ fn build_empty_table(language: CurrentLanguage) -> (ColumnView, ListStore) {
         &column_view,
         translate(language, DATE),
         Align::Start,
+        true,
         |p: &CashShiftsPayment| reformat_date(&Some(p.info.creationDate.clone())),
     );
     add_col(
         &column_view,
         translate(language, GROUP),
         Align::Center,
+        false,
         |p: &CashShiftsPayment| p.info.group.to_string(),
     );
     add_col(
         &column_view,
         translate(language, SUM),
         Align::End,
+        false,
         |p: &CashShiftsPayment| p.info.sum.to_string(),
     );
 

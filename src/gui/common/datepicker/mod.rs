@@ -6,6 +6,7 @@ use gtk4::Label;
 use gtk4::MenuButton;
 use gtk4::Orientation::Vertical;
 use gtk4::Popover;
+use gtk4::glib;
 use gtk4::prelude::*;
 
 use crate::gui::translation::CurrentLanguage;
@@ -43,30 +44,45 @@ impl DatePicker {
             popup.popdown();
         });
 
-        let cloned_entry = entry.clone();
-        calendar.clone().connect_day_selected(move |calendar| {
-            Self::set_date(calendar, &cloned_entry);
-        });
+        calendar.connect_day_selected(glib::clone!(
+            #[weak]
+            entry,
+            move |calendar| {
+                Self::set_date(calendar, &entry);
+            }
+        ));
 
-        let cloned_entry = entry.clone();
-        calendar.clone().connect_next_month(move |calendar| {
-            Self::set_date(calendar, &cloned_entry);
-        });
+        calendar.connect_next_month(glib::clone!(
+            #[weak]
+            entry,
+            move |calendar| {
+                Self::set_date(calendar, &entry);
+            }
+        ));
 
-        let cloned_entry = entry.clone();
-        calendar.clone().connect_prev_month(move |calendar| {
-            Self::set_date(calendar, &cloned_entry);
-        });
+        calendar.connect_prev_month(glib::clone!(
+            #[weak]
+            entry,
+            move |calendar| {
+                Self::set_date(calendar, &entry);
+            }
+        ));
 
-        let cloned_entry = entry.clone();
-        calendar.clone().connect_next_year(move |calendar| {
-            Self::set_date(calendar, &cloned_entry);
-        });
+        calendar.connect_next_year(glib::clone!(
+            #[weak]
+            entry,
+            move |calendar| {
+                Self::set_date(calendar, &entry);
+            }
+        ));
 
-        let cloned_entry = entry.clone();
-        calendar.clone().connect_prev_year(move |calendar| {
-            Self::set_date(calendar, &cloned_entry);
-        });
+        calendar.connect_prev_year(glib::clone!(
+            #[weak]
+            entry,
+            move |calendar| {
+                Self::set_date(calendar, &entry);
+            }
+        ));
 
         Self {
             label,

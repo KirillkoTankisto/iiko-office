@@ -9,7 +9,7 @@ pub struct ApiArgs<const N: usize> {
 }
 
 impl<const N: usize> ApiArgs<N> {
-    pub fn new<S: Into<String>>(input: [(S, S); N]) -> Self {
+    pub fn new(input: [(impl Into<String>, impl Into<String>); N]) -> Self {
         Self {
             value: input.map(|(key, value)| (key.into(), value.into())),
         }
@@ -23,7 +23,7 @@ pub struct ApiRequest<const N: usize> {
 }
 
 impl<const N: usize> ApiRequest<N> {
-    pub fn new<S: Into<String>>(address: S, path: S, args: ApiArgs<N>) -> Self {
+    pub fn new(address: impl Into<String>, path: impl Into<String>, args: ApiArgs<N>) -> Self {
         Self {
             address: address.into(),
             path: path.into(),
@@ -38,8 +38,6 @@ impl<const N: usize> ApiRequest<N> {
         url.set_path(&self.path);
         url.query_pairs_mut().extend_pairs(&self.args.value);
 
-        println!("{}", url);
-
         let result: T = client.get(url).send()?.error_for_status()?.json()?;
 
         Ok(result)
@@ -51,8 +49,6 @@ impl<const N: usize> ApiRequest<N> {
         let mut url: Url = Url::parse(&self.address)?;
         url.set_path(&self.path);
         url.query_pairs_mut().extend_pairs(&self.args.value);
-
-        println!("{}", url);
 
         let result: String = client.get(url).send()?.error_for_status()?.text()?;
 

@@ -5,7 +5,6 @@ use gtk4::DropDown;
 use gtk4::prelude::*;
 
 use gtk4::Align;
-use gtk4::Box;
 use gtk4::Entry;
 use gtk4::Label;
 use gtk4::Orientation;
@@ -30,16 +29,17 @@ pub struct Credentials {
 
 #[derive(Clone, glib::Downgrade)]
 pub struct LoginBox {
-    pub root: Box,
+    pub root: gtk4::Box,
     address: AddressBox,
     username: Entry,
     password: PasswordEntry,
     button: Button,
+    error: Label,
 }
 
 impl LoginBox {
     pub fn new(gdata: Arc<GlobalData>, stack: Stack) -> Self {
-        let root = Box::builder()
+        let root = gtk4::Box::builder()
             .orientation(Orientation::Vertical)
             .spacing(8)
             .margin_start(64)
@@ -52,16 +52,16 @@ impl LoginBox {
 
         let label = |line| Label::new(Some(translate(gdata.language(), line)));
 
-        let address_box = AddressBox::new();
-        let username_entry = Entry::builder().width_chars(32).build();
-        let password_entry = PasswordEntry::builder().width_chars(32).build();
+        let address = AddressBox::new();
+        let username = Entry::builder().width_chars(32).build();
+        let password = PasswordEntry::builder().width_chars(32).build();
 
         root.append(&label(ADDRESS));
-        root.append(&address_box.root);
+        root.append(&address.root);
         root.append(&label(USERNAME));
-        root.append(&username_entry);
+        root.append(&username);
         root.append(&label(PASSWORD));
-        root.append(&password_entry);
+        root.append(&password);
 
         let button = Button::builder()
             .label(translate(gdata.language(), LOGIN))
@@ -72,12 +72,24 @@ impl LoginBox {
 
         root.append(&button);
 
+        let error = Label::builder()
+            .label("Some Error")
+            .wrap(true)
+            .max_width_chars(32)
+            .wrap_mode(gtk4::pango::WrapMode::Char)
+            .halign(Align::Center)
+            .visible(false)
+            .build();
+
+        root.append(&error);
+
         let login_box = Self {
             root,
-            address: address_box,
-            username: username_entry,
-            password: password_entry,
+            address,
+            username,
+            password,
             button,
+            error,
         };
 
         login_box.button.connect_clicked(glib::clone!(
@@ -85,7 +97,7 @@ impl LoginBox {
             gdata,
             #[weak]
             stack,
-            #[weak(rename_to = login_box)]
+            #[weak]
             login_box,
             move |_| {
                 login_callback(gdata.clone(), stack, login_box);
@@ -114,14 +126,14 @@ impl LoginBox {
 
 #[derive(Clone, glib::Downgrade)]
 pub struct AddressBox {
-    root: Box,
+    root: gtk4::Box,
     dropdown: DropDown,
     entry: Entry,
 }
 
 impl AddressBox {
     fn new() -> Self {
-        let root = Box::builder()
+        let root = gtk4::Box::builder()
             .orientation(Orientation::Horizontal)
             .spacing(8)
             .build();
@@ -152,22 +164,21 @@ impl AddressBox {
 }
 
 fn login_callback(gdata: Arc<GlobalData>, stack: Stack, login_box: LoginBox) {
-    let creds = login_box.get_credentials();
-    if creds.address.is_empty() || creds.username.is_empty() || creds.password.is_empty() {
+    let Credentials {
+        address,
+        username,
+        password,
+    } = login_box.get_credentials();
+
+    if address.is_empty() || username.is_empty() || password.is_empty() {
         return;
     }
 
     login_box.set_sensitive(false);
 
-    let (sender, receiver) = async_channel::bounded::<bool>(1);
+    let (sender, receiver) = async_channel::bounded::<Result<(), String>>(1);
 
     std::thread::spawn(move || {
-        let Credentials {
-            address,
-            username,
-            password,
-        } = creds;
-
         let password_hashed = get_password_hash(&password);
 
         let auth = Auth {
@@ -175,29 +186,42 @@ fn login_callback(gdata: Arc<GlobalData>, stack: Stack, login_box: LoginBox) {
             user: username.clone(),
             pass: password_hashed.clone(),
         };
-        let result = auth.run();
-        if let Ok(token) = result
-            && let Ok(mut locked) = gdata.user_data.lock()
-        {
-            locked.address = address;
-            locked.user = username;
-            locked.password = password_hashed;
-            locked.token = token;
+        let result = auth.run().map_err(|e| e.to_string());
 
-            println!("Login success!");
-            let _ = sender.send_blocking(true);
-        } else {
-            println!("Login failure!");
-            let _ = sender.send_blocking(false);
+        match result {
+            Ok(string) => match gdata.user_data.lock() {
+                Ok(mut locked) => {
+                    locked.address = address;
+                    locked.user = username;
+                    locked.password = password_hashed;
+                    locked.token = string;
+                    let _ = sender.send_blocking(Ok(()));
+                }
+                Err(err) => {
+                    eprintln!("{}", err);
+                    let _ = sender.send_blocking(Err(err.to_string()));
+                }
+            },
+            Err(err) => {
+                eprintln!("{}", err);
+                let _ = sender.send_blocking(Err(err));
+            }
         }
     });
 
     let stack = stack.clone();
     gtk4::glib::spawn_future_local(async move {
-        if let Ok(result) = receiver.recv().await
-            && result
-        {
-            stack.set_visible_child_name("main");
+        if let Ok(result) = receiver.recv().await {
+            match result {
+                Ok(_) => {
+                    stack.set_visible_child_name("main");
+                    login_box.error.set_visible(false);
+                }
+                Err(err) => {
+                    login_box.error.set_label(&err);
+                    login_box.error.set_visible(true);
+                }
+            }
         }
 
         login_box.set_sensitive(true);
