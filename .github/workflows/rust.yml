@@ -1,0 +1,23 @@
+name: Rust
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build-macos:
+    name: build for macOS
+    runs-on: macos-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: install dependencies
+      run: brew install gtk4
+    - name: build
+      run: cargo build --release
