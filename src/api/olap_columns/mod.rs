@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::error::Error;
 
 use serde::{Deserialize};
 use strum_macros::Display;
@@ -40,6 +39,8 @@ pub struct OlapField {
     pub field_type: FieldType
 }
 
+pub type OlapFields = HashMap<String, OlapField>;
+
 impl OlapColumnsRequest {
     pub fn new(address: impl Into<String>, token: impl Into<String>, report_type: ReportType) -> Self
     {
@@ -50,9 +51,9 @@ impl OlapColumnsRequest {
         }
     }
 
-    pub fn run(&self) -> Result<HashMap<String, OlapField>, Box<dyn Error>> {
+    pub fn run(&self) -> Result<HashMap<String, OlapField>, String> {
         let args = ApiArgs::new([("key", self.token.clone()), ("reportType", self.report_type.to_string())]);
 
-        ApiRequest::new(self.address.clone(), "/resto/api/v2/olap/columns", args).run::<HashMap<String, OlapField>>()
+        ApiRequest::new(self.address.clone(), "/resto/api/v2/olap/columns", args).run::<OlapFields>()
     }
 }

@@ -1,6 +1,5 @@
 use reqwest::{Url, blocking::Client};
 use serde::de::DeserializeOwned;
-use std::error::Error;
 
 const UAGENT: &str = concat!("iiko-office-libre/", env!("CARGO_PKG_VERSION"));
 
@@ -31,31 +30,35 @@ impl<const N: usize> ApiRequest<N> {
         }
     }
 
-    pub fn run<T: DeserializeOwned>(&self) -> Result<T, Box<dyn Error>> {
+    pub fn run<T: DeserializeOwned>(&self) -> Result<T, String> {
         let client = build_client()?;
 
-        let mut url: Url = Url::parse(&self.address)?;
+        let mut url: Url = Url::parse(&self.address).map_err(|e| e.to_string())?;
         url.set_path(&self.path);
         url.query_pairs_mut().extend_pairs(&self.args.value);
 
-        let result: T = client.get(url).send()?.error_for_status()?.json()?;
+        let result: T = client
+            .get(url)
+            .send().map_err(|e| e.to_string())?
+            .error_for_status().map_err(|e| e.to_string())?
+            .json().map_err(|e| e.to_string())?;
 
         Ok(result)
     }
 
-    pub fn run_string(&self) -> Result<String, Box<dyn Error>> {
+    pub fn run_string(&self) -> Result<String, String> {
         let client = build_client()?;
 
-        let mut url: Url = Url::parse(&self.address)?;
+        let mut url: Url = Url::parse(&self.address).map_err(|e| e.to_string())?;
         url.set_path(&self.path);
         url.query_pairs_mut().extend_pairs(&self.args.value);
 
-        let result: String = client.get(url).send()?.error_for_status()?.text()?;
+        let result: String = client.get(url).send().map_err(|e| e.to_string())?.error_for_status().map_err(|e| e.to_string())?.text().map_err(|e| e.to_string())?;
 
         Ok(result)
     }
 }
 
-fn build_client() -> Result<Client, Box<dyn Error>> {
-    Ok(Client::builder().user_agent(UAGENT).build()?)
+fn build_client() -> Result<Client, String> {
+    Ok(Client::builder().user_agent(UAGENT).build().map_err(|e| e.to_string())?)
 }

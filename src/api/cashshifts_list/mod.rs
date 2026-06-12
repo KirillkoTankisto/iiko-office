@@ -1,5 +1,4 @@
 use crate::api::api_request::*;
-use std::error::Error;
 
 pub struct CashShiftsList {
     address: String,
@@ -66,7 +65,7 @@ impl CashShiftsList {
         }
     }
 
-    pub fn run(&self) -> Result<CashShifts, Box<dyn Error>> {
+    pub fn run(&self) -> Result<CashShifts, String> {
         let args = ApiArgs::new([
             ("key", &self.token),
             ("openDateFrom", &self.date_from),

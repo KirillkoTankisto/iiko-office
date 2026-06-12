@@ -1,5 +1,3 @@
-use std::error::Error;
-
 use sha1::{Digest, Sha1};
 
 use crate::api::api_request::*;
@@ -19,7 +17,7 @@ impl Auth {
         }
     }
 
-    pub fn run(&self) -> Result<String, Box<dyn Error>> {
+    pub fn run(&self) -> Result<String, String> {
         let args = ApiArgs::new([("login", &self.user), ("pass", &self.pass)]);
         ApiRequest::new(self.address.clone(), "/resto/api/auth", args).run_string()
     }

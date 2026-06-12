@@ -1,5 +1,6 @@
 pub mod cashshifts;
 pub mod cashshifts_payments;
+pub mod olap;
 
 use gtk4::Box;
 use gtk4::Button;
