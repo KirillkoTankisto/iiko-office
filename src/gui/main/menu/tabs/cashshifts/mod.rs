@@ -129,14 +129,13 @@ fn build_empty_table(gdata: Arc<GlobalData>, view: &Notebook) -> (ColumnView, Li
     let store = ListStore::new::<BoxedAnyObject>();
     let selection = SingleSelection::new(Some(store.clone()));
     let column_view = ColumnView::new(Some(selection));
-    column_view.set_hexpand(true);
     column_view.set_halign(Fill);
 
     add_col(
         &column_view,
         translate(gdata.language, OPEN_DATE),
         Align::Start,
-        true,
+        false,
         |s: &CashShift| reformat_date(&Some(s.openDate.clone())),
     );
     add_col(
@@ -185,7 +184,7 @@ fn build_empty_table(gdata: Arc<GlobalData>, view: &Notebook) -> (ColumnView, Li
         &column_view,
         translate(gdata.language, SHIFT_NUMBER),
         Align::End,
-        false,
+        true,
         |s: &CashShift| s.sessionNumber.to_string(),
     );
 

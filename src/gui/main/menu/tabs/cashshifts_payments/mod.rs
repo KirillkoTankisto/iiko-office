@@ -95,13 +95,12 @@ fn build_empty_table(language: CurrentLanguage) -> (ColumnView, ListStore) {
     let store = ListStore::new::<BoxedAnyObject>();
     let selection = SingleSelection::new(Some(store.clone()));
     let column_view = ColumnView::new(Some(selection));
-    column_view.set_hexpand(true);
 
     add_col(
         &column_view,
         translate(language, DATE),
         Align::Start,
-        true,
+        false,
         |p: &CashShiftsPayment| reformat_date(&Some(p.info.creationDate.clone())),
     );
     add_col(
@@ -115,7 +114,7 @@ fn build_empty_table(language: CurrentLanguage) -> (ColumnView, ListStore) {
         &column_view,
         translate(language, SUM),
         Align::End,
-        false,
+        true,
         |p: &CashShiftsPayment| p.info.sum.to_string(),
     );
 

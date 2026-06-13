@@ -33,5 +33,7 @@ where
     let col = ColumnViewColumn::new(Some(title), Some(factory));
     col.set_resizable(true);
     col.set_expand(expand);
+
+    cv.set_halign(Align::Fill);
     cv.append_column(&col);
 }
