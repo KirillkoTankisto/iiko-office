@@ -29,7 +29,7 @@ pub struct Credentials {
 
 #[derive(Clone, glib::Downgrade)]
 pub struct LoginBox {
-    pub root: gtk4::Box,
+    root: gtk4::Box,
     address: AddressBox,
     username: Entry,
     password: PasswordEntry,
@@ -38,7 +38,7 @@ pub struct LoginBox {
 }
 
 impl LoginBox {
-    pub fn new(gdata: Arc<GlobalData>, stack: Stack) -> Self {
+    pub fn new(gdata: Arc<GlobalData>, stack: &Stack) -> Self {
         let root = gtk4::Box::builder()
             .orientation(Orientation::Vertical)
             .spacing(8)
@@ -105,6 +105,10 @@ impl LoginBox {
         ));
 
         login_box
+    }
+
+    pub fn present(&self) -> &gtk4::Box {
+        &self.root
     }
 
     pub fn get_credentials(&self) -> Credentials {

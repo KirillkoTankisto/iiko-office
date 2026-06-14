@@ -8,27 +8,29 @@ mod menubar;
 
 use crate::gui::{
     GlobalData,
-    main::{menu::create_menu, menubar::create_menubar},
+    main::{menu::MainMenu, menubar::MainMenuBar},
 };
 
-pub fn create_main(
-    gdata: Arc<GlobalData>,
-    stack: Stack,
-    app: &Application,
-    window: &ApplicationWindow,
-) -> Box {
-    let main_box = Box::builder()
+pub struct Main {
+    root: Box
+}
+
+impl Main {
+    pub fn new(gdata: Arc<GlobalData>, stack: &Stack, app: &Application, window: &ApplicationWindow) -> Self {
+        let root = Box::builder()
         .orientation(Vertical)
         .spacing(8)
         .halign(Fill)
         .valign(Fill)
         .build();
 
-    let menubar = create_menubar(gdata.clone(), stack, app, window);
-    let menu = create_menu(gdata);
+        root.append(MainMenuBar::new(gdata.clone(), stack.clone(), app, window).present());
+        root.append(MainMenu::new(gdata).present());
 
-    main_box.append(&menubar);
-    main_box.append(&menu);
+        Self {root}
+    }
 
-    main_box
+    pub fn present(&self) -> &Box {
+        &self.root
+    }
 }

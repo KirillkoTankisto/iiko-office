@@ -10,7 +10,7 @@ mod login;
 mod main;
 
 use crate::gui::login::LoginBox;
-use crate::gui::main::create_main;
+use crate::gui::main::Main;
 use crate::gui::translation::CurrentLanguage::{self, EN, RU};
 use std::sync::{Arc, Mutex};
 
@@ -82,10 +82,8 @@ fn build_ui(app: &Application) {
 
     let gdata = GlobalData::new();
 
-    let login = LoginBox::new(gdata.clone(), stack.clone());
-    let main = create_main(gdata.clone(), stack.clone(), app, &window);
-    stack.add_named(&login.root, Some("login"));
-    stack.add_named(&main, Some("main"));
+    stack.add_named(LoginBox::new(gdata.clone(), &stack).present(), Some("login"));
+    stack.add_named(Main::new(gdata.clone(), &stack, app, &window).present(), Some("main"));
 
     stack.set_visible_child_name("login");
     window.present();

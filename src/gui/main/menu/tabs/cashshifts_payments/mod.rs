@@ -1,12 +1,7 @@
 use std::sync::Arc;
 
 use gtk4::Align;
-use gtk4::ColumnView;
-use gtk4::Notebook;
 use gtk4::Orientation::Vertical;
-use gtk4::ScrolledWindow;
-use gtk4::SingleSelection;
-use gtk4::gio::ListStore;
 use gtk4::glib::BoxedAnyObject;
 use gtk4::prelude::*;
 
@@ -15,16 +10,16 @@ use crate::api::cashshifts_payments_list::CashShiftsPayments;
 use crate::api::cashshifts_payments_list::CashShiftsPaymentsList;
 use crate::gui::GlobalData;
 use crate::gui::common::datetime::reformat_date;
-use crate::gui::common::table::add_col;
-use crate::gui::main::menu::tabs::add_tab;
-use crate::gui::translation::CurrentLanguage;
+use crate::gui::common::table::AnyTable;
+use crate::gui::common::table::AnyTableColumn;
+use crate::gui::main::menu::view::MainView;
 use crate::gui::translation::Line::DATE;
 use crate::gui::translation::Line::GROUP;
 use crate::gui::translation::Line::PAYMENTS;
 use crate::gui::translation::Line::SUM;
 use crate::gui::translation::translate;
 
-pub fn create_cashshifts_payments(gdata: Arc<GlobalData>, view: &Notebook, id: String) {
+pub fn create_cashshifts_payments(gdata: Arc<GlobalData>, view: MainView, id: String) {
     let cashshifts_payments_box = gtk4::Box::builder()
         .orientation(Vertical)
         .spacing(8)
@@ -34,21 +29,13 @@ pub fn create_cashshifts_payments(gdata: Arc<GlobalData>, view: &Notebook, id: S
         .margin_bottom(8)
         .build();
 
-    let (table, store) = build_empty_table(gdata.language);
+    let table = AnyTable::new();
+    table.add_column(AnyTableColumn::new(translate(gdata.language(), DATE), Align::Start, false, |p: &CashShiftsPayment| reformat_date(&Some(p.info.creationDate.clone()))));
+    table.add_column(AnyTableColumn::new(translate(gdata.language(), GROUP), Align::Center, false, |p: &CashShiftsPayment| p.info.group.to_string()));
+    table.add_column(AnyTableColumn::new(translate(gdata.language(), SUM), Align::End, false, |p: &CashShiftsPayment| p.info.sum.to_string()));
 
-    let scrolled_window = ScrolledWindow::builder()
-        .child(&table)
-        .hexpand(true)
-        .vexpand(true)
-        .build();
-
-    cashshifts_payments_box.append(&scrolled_window);
-    let tab = add_tab(
-        view,
-        &cashshifts_payments_box,
-        translate(gdata.language, PAYMENTS),
-    );
-    view.append_page(&cashshifts_payments_box, Some(&tab));
+    cashshifts_payments_box.append(table.present());
+    view.add_tab(&cashshifts_payments_box, translate(gdata.language(), PAYMENTS));
 
     let (sender, receiver) = async_channel::bounded::<Option<CashShiftsPayments>>(1);
 
@@ -79,7 +66,7 @@ pub fn create_cashshifts_payments(gdata: Arc<GlobalData>, view: &Notebook, id: S
             ]);
 
             for payment in all_payments {
-                store.append(&BoxedAnyObject::new(payment));
+                table.add_object(&BoxedAnyObject::new(payment));
             }
         }
     });
@@ -89,35 +76,4 @@ fn connect_payments<const N: usize>(list: [Vec<CashShiftsPayment>; N]) -> Vec<Ca
     let mut connected: Vec<CashShiftsPayment> = list.into_iter().flatten().collect();
     connected.sort_by_key(|c| c.info.creationDate.clone());
     connected
-}
-
-fn build_empty_table(language: CurrentLanguage) -> (ColumnView, ListStore) {
-    let store = ListStore::new::<BoxedAnyObject>();
-    let selection = SingleSelection::new(Some(store.clone()));
-    let column_view = ColumnView::new(Some(selection));
-    column_view.set_hexpand(true);
-
-    add_col(
-        &column_view,
-        translate(language, DATE),
-        Align::Start,
-        true,
-        |p: &CashShiftsPayment| reformat_date(&Some(p.info.creationDate.clone())),
-    );
-    add_col(
-        &column_view,
-        translate(language, GROUP),
-        Align::Center,
-        false,
-        |p: &CashShiftsPayment| p.info.group.to_string(),
-    );
-    add_col(
-        &column_view,
-        translate(language, SUM),
-        Align::End,
-        false,
-        |p: &CashShiftsPayment| p.info.sum.to_string(),
-    );
-
-    (column_view, store)
 }

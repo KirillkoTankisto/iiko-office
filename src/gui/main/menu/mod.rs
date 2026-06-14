@@ -4,21 +4,32 @@ use gtk4::{Box, Orientation::Horizontal, prelude::BoxExt};
 
 use crate::gui::{
     GlobalData,
-    main::menu::{buttons::create_buttons, view::create_view},
+    main::menu::{buttons::create_buttons, view::MainView},
 };
 
 mod buttons;
 pub mod tabs;
 mod view;
 
-pub fn create_menu(gdata: Arc<GlobalData>) -> Box {
-    let menu_box = Box::builder().spacing(0).orientation(Horizontal).build();
+pub struct MainMenu {
+    root: Box
+}
 
-    let view = create_view();
-    let buttons = create_buttons(gdata, &view);
+impl MainMenu {
+    pub fn new(gdata: Arc<GlobalData>) -> Self {
+        let root = Box::builder().spacing(0).orientation(Horizontal).build();
 
-    menu_box.append(&buttons);
-    menu_box.append(&view);
+        let view = MainView::new();
 
-    menu_box
+        let buttons = create_buttons(gdata, &view);
+
+        root.append(&buttons);
+        root.append(view.present());
+
+        Self {root}
+    }
+
+    pub fn present(&self) -> &Box {
+        &self.root
+    }
 }
