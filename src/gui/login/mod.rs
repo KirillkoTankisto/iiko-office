@@ -185,11 +185,7 @@ fn login_callback(gdata: Arc<GlobalData>, stack: Stack, login_box: LoginBox) {
     std::thread::spawn(move || {
         let password_hashed = get_password_hash(&password);
 
-        let auth = Auth {
-            address: address.clone(),
-            user: username.clone(),
-            pass: password_hashed.clone(),
-        };
+        let auth = Auth::new(address.clone(), username.clone(), password_hashed.clone());
         let result = auth.run().map_err(|e| e.to_string());
 
         match result {

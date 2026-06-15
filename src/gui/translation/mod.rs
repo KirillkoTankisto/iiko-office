@@ -34,6 +34,8 @@ pub enum Line {
     DATE,
     GROUP,
     SUM,
+    OLAP_REPORTS,
+    OLAP_FIELDS,
 }
 
 const TRANSLATIONS: Translations = &[
@@ -64,6 +66,8 @@ const TRANSLATIONS: Translations = &[
         "Date",
         "Group",
         "Sum",
+        "OLAP Reports",
+        "OLAP Fields",
     ],
     &[
         "Альтернатива iikoOffice для Linux и macOS с открытым исходным кодом",
@@ -92,6 +96,8 @@ const TRANSLATIONS: Translations = &[
         "Дата",
         "Группа",
         "Сумма",
+        "Отчёты OLAP",
+        "Поля OLAP",
     ],
 ];
 

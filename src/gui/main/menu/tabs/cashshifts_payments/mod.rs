@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use gtk4::Align;
-use gtk4::Orientation::Vertical;
 use gtk4::glib::BoxedAnyObject;
 use gtk4::prelude::*;
 
@@ -13,6 +12,7 @@ use crate::gui::common::datetime::reformat_date;
 use crate::gui::common::table::AnyTable;
 use crate::gui::common::table::AnyTableColumn;
 use crate::gui::main::menu::tabs::AnyTab;
+use crate::gui::main::menu::tabs::build_box;
 use crate::gui::main::menu::view::MainView;
 use crate::gui::translation::Line::DATE;
 use crate::gui::translation::Line::GROUP;
@@ -29,14 +29,7 @@ impl AnyTab for CashShiftsPaymentsTab {
         translate(gdata.language(), PAYMENTS)
     }
     fn build(&self, gdata: Arc<GlobalData>, _view: &MainView) -> gtk4::Widget {
-        let cashshifts_payments_box = gtk4::Box::builder()
-            .orientation(Vertical)
-            .spacing(8)
-            .margin_start(8)
-            .margin_end(8)
-            .margin_top(8)
-            .margin_bottom(8)
-            .build();
+        let cashshifts_payments_box = build_box();
 
         let table = AnyTable::new();
         table.add_column(AnyTableColumn::new(

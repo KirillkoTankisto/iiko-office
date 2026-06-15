@@ -1,14 +1,14 @@
 use std::sync::Arc;
 
 use gtk4::Align::{self};
-use gtk4::{Box, Button, Orientation::Vertical, glib::BoxedAnyObject};
+use gtk4::{Button, glib::BoxedAnyObject};
 
 use gtk4::glib;
 use gtk4::prelude::*;
 
 use crate::gui::common::table::{AnyTable, AnyTableColumn};
 use crate::gui::main::menu::tabs::cashshifts_payments::CashShiftsPaymentsTab;
-use crate::gui::main::menu::tabs::{AnyTab, open_tab};
+use crate::gui::main::menu::tabs::{AnyTab, build_box, open_tab};
 use crate::gui::main::menu::view::MainView;
 use crate::gui::translation::Line::{
     ACCEPT_DATE, CLOSE_DATE, OPEN_DATE, REFRESH, SALES_CARD, SALES_CASH, SALES_CREDIT, SALES_SUM,
@@ -36,14 +36,7 @@ impl AnyTab for CashShiftsTab {
     fn build(&self, gdata: Arc<GlobalData>, view: &MainView) -> gtk4::Widget {
         let view = view.clone();
 
-        let cashshifts_box = Box::builder()
-            .orientation(Vertical)
-            .spacing(8)
-            .margin_start(8)
-            .margin_end(8)
-            .margin_top(8)
-            .margin_bottom(8)
-            .build();
+        let cashshifts_box = build_box();
 
         let grid = gtk4::Grid::builder()
             .column_spacing(8)

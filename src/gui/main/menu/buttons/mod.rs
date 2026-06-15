@@ -1,13 +1,14 @@
 use std::sync::Arc;
 
-use gtk4::{Box, Orientation::Vertical, prelude::BoxExt};
+use gtk4::{Box, Orientation::Vertical};
 
 use crate::gui::{
     GlobalData,
-    main::menu::{buttons::cashshifts::CashShiftsButton, view::MainView},
+    main::menu::{buttons::{cashshifts::CashShiftsButton, olap_reports::OlapReportsButton}, view::MainView},
 };
 
 mod cashshifts;
+mod olap_reports;
 
 pub fn create_buttons(gdata: Arc<GlobalData>, view: &MainView) -> Box {
     let buttons_box = Box::builder()
@@ -19,7 +20,12 @@ pub fn create_buttons(gdata: Arc<GlobalData>, view: &MainView) -> Box {
         .orientation(Vertical)
         .build();
 
-    buttons_box.append(CashShiftsButton::new(gdata, view).present());
+    CashShiftsButton::attach_to(&buttons_box, gdata.clone(), view);
+    OlapReportsButton::attach_to(&buttons_box, gdata.clone(), view);
 
     buttons_box
+}
+
+pub trait AnyButton {
+    fn attach_to(a_box: &gtk4::Box, gdata: Arc<GlobalData>, view: &MainView);
 }
