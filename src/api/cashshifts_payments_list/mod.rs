@@ -1,5 +1,3 @@
-use std::error::Error;
-
 use serde::Deserialize;
 use strum_macros::Display;
 
@@ -82,7 +80,7 @@ impl CashShiftsPaymentsList {
         }
     }
 
-    pub fn run(&self) -> Result<CashShiftsPayments, Box<dyn Error>> {
+    pub fn run(&self) -> Result<CashShiftsPayments, String> {
         let args = ApiArgs::new([("key", self.token.as_str()), ("hideAccepted", "false")]);
         ApiRequest::new(
             self.address.clone(),

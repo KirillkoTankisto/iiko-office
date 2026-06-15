@@ -1,5 +1,3 @@
-use std::error::Error;
-
 use crate::api::api_request::*;
 
 pub struct Logout {
@@ -15,7 +13,7 @@ impl Logout {
         }
     }
 
-    pub fn run(&self) -> Result<(), Box<dyn Error>> {
+    pub fn run(&self) -> Result<(), String> {
         let args = ApiArgs::new([("key", &self.token)]);
         _ = ApiRequest::new(self.address.clone(), "/resto/api/logout", args).run_string()?;
         Ok(())
