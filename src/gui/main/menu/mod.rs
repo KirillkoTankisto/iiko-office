@@ -12,7 +12,7 @@ pub mod tabs;
 mod view;
 
 pub struct MainMenu {
-    root: Box
+    root: Box,
 }
 
 impl MainMenu {
@@ -26,7 +26,7 @@ impl MainMenu {
         root.append(&buttons);
         root.append(view.present());
 
-        Self {root}
+        Self { root }
     }
 
     pub fn present(&self) -> &Box {

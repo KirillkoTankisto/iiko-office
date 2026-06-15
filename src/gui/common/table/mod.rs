@@ -44,21 +44,27 @@ impl AnyTable {
 
     pub fn add_column<T, F>(&self, column: AnyTableColumn<'_, T, F>)
     where
-    T: 'static,
-    F: Fn(&T) -> String + 'static,
+        T: 'static,
+        F: Fn(&T) -> String + 'static,
     {
-        let AnyTableColumn { title, align, expand, getter, .. } = column;
+        let AnyTableColumn {
+            title,
+            align,
+            expand,
+            getter,
+            ..
+        } = column;
 
         let factory = SignalListItemFactory::new();
         factory.connect_setup(move |_, item| {
             item.downcast_ref::<ListItem>().unwrap().set_child(Some(
                 &Label::builder()
-                .halign(align)
-                .margin_start(4)
-                .margin_end(4)
-                .margin_top(4)
-                .margin_bottom(4)
-                .build(),
+                    .halign(align)
+                    .margin_start(4)
+                    .margin_end(4)
+                    .margin_top(4)
+                    .margin_bottom(4)
+                    .build(),
             ));
         });
         factory.connect_bind(move |_, item| {
@@ -79,8 +85,7 @@ impl AnyTable {
         &self.scrolled_window
     }
 
-    pub fn add_object(&self, object: &BoxedAnyObject)
-    {
+    pub fn add_object(&self, object: &BoxedAnyObject) {
         self.store.append(object);
     }
 
@@ -90,9 +95,10 @@ impl AnyTable {
 
     pub fn connect<F>(&self, f: F)
     where
-        F: Fn(&ColumnView, u32) + 'static
+        F: Fn(&ColumnView, u32) + 'static,
     {
-        self.column_view.connect_activate(move |column_view, row| f(column_view, row));
+        self.column_view
+            .connect_activate(move |column_view, row| f(column_view, row));
     }
 }
 
@@ -112,7 +118,7 @@ pub struct AnyTableColumn<'a, T, F> {
 
 impl<'a, T, F> AnyTableColumn<'a, T, F>
 where
-F: Fn(&T) -> String,
+    F: Fn(&T) -> String,
 {
     pub fn new(title: &'a str, align: Align, expand: bool, getter: F) -> Self {
         Self {

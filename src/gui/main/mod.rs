@@ -12,22 +12,27 @@ use crate::gui::{
 };
 
 pub struct Main {
-    root: Box
+    root: Box,
 }
 
 impl Main {
-    pub fn new(gdata: Arc<GlobalData>, stack: &Stack, app: &Application, window: &ApplicationWindow) -> Self {
+    pub fn new(
+        gdata: Arc<GlobalData>,
+        stack: &Stack,
+        app: &Application,
+        window: &ApplicationWindow,
+    ) -> Self {
         let root = Box::builder()
-        .orientation(Vertical)
-        .spacing(8)
-        .halign(Fill)
-        .valign(Fill)
-        .build();
+            .orientation(Vertical)
+            .spacing(8)
+            .halign(Fill)
+            .valign(Fill)
+            .build();
 
         root.append(MainMenuBar::new(gdata.clone(), stack.clone(), app, window).present());
         root.append(MainMenu::new(gdata).present());
 
-        Self {root}
+        Self { root }
     }
 
     pub fn present(&self) -> &Box {

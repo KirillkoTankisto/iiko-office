@@ -2,7 +2,10 @@ use std::sync::Arc;
 
 use gtk4::{Box, Orientation::Vertical, prelude::BoxExt};
 
-use crate::gui::{GlobalData, main::menu::{buttons::cashshifts::create_cashshifts_button, view::MainView}};
+use crate::gui::{
+    GlobalData,
+    main::menu::{buttons::cashshifts::CashShiftsButton, view::MainView},
+};
 
 mod cashshifts;
 
@@ -16,9 +19,7 @@ pub fn create_buttons(gdata: Arc<GlobalData>, view: &MainView) -> Box {
         .orientation(Vertical)
         .build();
 
-    let cashshifts = create_cashshifts_button(gdata, view);
-
-    buttons_box.append(&cashshifts);
+    buttons_box.append(CashShiftsButton::new(gdata, view).present());
 
     buttons_box
 }

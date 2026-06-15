@@ -34,10 +34,8 @@ pub struct GlobalData {
     language: CurrentLanguage,
 }
 
-type GlobalDataRef = Arc<GlobalData>;
-
 impl GlobalData {
-    pub fn new() -> GlobalDataRef {
+    pub fn new() -> Arc<GlobalData> {
         Arc::new(GlobalData {
             user_data: Mutex::new(UserData {
                 address: String::default(),
@@ -82,8 +80,14 @@ fn build_ui(app: &Application) {
 
     let gdata = GlobalData::new();
 
-    stack.add_named(LoginBox::new(gdata.clone(), &stack).present(), Some("login"));
-    stack.add_named(Main::new(gdata.clone(), &stack, app, &window).present(), Some("main"));
+    stack.add_named(
+        LoginBox::new(gdata.clone(), &stack).present(),
+        Some("login"),
+    );
+    stack.add_named(
+        Main::new(gdata.clone(), &stack, app, &window).present(),
+        Some("main"),
+    );
 
     stack.set_visible_child_name("login");
     window.present();

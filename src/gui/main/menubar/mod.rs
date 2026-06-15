@@ -10,10 +10,12 @@ use gtk4::glib;
 use crate::{
     api::logout::Logout,
     gui::{
-        GlobalData, about::AboutPopup, translation::{
+        GlobalData,
+        about::AboutPopup,
+        translation::{
             Line::{ABOUT, FILE, LOGOUT},
             translate,
-        }
+        },
     },
 };
 
@@ -22,7 +24,12 @@ pub struct MainMenuBar {
 }
 
 impl MainMenuBar {
-    pub fn new(gdata: Arc<GlobalData>, stack: Stack, app: &Application, window: &ApplicationWindow) -> Self {
+    pub fn new(
+        gdata: Arc<GlobalData>,
+        stack: Stack,
+        app: &Application,
+        window: &ApplicationWindow,
+    ) -> Self {
         let menu = Menu::new();
         let file_menu = Menu::new();
 
@@ -41,15 +48,16 @@ impl MainMenuBar {
             #[weak]
             gdata,
             move |_, _| {
-            Self::logout_callback(gdata, stack);
-        }));
+                Self::logout_callback(gdata, stack);
+            }
+        ));
 
         let window = window.clone();
         about_action.connect_activate(glib::clone!(
             #[weak]
             gdata,
             move |_, _| {
-            AboutPopup::new(&window, gdata.language()).present();
+                AboutPopup::new(&window, gdata.language()).present();
             }
         ));
 
