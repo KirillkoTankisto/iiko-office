@@ -3,9 +3,9 @@ use sha1::{Digest, Sha1};
 use crate::api::api_request::*;
 
 pub struct Auth {
-    pub address: String,
-    pub user: String,
-    pub pass: String,
+    address: String,
+    user: String,
+    pass: String,
 }
 
 impl Auth {

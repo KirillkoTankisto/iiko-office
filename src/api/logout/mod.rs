@@ -1,8 +1,8 @@
 use crate::api::api_request::*;
 
 pub struct Logout {
-    pub address: String,
-    pub token: String,
+    address: String,
+    token: String,
 }
 
 impl Logout {
