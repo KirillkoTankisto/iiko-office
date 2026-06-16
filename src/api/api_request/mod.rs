@@ -37,7 +37,14 @@ impl<const N: usize> ApiRequest<N> {
         url.set_path(&self.path);
         url.query_pairs_mut().extend_pairs(&self.args.value);
 
-        let result: T = client.get(url).send().map_err(|e| e.to_string())?.error_for_status().map_err(|e| e.to_string())?.json().map_err(|e| e.to_string())?;
+        let result: T = client
+            .get(url)
+            .send()
+            .map_err(|e| e.to_string())?
+            .error_for_status()
+            .map_err(|e| e.to_string())?
+            .json()
+            .map_err(|e| e.to_string())?;
 
         Ok(result)
     }
@@ -49,12 +56,22 @@ impl<const N: usize> ApiRequest<N> {
         url.set_path(&self.path);
         url.query_pairs_mut().extend_pairs(&self.args.value);
 
-        let result: String = client.get(url).send().map_err(|e| e.to_string())?.error_for_status().map_err(|e| e.to_string())?.text().map_err(|e| e.to_string())?;
+        let result: String = client
+            .get(url)
+            .send()
+            .map_err(|e| e.to_string())?
+            .error_for_status()
+            .map_err(|e| e.to_string())?
+            .text()
+            .map_err(|e| e.to_string())?;
 
         Ok(result)
     }
 }
 
 fn build_client() -> Result<Client, String> {
-    Client::builder().user_agent(UAGENT).build().map_err(|e| e.to_string())
+    Client::builder()
+        .user_agent(UAGENT)
+        .build()
+        .map_err(|e| e.to_string())
 }

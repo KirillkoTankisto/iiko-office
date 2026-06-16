@@ -4,7 +4,10 @@ use gtk4::{Box, Orientation::Vertical};
 
 use crate::gui::{
     GlobalData,
-    main::menu::{buttons::{cashshifts::CashShiftsButton, olap_reports::OlapReportsButton}, view::MainView},
+    main::menu::{
+        buttons::{cashshifts::CashShiftsButton, olap_reports::OlapReportsButton},
+        view::MainView,
+    },
 };
 
 mod cashshifts;

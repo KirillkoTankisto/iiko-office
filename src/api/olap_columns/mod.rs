@@ -16,7 +16,7 @@ pub enum ReportType {
 #[allow(nonstandard_style)]
 pub struct OlapColumn {
     pub name: String,
-    #[serde(rename="type")]
+    #[serde(rename = "type")]
     pub columnType: String,
     pub aggregationAllowed: bool,
     pub groupingAllowed: bool,
@@ -33,18 +33,24 @@ pub struct OlapColumnRequest {
 }
 
 impl OlapColumnRequest {
-    pub fn new(address: String, token: String, report_type: ReportType) -> Self
-    {
+    pub fn new(address: String, token: String, report_type: ReportType) -> Self {
         Self {
             address,
             token,
-            report_type
+            report_type,
         }
     }
 
-    pub fn run(&self) -> Result<OlapColumns, String>
-    {
-        let args = ApiArgs::new([("key", self.token.clone()), ("reportType", self.report_type.to_string())]);
-        ApiRequest::new(self.address.clone(), "/resto/api/v2/reports/olap/columns", args).run::<OlapColumns>()
+    pub fn run(&self) -> Result<OlapColumns, String> {
+        let args = ApiArgs::new([
+            ("key", self.token.clone()),
+            ("reportType", self.report_type.to_string()),
+        ]);
+        ApiRequest::new(
+            self.address.clone(),
+            "/resto/api/v2/reports/olap/columns",
+            args,
+        )
+        .run::<OlapColumns>()
     }
 }

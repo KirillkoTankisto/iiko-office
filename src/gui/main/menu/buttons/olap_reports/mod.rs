@@ -1,13 +1,16 @@
 use std::sync::Arc;
 
-use gtk4::{Button, glib};
 use gtk4::prelude::*;
+use gtk4::{Button, glib};
 
 use crate::gui::main::menu::tabs::olap_reports::OlapReportsTab;
 use crate::gui::main::menu::tabs::open_tab;
 use crate::gui::translation::Line::OLAP_REPORTS;
 use crate::gui::translation::translate;
-use crate::gui::{GlobalData, main::menu::{buttons::AnyButton, view::MainView}};
+use crate::gui::{
+    GlobalData,
+    main::menu::{buttons::AnyButton, view::MainView},
+};
 
 pub struct OlapReportsButton;
 
@@ -24,9 +27,7 @@ impl AnyButton for OlapReportsButton {
                 widget.connect_destroy(glib::clone!(
                     #[weak]
                     button,
-                    move |_| {
-                        button.set_sensitive(true)
-                    }
+                    move |_| { button.set_sensitive(true) }
                 ));
             }
         ));
