@@ -2,6 +2,8 @@ use std::sync::Arc;
 
 use gtk4::Button;
 use gtk4::DropDown;
+use gtk4::StringList;
+use gtk4::StringObject;
 use gtk4::prelude::*;
 
 use gtk4::Align;
@@ -15,11 +17,16 @@ use gtk4::glib;
 
 use crate::api::auth::*;
 use crate::gui::GlobalData;
+use crate::gui::common::logo::get_logo_image;
+use crate::gui::translation::Line::ADD_SERVER;
 use crate::gui::translation::Line::ADDRESS;
 use crate::gui::translation::Line::LOGIN;
 use crate::gui::translation::Line::PASSWORD;
+use crate::gui::translation::Line::REMOVE_SERVER;
 use crate::gui::translation::Line::USERNAME;
 use crate::gui::translation::translate;
+
+const FORM_WIDTH: i32 = 640;
 
 pub struct Credentials {
     pub address: String,
@@ -41,20 +48,39 @@ impl LoginBox {
     pub fn new(gdata: Arc<GlobalData>, stack: &Stack) -> Self {
         let root = gtk4::Box::builder()
             .orientation(Orientation::Vertical)
-            .spacing(8)
+            .spacing(6)
             .margin_start(64)
             .margin_end(64)
             .margin_bottom(16)
             .margin_top(16)
             .halign(Align::Center)
             .valign(Align::Center)
+            .width_request(FORM_WIDTH)
             .build();
 
-        let label = |line| Label::new(Some(translate(gdata.language(), line)));
+        root.append(&get_logo_image());
+        root.append(
+            &Label::builder()
+                .label("iikoOffice")
+                .margin_bottom(16)
+                .css_classes(["title-2"])
+                .build(),
+        );
 
-        let address = AddressBox::new();
-        let username = Entry::builder().width_chars(32).build();
-        let password = PasswordEntry::builder().width_chars(32).build();
+        let label = |line| {
+            Label::builder()
+                .label(translate(gdata.language(), line))
+                .halign(Align::Start)
+                .margin_top(8)
+                .build()
+        };
+
+        let address = AddressBox::new(gdata.clone());
+        let username = Entry::builder().hexpand(true).halign(Align::Fill).build();
+        let password = PasswordEntry::builder()
+            .hexpand(true)
+            .halign(Align::Fill)
+            .build();
 
         root.append(&label(ADDRESS));
         root.append(&address.root);
@@ -66,7 +92,7 @@ impl LoginBox {
         let button = Button::builder()
             .label(translate(gdata.language(), LOGIN))
             .margin_top(24)
-            .width_request(360)
+            .hexpand(true)
             .halign(Align::Fill)
             .build();
 
@@ -78,6 +104,7 @@ impl LoginBox {
             .max_width_chars(32)
             .wrap_mode(gtk4::pango::WrapMode::Char)
             .halign(Align::Center)
+            .margin_top(8)
             .visible(false)
             .build();
 
@@ -126,44 +153,165 @@ impl LoginBox {
     pub fn set_sensitive(&self, value: bool) {
         self.button.set_sensitive(value);
     }
+
+    pub fn add_server(&self, address: &str) {
+        self.address.add_server(address);
+    }
 }
 
 #[derive(Clone, glib::Downgrade)]
 pub struct AddressBox {
     root: gtk4::Box,
-    dropdown: DropDown,
+    servers: StringList,
+    server_dropdown: DropDown,
+    scheme_dropdown: DropDown,
     entry: Entry,
+    new_server_row: gtk4::Box,
 }
 
 impl AddressBox {
-    fn new() -> Self {
+    fn new(gdata: Arc<GlobalData>) -> Self {
+        let servers = gdata.servers();
+        let language = gdata.language();
+
         let root = gtk4::Box::builder()
+            .orientation(Orientation::Vertical)
+            .spacing(8)
+            .build();
+
+        let server_list = StringList::new(&[]);
+        for server in &servers {
+            server_list.append(server);
+        }
+        server_list.append(translate(language, ADD_SERVER));
+
+        let server_row = gtk4::Box::builder()
             .orientation(Orientation::Horizontal)
             .spacing(8)
             .build();
-        let dropdown = DropDown::from_strings(&["https://", "http://"]);
-        dropdown.set_size_request(90, -1);
-        let entry = Entry::builder().width_chars(32).build();
 
-        root.append(&dropdown);
-        root.append(&entry);
+        let server_dropdown = DropDown::builder()
+            .model(&server_list)
+            .hexpand(true)
+            .halign(Align::Fill)
+            .build();
+
+        let delete_button = Button::builder()
+            .icon_name("user-trash-symbolic")
+            .tooltip_text(translate(gdata.language(), REMOVE_SERVER))
+            .build();
+
+        delete_button.set_sensitive(!servers.is_empty());
+
+        server_row.append(&server_dropdown);
+        server_row.append(&delete_button);
+
+        let new_server_row = gtk4::Box::builder()
+            .orientation(Orientation::Horizontal)
+            .spacing(8)
+            .build();
+        let scheme_dropdown = DropDown::from_strings(&["https://", "http://"]);
+        scheme_dropdown.set_size_request(90, -1);
+        let entry = Entry::builder().hexpand(true).halign(Align::Fill).build();
+        new_server_row.append(&scheme_dropdown);
+        new_server_row.append(&entry);
+
+        root.append(&server_row);
+        root.append(&new_server_row);
+
+        new_server_row.set_visible(servers.is_empty());
+
+        server_dropdown.connect_selected_notify(glib::clone!(
+            #[weak]
+            new_server_row,
+            #[weak]
+            server_list,
+            #[weak]
+            delete_button,
+            move |dropdown| {
+                let sentinel = server_list.n_items().saturating_sub(1);
+                let on_sentinel = dropdown.selected() == sentinel;
+                new_server_row.set_visible(on_sentinel);
+                delete_button.set_sensitive(!on_sentinel);
+            }
+        ));
+
+        delete_button.connect_clicked(glib::clone!(
+            #[strong]
+            gdata,
+            #[weak]
+            server_dropdown,
+            #[weak]
+            server_list,
+            #[weak]
+            new_server_row,
+            #[weak]
+            delete_button,
+            move |_| {
+                let selected = server_dropdown.selected();
+                let sentinel = server_list.n_items().saturating_sub(1);
+
+                if selected >= sentinel {
+                    return;
+                }
+
+                if let Some(address) = server_list.string(selected) {
+                    gdata.remove_server(address.as_str());
+                    gdata.write_config();
+                }
+
+                server_list.remove(selected);
+
+                let on_sentinel =
+                    server_dropdown.selected() == server_list.n_items().saturating_sub(1);
+                new_server_row.set_visible(on_sentinel);
+                delete_button.set_sensitive(!on_sentinel);
+            }
+        ));
 
         Self {
             root,
-            dropdown,
+            servers: server_list,
+            server_dropdown,
+            scheme_dropdown,
             entry,
+            new_server_row,
         }
     }
 
-    fn url(&self) -> String {
-        let scheme = self
-            .dropdown
-            .selected_item()
-            .and_downcast::<gtk4::StringObject>()
-            .map(|s| s.string().to_string())
-            .unwrap_or("https://".into());
+    fn add_server(&self, address: &str) {
+        let sentinel = self.servers.n_items().saturating_sub(1);
 
-        format!("{scheme}{}", self.entry.text())
+        let exists = (0..sentinel)
+            .filter_map(|i| self.servers.string(i))
+            .any(|s| s.as_str() == address);
+        if exists {
+            return;
+        }
+
+        self.servers.splice(sentinel, 0, &[address]);
+    }
+
+    fn is_add_new_selected(&self) -> bool {
+        self.server_dropdown.selected() == self.servers.n_items().saturating_sub(1)
+    }
+
+    fn url(&self) -> String {
+        if self.is_add_new_selected() {
+            let scheme = self
+                .scheme_dropdown
+                .selected_item()
+                .and_downcast::<StringObject>()
+                .map(|s| s.string().to_string())
+                .unwrap_or("https://".into());
+
+            format!("{scheme}{}", self.entry.text())
+        } else {
+            self.servers
+                .string(self.server_dropdown.selected())
+                .map(|s| s.to_string())
+                .unwrap_or_default()
+        }
     }
 }
 
@@ -180,50 +328,59 @@ fn login_callback(gdata: Arc<GlobalData>, stack: Stack, login_box: LoginBox) {
 
     login_box.set_sensitive(false);
 
+    let remembered = address.clone();
+
     let (sender, receiver) = async_channel::bounded::<Result<(), String>>(1);
 
-    std::thread::spawn(move || {
-        let password_hashed = get_password_hash(&password);
+    std::thread::spawn(glib::clone!(
+        #[strong]
+        gdata,
+        move || {
+            let password_hashed = get_password_hash(&password);
 
-        let auth = Auth::new(address.clone(), username.clone(), password_hashed.clone());
-        let result = auth.run().map_err(|e| e.to_string());
+            let auth = Auth::new(address.clone(), username.clone(), password_hashed.clone());
+            let result = auth.run().map_err(|e| e.to_string());
 
-        match result {
-            Ok(string) => match gdata.user_data.lock() {
-                Ok(mut locked) => {
-                    locked.address = address;
-                    locked.user = username;
-                    locked.password = password_hashed;
-                    locked.token = string;
+            match result {
+                Ok(string) => {
+                    gdata.paste_credentials(
+                        super::Address(Some(address)),
+                        super::User(Some(username)),
+                        super::Password(Some(password_hashed)),
+                        super::Token(Some(string)),
+                    );
                     let _ = sender.send_blocking(Ok(()));
                 }
                 Err(err) => {
                     eprintln!("{}", err);
-                    let _ = sender.send_blocking(Err(err.to_string()));
-                }
-            },
-            Err(err) => {
-                eprintln!("{}", err);
-                let _ = sender.send_blocking(Err(err));
-            }
-        }
-    });
-
-    let stack = stack.clone();
-    gtk4::glib::spawn_future_local(async move {
-        if let Ok(result) = receiver.recv().await {
-            match result {
-                Ok(_) => {
-                    stack.set_visible_child_name("main");
-                    login_box.error.set_visible(false);
-                }
-                Err(err) => {
-                    login_box.error.set_label(&err);
-                    login_box.error.set_visible(true);
+                    let _ = sender.send_blocking(Err(err));
                 }
             }
         }
+    ));
 
-        login_box.set_sensitive(true);
-    });
+    gtk4::glib::spawn_future_local(glib::clone!(
+        #[strong]
+        gdata,
+        async move {
+            if let Ok(result) = receiver.recv().await {
+                match result {
+                    Ok(_) => {
+                        stack.set_visible_child_name("main");
+                        login_box.add_server(&remembered);
+                        login_box.error.set_visible(false);
+
+                        gdata.add_server(remembered);
+                        gdata.write_config();
+                    }
+                    Err(err) => {
+                        login_box.error.set_label(&err);
+                        login_box.error.set_visible(true);
+                    }
+                }
+            }
+
+            login_box.set_sensitive(true);
+        }
+    ));
 }

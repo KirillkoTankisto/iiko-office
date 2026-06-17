@@ -55,11 +55,20 @@ impl AnyTable {
             ..
         } = column;
 
+        let xalign: f32 = match align {
+            Align::End => 1.0,
+            Align::Center => 0.5,
+            _ => 0.0,
+        };
+
         let factory = SignalListItemFactory::new();
         factory.connect_setup(move |_, item| {
             item.downcast_ref::<ListItem>().unwrap().set_child(Some(
                 &Label::builder()
                     .halign(align)
+                    .xalign(xalign)
+                    .ellipsize(gtk4::pango::EllipsizeMode::End)
+                    .max_width_chars(40)
                     .margin_start(4)
                     .margin_end(4)
                     .margin_top(4)

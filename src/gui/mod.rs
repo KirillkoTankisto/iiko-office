@@ -9,6 +9,7 @@ pub mod translation;
 mod login;
 mod main;
 
+use crate::cfg::OfficeConfig;
 use crate::gui::login::LoginBox;
 use crate::gui::main::Main;
 use crate::gui::translation::CurrentLanguage::{self, EN, RU};
@@ -29,9 +30,15 @@ pub struct UserData {
     token: String,
 }
 
+pub struct Address(Option<String>);
+pub struct User(Option<String>);
+pub struct Password(Option<String>);
+pub struct Token(Option<String>);
+
 pub struct GlobalData {
     user_data: Mutex<UserData>,
     language: CurrentLanguage,
+    config: Mutex<OfficeConfig>,
 }
 
 impl GlobalData {
@@ -44,6 +51,7 @@ impl GlobalData {
                 token: String::default(),
             }),
             language: get_language(),
+            config: Mutex::new(OfficeConfig::load_config()),
         })
     }
 
@@ -56,6 +64,54 @@ impl GlobalData {
             Some(udata.clone())
         } else {
             None
+        }
+    }
+
+    pub fn paste_credentials(
+        &self,
+        address: Address,
+        user: User,
+        password: Password,
+        token: Token,
+    ) {
+        if let Ok(mut udata) = self.user_data.lock() {
+            if let Some(address) = address.0 {
+                udata.address = address
+            };
+            if let Some(user) = user.0 {
+                udata.user = user
+            };
+            if let Some(password) = password.0 {
+                udata.password = password
+            };
+            if let Some(token) = token.0 {
+                udata.token = token
+            };
+        }
+    }
+
+    pub fn servers(&self) -> Vec<String> {
+        self.config
+            .lock()
+            .map(|config| config.servers().to_vec())
+            .unwrap_or_default()
+    }
+
+    pub fn add_server(&self, address: String) {
+        if let Ok(mut config) = self.config.lock() {
+            config.add_server(address);
+        }
+    }
+
+    pub fn remove_server(&self, address: &str) {
+        if let Ok(mut config) = self.config.lock() {
+            config.remove_server(address);
+        }
+    }
+
+    pub fn write_config(&self) {
+        if let Ok(config) = self.config.lock() {
+            config.write_config();
         }
     }
 }
@@ -75,7 +131,10 @@ fn build_ui(app: &Application) {
         .title("iikoOffice")
         .build();
 
-    let stack = gtk4::Stack::new();
+    let stack = gtk4::Stack::builder()
+        .hhomogeneous(false)
+        .vhomogeneous(false)
+        .build();
     window.set_child(Some(&stack));
 
     let gdata = GlobalData::new();

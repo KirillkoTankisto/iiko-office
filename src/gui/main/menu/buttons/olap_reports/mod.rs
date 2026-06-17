@@ -27,7 +27,7 @@ impl AnyButton for OlapReportsButton {
                 widget.connect_destroy(glib::clone!(
                     #[weak]
                     button,
-                    move |_| { button.set_sensitive(true) }
+                    move |_| button.set_sensitive(true)
                 ));
             }
         ));

@@ -46,15 +46,10 @@ impl AnyTab for OlapReportsTab {
             async_channel::bounded::<Result<HashMap<String, OlapColumn>, String>>(1);
 
         std::thread::spawn(move || {
-            if let Some((address, token)) = {
-                if let Ok(locked) = gdata.user_data.lock() {
-                    Some((locked.address.clone(), locked.token.clone()))
-                } else {
-                    None
-                }
-            } {
-                let _ = sender
-                    .send_blocking(OlapColumnRequest::new(address, token, ReportType::SALES).run());
+            if let Some(udata) = gdata.get_credentials() {
+                let _ = sender.send_blocking(
+                    OlapColumnRequest::new(udata.address, udata.token, ReportType::SALES).run(),
+                );
             } else {
                 let _ = sender.send_blocking(Err("Couldn't lock gdata".to_string()));
             }

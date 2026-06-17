@@ -58,14 +58,9 @@ impl AnyTab for CashShiftsPaymentsTab {
         let id = self.id.clone();
 
         std::thread::spawn(move || {
-            if let Some((address, token)) = {
-                if let Ok(udata) = gdata.user_data.lock() {
-                    Some((udata.address.clone(), udata.token.clone()))
-                } else {
-                    None
-                }
-            } {
-                let cashshifts_payments = CashShiftsPaymentsList::new(address, token, id);
+            if let Some(udata) = gdata.get_credentials() {
+                let cashshifts_payments =
+                    CashShiftsPaymentsList::new(udata.address, udata.token, id);
                 let _ = sender.send_blocking(cashshifts_payments.run().ok());
             } else {
                 eprintln!("Cannot get data from gdata");

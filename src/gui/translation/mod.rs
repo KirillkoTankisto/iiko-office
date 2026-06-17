@@ -10,6 +10,8 @@ pub enum CurrentLanguage {
 pub enum Line {
     COMMENT,
     SOURCE_CODE,
+    ADD_SERVER,
+    REMOVE_SERVER,
     ADDRESS,
     USERNAME,
     PASSWORD,
@@ -42,6 +44,8 @@ const TRANSLATIONS: Translations = &[
     &[
         "iikoOffice Open-Source alternative for Linux and macOS",
         "Source Code",
+        "Add Server",
+        "Remove Server",
         "Server Address",
         "Username",
         "Password",
@@ -72,6 +76,8 @@ const TRANSLATIONS: Translations = &[
     &[
         "Альтернатива iikoOffice для Linux и macOS с открытым исходным кодом",
         "Исходный Код",
+        "Добавить Сервер",
+        "Убрать Сервер",
         "Адрес Сервера",
         "Имя Пользователя",
         "Пароль",

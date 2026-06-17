@@ -157,14 +157,9 @@ fn cashshifts_callback(
     let (sender, receiver) = async_channel::bounded::<Option<CashShifts>>(1);
 
     std::thread::spawn(move || {
-        if let Some((address, token)) = {
-            if let Ok(udata) = gdata.user_data.lock() {
-                Some((udata.address.clone(), udata.token.clone()))
-            } else {
-                None
-            }
-        } {
-            let cashshifts_list = CashShiftsList::new(address, token, date_from, date_to, "ANY");
+        if let Some(udata) = gdata.get_credentials() {
+            let cashshifts_list =
+                CashShiftsList::new(udata.address, udata.token, date_from, date_to, "ANY");
             let _ = sender.send_blocking(cashshifts_list.run().ok());
         } else {
             let _ = sender.send_blocking(None);
