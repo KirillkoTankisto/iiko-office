@@ -34,13 +34,15 @@ impl MainMenuBar {
         let file_menu = Menu::new();
 
         let logout_action = gtk4::gio::SimpleAction::new("logout", None);
+        file_menu.append(
+            Some(translate(gdata.language(), LOGOUT)),
+            Some("app.logout"),
+        );
+
         let about_action = gtk4::gio::SimpleAction::new("about", None);
+        file_menu.append(Some(translate(gdata.language(), ABOUT)), Some("app.about"));
 
-        file_menu.append(Some(translate(gdata.language, LOGOUT)), Some("app.logout"));
-
-        file_menu.append(Some(translate(gdata.language, ABOUT)), Some("app.about"));
-
-        menu.append_submenu(Some(translate(gdata.language, FILE)), &file_menu);
+        menu.append_submenu(Some(translate(gdata.language(), FILE)), &file_menu);
 
         logout_action.connect_activate(glib::clone!(
             #[weak]
@@ -52,10 +54,9 @@ impl MainMenuBar {
             }
         ));
 
-        let window = window.clone();
         about_action.connect_activate(glib::clone!(
             #[weak]
-            gdata,
+            window,
             move |_, _| {
                 AboutPopup::new(&window, gdata.language()).present();
             }
@@ -77,8 +78,8 @@ impl MainMenuBar {
         let (sender, receiver) = async_channel::bounded(1);
 
         std::thread::spawn(move || {
-            if let Ok(locked) = gdata.user_data.lock() {
-                let logout = Logout::new(locked.address.clone(), locked.token.clone());
+            if let Some(udata) = gdata.get_credentials() {
+                let logout = Logout::new(udata.address, udata.token);
 
                 if logout.run().is_ok() {
                     println!("Logout success");
