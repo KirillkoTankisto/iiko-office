@@ -67,6 +67,27 @@ impl<const N: usize> ApiRequest<N> {
 
         Ok(result)
     }
+
+    pub fn run_post<T: DeserializeOwned>(&self, data: String ) -> Result<T, String> {
+        let client = build_client()?;
+
+        let mut url: Url = Url::parse(&self.address).map_err(|e| e.to_string())?;
+        url.set_path(&self.path);
+        url.query_pairs_mut().extend_pairs(&self.args.value);
+
+        let result: T = client
+            .post(url)
+            .header("Content-Type", "application/json")
+            .body(data)
+            .send()
+            .map_err(|e| e.to_string())?
+            .error_for_status()
+            .map_err(|e| e.to_string())?
+            .json()
+            .map_err(|e| e.to_string())?;
+
+        Ok(result)
+    }
 }
 
 fn build_client() -> Result<Client, String> {

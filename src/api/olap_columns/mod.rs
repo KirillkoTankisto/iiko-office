@@ -1,11 +1,11 @@
 use std::collections::HashMap;
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use strum_macros::Display;
 
 use crate::api::api_request::{ApiArgs, ApiRequest};
 
-#[derive(Display)]
+#[derive(Serialize, Display)]
 pub enum ReportType {
     SALES,
     TRANSACTIONS,

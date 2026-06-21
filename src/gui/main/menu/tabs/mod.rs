@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use gtk4::Orientation::Vertical;
+use gtk4::{Button, Orientation::Vertical};
 
 use crate::gui::{GlobalData, main::menu::view::MainView};
 
@@ -14,12 +14,8 @@ pub trait AnyTab {
     fn build(&self, gdata: Arc<GlobalData>, view: &MainView) -> gtk4::Widget;
 }
 
-pub fn open_tab(tab: &dyn AnyTab, gdata: Arc<GlobalData>, view: &MainView) -> gtk4::Widget {
-    let title = tab.title(&gdata);
-    let widget = tab.build(gdata, view);
-    view.add_tab(&widget, title);
-
-    widget
+pub fn open_tab(tab: &dyn AnyTab, gdata: Arc<GlobalData>, view: &MainView, button: Option<&Button>) {
+    view.add_tab(tab, gdata, view, button);
 }
 
 pub fn build_box() -> gtk4::Box {

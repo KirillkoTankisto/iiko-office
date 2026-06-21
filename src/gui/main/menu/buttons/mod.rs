@@ -47,12 +47,7 @@ pub fn create_any_button(
         view,
         move |button| {
             button.set_sensitive(false);
-            let widget = open_tab(anytab, gdata.clone(), &view);
-            widget.connect_destroy(glib::clone!(
-                #[weak]
-                button,
-                move |_| button.set_sensitive(true)
-            ));
+            open_tab(anytab, gdata.clone(), &view, Some(button));
         }
     ));
 

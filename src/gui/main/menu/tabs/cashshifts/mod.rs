@@ -116,7 +116,7 @@ impl AnyTab for CashShiftsTab {
                 let object = item.downcast_ref::<BoxedAnyObject>().unwrap();
                 let id = object.borrow::<CashShift>().id.clone();
 
-                open_tab(&CashShiftsPaymentsTab { id }, gdata.clone(), &view);
+                open_tab(&CashShiftsPaymentsTab { id }, gdata.clone(), &view, None);
             }
         ));
 
