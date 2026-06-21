@@ -26,8 +26,8 @@ pub struct CashShiftsPayments {
 #[allow(nonstandard_style)]
 pub struct CashShiftsPayment {
     pub info: PaymentInfo,
-    pub actualSum: u32,
-    pub originalSum: u32,
+    pub actualSum: f64,
+    pub originalSum: f64,
     pub editedPayAccountId: String,
     pub originalPayAccountId: String,
     pub payAgentId: Option<String>,
@@ -45,7 +45,7 @@ pub struct PaymentInfo {
     pub group: PaymentGroup,
     pub accountId: String,
     pub paymentTypeId: Option<String>,
-    pub sum: u32,
+    pub sum: f64,
     pub comment: Option<String>,
     pub auth: PaymentAuth,
     pub causeEventId: String,

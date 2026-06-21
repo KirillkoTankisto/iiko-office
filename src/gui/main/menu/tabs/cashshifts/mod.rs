@@ -154,15 +154,15 @@ fn cashshifts_callback(
     let date_to = date_to.get_date();
     button.set_sensitive(false);
 
-    let (sender, receiver) = async_channel::bounded::<Option<CashShifts>>(1);
+    let (sender, receiver) = async_channel::bounded::<Result<CashShifts, String>>(1);
 
     std::thread::spawn(move || {
         if let Some(udata) = gdata.get_credentials() {
             let cashshifts_list =
                 CashShiftsList::new(udata.address, udata.token, date_from, date_to, "ANY");
-            let _ = sender.send_blocking(cashshifts_list.run().ok());
+            let _ = sender.send_blocking(cashshifts_list.run());
         } else {
-            let _ = sender.send_blocking(None);
+            let _ = sender.send_blocking(Err("Couldn't get udata (Cash Shifts)".to_string()));
         }
     });
 
@@ -171,11 +171,15 @@ fn cashshifts_callback(
         button,
         async move {
             if let Ok(received) = receiver.recv().await
-                && let Some(cashshifts) = received
             {
-                table.clear_table();
-                for s in cashshifts {
-                    table.add_object(&BoxedAnyObject::new(s));
+                match received {
+                    Ok(cashshifts) => {
+                        table.clear_table();
+                        for shift in cashshifts {
+                            table.add_object(&BoxedAnyObject::new(shift));
+                        }
+                    },
+                    Err(s) => eprintln!("{s}"),
                 }
             }
 
