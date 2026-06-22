@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use gtk4::{Button, Orientation::Vertical};
+use gtk4::{Button, Orientation::{Horizontal, Vertical}};
 
 use crate::gui::{GlobalData, main::menu::view::MainView};
 
@@ -27,4 +27,15 @@ pub fn build_box() -> gtk4::Box {
         .margin_top(8)
         .margin_bottom(8)
         .build()
+}
+
+pub fn build_hbox() -> gtk4::Box {
+    gtk4::Box::builder()
+    .orientation(Horizontal)
+    .spacing(8)
+    .margin_start(8)
+    .margin_end(8)
+    .margin_top(8)
+    .margin_bottom(8)
+    .build()
 }

@@ -1,8 +1,9 @@
 use std::cell::Ref;
 
+use gtk4::gdk::{ContentProvider, DragAction};
 use gtk4::gio::ListStore;
 use gtk4::glib::BoxedAnyObject;
-use gtk4::{Align, ScrolledWindow, SingleSelection, prelude::*};
+use gtk4::{Align, DragSource, ScrolledWindow, SingleSelection, prelude::*};
 use gtk4::{
     ColumnView, ColumnViewColumn, Label, ListItem, SignalListItemFactory, glib::object::Cast,
 };
@@ -108,6 +109,52 @@ impl AnyTable {
     {
         self.column_view
             .connect_activate(move |column_view, row| f(column_view, row));
+    }
+
+    pub fn set_row_drag<T, F>(&self, getter: F)
+    where
+    T: 'static,
+    F: Fn(&T) -> String + 'static,
+    {
+        let columns = self.column_view.columns();
+        let n = columns.n_items();
+        if n == 0 {
+            return;
+        }
+        let col = columns
+        .item(n - 1)
+        .unwrap()
+        .downcast::<ColumnViewColumn>()
+        .unwrap();
+        let factory = col
+        .factory()
+        .unwrap()
+        .downcast::<SignalListItemFactory>()
+        .unwrap();
+
+        let getter = std::rc::Rc::new(getter);
+
+        factory.connect_setup(move |_, item| {
+            let list_item = item.downcast_ref::<ListItem>().unwrap();
+            let Some(child) = list_item.child() else {
+                return;
+            };
+
+            let drag_source = DragSource::new();
+            drag_source.set_actions(DragAction::COPY);
+
+            let weak_item = list_item.downgrade();
+            let getter = getter.clone();
+            drag_source.connect_prepare(move |_, _, _| {
+                let list_item = weak_item.upgrade()?;
+                let obj = list_item.item()?.downcast::<BoxedAnyObject>().ok()?;
+                let value: Ref<T> = obj.borrow();
+                let payload = (*getter)(&value);
+                Some(ContentProvider::for_value(&payload.to_value()))
+            });
+
+            child.add_controller(drag_source);
+        });
     }
 }
 

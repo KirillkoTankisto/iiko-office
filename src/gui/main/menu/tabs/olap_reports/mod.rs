@@ -10,13 +10,13 @@ use crate::{
     api::olap_columns::{OlapColumn, OlapColumnRequest, ReportType},
     gui::{
         GlobalData,
-        common::table::{AnyTable, AnyTableColumn},
+        common::{datepicker::DatePicker, table::{AnyTable, AnyTableColumn}},
         main::menu::{
-            tabs::{AnyTab, build_box},
+            tabs::{AnyTab, build_box, build_hbox},
             view::MainView,
         },
         translation::{
-            Line::{OLAP_FIELDS, OLAP_REPORTS},
+            Line::{DATE_FROM, DATE_TO, OLAP_FIELDS, OLAP_REPORTS},
             translate,
         },
     },
@@ -33,6 +33,24 @@ impl AnyTab for OlapReportsTab {
         let olap_box = build_box();
 
         let table = AnyTable::new();
+
+        let grid = gtk4::Grid::builder()
+            .column_spacing(8)
+            .row_spacing(8)
+            .build();
+
+        let date_from = DatePicker::new(translate(gdata.language(), DATE_FROM), gdata.language());
+        let date_to = DatePicker::new(translate(gdata.language(), DATE_TO), gdata.language());
+
+        date_from.attach_to(&grid, 0);
+        date_to.attach_to(&grid, 1);
+
+        olap_box.append(&grid);
+
+        let content = build_hbox();
+
+        olap_box.append(&content);
+
         table.add_column(AnyTableColumn::new(
             translate(gdata.language(), OLAP_FIELDS),
             Align::Start,
@@ -40,7 +58,9 @@ impl AnyTab for OlapReportsTab {
             |p: &(String, OlapColumn)| p.1.name.clone(),
         ));
 
-        olap_box.append(table.present());
+        table.set_row_drag(|p: &(String, OlapColumn)| p.0.clone());
+
+        content.append(table.present());
 
         let (sender, receiver) =
             async_channel::bounded::<Result<HashMap<String, OlapColumn>, String>>(1);
