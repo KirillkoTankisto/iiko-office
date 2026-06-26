@@ -87,6 +87,6 @@ impl CashShiftsPaymentsList {
             format!("/resto/api/v2/cashshifts/payments/list/{}", self.id),
             args,
         )
-        .run::<CashShiftsPayments>()
+        .run()
     }
 }

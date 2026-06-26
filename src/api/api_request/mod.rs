@@ -68,6 +68,11 @@ impl<const N: usize> ApiRequest<N> {
         Ok(result)
     }
 
+    pub fn run_xml<T: DeserializeOwned>(&self) -> Result<T, String> {
+        let result = Self::run_string(&self)?;
+        quick_xml::de::from_str(&result).map_err(|e| e.to_string())
+    }
+
     pub fn run_post<T: DeserializeOwned>(&self, data: String) -> Result<T, String> {
         let client = build_client()?;
 
