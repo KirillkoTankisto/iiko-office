@@ -1,5 +1,6 @@
 use std::cell::Ref;
 
+use gtk4::glib;
 use gtk4::gdk::{ContentProvider, DragAction};
 use gtk4::gio::ListStore;
 use gtk4::glib::BoxedAnyObject;
@@ -10,7 +11,7 @@ use gtk4::{
 
 use std::marker::PhantomData;
 
-#[derive(Clone)]
+#[derive(Clone, glib::Downgrade)]
 pub struct AnyTable {
     column_view: ColumnView,
     store: ListStore,
@@ -18,7 +19,7 @@ pub struct AnyTable {
 }
 
 impl AnyTable {
-    pub fn new() -> Self {
+    pub fn new(expand: bool) -> Self {
         let store = ListStore::new::<BoxedAnyObject>();
         let selection = SingleSelection::new(Some(store.clone()));
         let column_view = ColumnView::builder()
@@ -33,8 +34,9 @@ impl AnyTable {
             .child(&column_view)
             .halign(Align::Fill)
             .valign(Align::Fill)
-            .hexpand(true)
+            .hexpand(expand)
             .vexpand(true)
+            .propagate_natural_width(!expand)
             .build();
         Self {
             column_view,
@@ -167,7 +169,7 @@ impl AnyTable {
 
 impl Default for AnyTable {
     fn default() -> Self {
-        Self::new()
+        Self::new(true)
     }
 }
 

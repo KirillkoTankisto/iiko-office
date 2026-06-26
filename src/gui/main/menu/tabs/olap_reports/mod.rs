@@ -61,7 +61,7 @@ impl AnyTab for OlapReportsTab {
 
         let content = build_hbox();
 
-        let table = AnyTable::new();
+        let table = AnyTable::new(false);
 
         table.add_column(AnyTableColumn::new(
             translate(gdata.language(), OLAP_FIELDS),
@@ -72,7 +72,7 @@ impl AnyTab for OlapReportsTab {
 
         table.set_row_drag(|p: &(String, OlapColumn)| p.0.clone());
 
-        let report_table = AnyTable::new();
+        let report_table = AnyTable::new(true);
 
         content.append(table.present());
         content.append(report_table.present());

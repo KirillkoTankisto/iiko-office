@@ -31,7 +31,7 @@ impl AnyTab for CashShiftsPaymentsTab {
     fn build(&self, gdata: Arc<GlobalData>, _view: &MainView) -> gtk4::Widget {
         let cashshifts_payments_box = build_box();
 
-        let table = AnyTable::new();
+        let table = AnyTable::new(true);
         table.add_column(AnyTableColumn::new(
             translate(gdata.language(), DATE),
             Align::Start,

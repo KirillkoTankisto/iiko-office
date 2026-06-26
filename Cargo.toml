@@ -1,6 +1,6 @@
 [package]
 name = "iiko-office"
-version = "0.7.0-testing"
+version = "0.7.0"
 edition = "2024"
 repository = "https://github.com/KirillkoTankisto/iiko-office"
 license = "GPL-2.0-or-later"

@@ -51,7 +51,7 @@ impl AnyTab for CashShiftsTab {
         date_to.attach_to(&grid, 1);
         grid.attach(&refresh_button, 1, 2, 1, 1);
 
-        let table = AnyTable::new();
+        let table = AnyTable::new(true);
         table.add_column(AnyTableColumn::new(
             translate(gdata.language(), OPEN_DATE),
             Align::Start,
@@ -102,7 +102,7 @@ impl AnyTab for CashShiftsTab {
         ));
 
         table.connect(glib::clone!(
-            #[strong]
+            #[weak]
             gdata,
             #[strong]
             view,
@@ -116,7 +116,7 @@ impl AnyTab for CashShiftsTab {
                 let object = item.downcast_ref::<BoxedAnyObject>().unwrap();
                 let id = object.borrow::<CashShift>().id.clone();
 
-                open_tab(&CashShiftsPaymentsTab { id }, gdata.clone(), &view, None);
+                open_tab(&CashShiftsPaymentsTab { id }, gdata, &view, None);
             }
         ));
 
@@ -124,17 +124,20 @@ impl AnyTab for CashShiftsTab {
         cashshifts_box.append(table.present());
 
         refresh_button.connect_clicked(glib::clone!(
-            #[strong]
+            #[weak]
             gdata,
-            #[strong]
+            #[weak]
             table,
             move |button| {
+                let from = date_from.get_date();
+                let to = date_to.get_date();
+
                 cashshifts_callback(
-                    gdata.clone(),
+                    gdata,
                     button,
-                    table.clone(),
-                    date_from.clone(),
-                    date_to.clone(),
+                    table,
+                    from,
+                    to,
                 );
             }
         ));
@@ -147,11 +150,9 @@ fn cashshifts_callback(
     gdata: Arc<GlobalData>,
     button: &Button,
     table: AnyTable,
-    date_from: DatePicker,
-    date_to: DatePicker,
+    date_from: String,
+    date_to: String,
 ) {
-    let date_from = date_from.get_date();
-    let date_to = date_to.get_date();
     button.set_sensitive(false);
 
     let (sender, receiver) = async_channel::bounded::<Result<CashShifts, String>>(1);
