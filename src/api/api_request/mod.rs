@@ -68,7 +68,7 @@ impl<const N: usize> ApiRequest<N> {
         Ok(result)
     }
 
-    pub fn run_post<T: DeserializeOwned>(&self, data: String ) -> Result<T, String> {
+    pub fn run_post<T: DeserializeOwned>(&self, data: String) -> Result<T, String> {
         let client = build_client()?;
 
         let mut url: Url = Url::parse(&self.address).map_err(|e| e.to_string())?;

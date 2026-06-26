@@ -103,6 +103,12 @@ impl AnyTable {
         self.store.remove_all();
     }
 
+    pub fn remove_columns(&self) {
+        while let Some(column) = self.column_view.columns().item(0) {
+            self.column_view.remove_column(column.downcast_ref::<ColumnViewColumn>().unwrap());
+        }
+    }
+
     pub fn connect<F>(&self, f: F)
     where
         F: Fn(&ColumnView, u32) + 'static,
@@ -111,10 +117,11 @@ impl AnyTable {
             .connect_activate(move |column_view, row| f(column_view, row));
     }
 
+    // sets dragging for the last added row
     pub fn set_row_drag<T, F>(&self, getter: F)
     where
-    T: 'static,
-    F: Fn(&T) -> String + 'static,
+        T: 'static,
+        F: Fn(&T) -> String + 'static,
     {
         let columns = self.column_view.columns();
         let n = columns.n_items();
@@ -122,15 +129,15 @@ impl AnyTable {
             return;
         }
         let col = columns
-        .item(n - 1)
-        .unwrap()
-        .downcast::<ColumnViewColumn>()
-        .unwrap();
+            .item(n - 1)
+            .unwrap()
+            .downcast::<ColumnViewColumn>()
+            .unwrap();
         let factory = col
-        .factory()
-        .unwrap()
-        .downcast::<SignalListItemFactory>()
-        .unwrap();
+            .factory()
+            .unwrap()
+            .downcast::<SignalListItemFactory>()
+            .unwrap();
 
         let getter = std::rc::Rc::new(getter);
 

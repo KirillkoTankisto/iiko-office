@@ -170,15 +170,14 @@ fn cashshifts_callback(
         #[weak]
         button,
         async move {
-            if let Ok(received) = receiver.recv().await
-            {
+            if let Ok(received) = receiver.recv().await {
                 match received {
                     Ok(cashshifts) => {
                         table.clear_table();
                         for shift in cashshifts {
                             table.add_object(&BoxedAnyObject::new(shift));
                         }
-                    },
+                    }
                     Err(s) => eprintln!("{s}"),
                 }
             }
