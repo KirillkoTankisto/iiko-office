@@ -229,9 +229,9 @@ fn olap_table(table: &AnyTable, answer: &OlapAnswer) {
                 .unwrap_or_default()
             },
         ));
+    }
 
-        for row in &answer.data {
-            table.add_object(&BoxedAnyObject::new(row.clone()));
-        }
+    for row in &answer.data {
+        table.add_object(&BoxedAnyObject::new(row.clone()));
     }
 }
