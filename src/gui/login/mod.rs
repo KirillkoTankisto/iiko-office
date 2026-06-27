@@ -18,6 +18,7 @@ use gtk4::glib;
 use crate::api::auth::*;
 use crate::gui::GlobalData;
 use crate::gui::common::logo::get_logo_image;
+use crate::gui::main::Main;
 use crate::gui::translation::Line::ADD_SERVER;
 use crate::gui::translation::Line::ADDRESS;
 use crate::gui::translation::Line::LOGIN;
@@ -45,7 +46,7 @@ pub struct LoginBox {
 }
 
 impl LoginBox {
-    pub fn new(gdata: Arc<GlobalData>, stack: &Stack) -> Self {
+    pub fn new(gdata: Arc<GlobalData>, stack: &Stack, main: &Main) -> Self {
         let root = gtk4::Box::builder()
             .orientation(Orientation::Vertical)
             .spacing(6)
@@ -123,11 +124,13 @@ impl LoginBox {
             #[strong]
             gdata,
             #[weak]
+            main,
+            #[weak]
             stack,
             #[weak]
             login_box,
             move |_| {
-                login_callback(gdata.clone(), stack, login_box);
+                login_callback(gdata.clone(), stack, login_box, main);
             }
         ));
 
@@ -315,7 +318,7 @@ impl AddressBox {
     }
 }
 
-fn login_callback(gdata: Arc<GlobalData>, stack: Stack, login_box: LoginBox) {
+fn login_callback(gdata: Arc<GlobalData>, stack: Stack, login_box: LoginBox, main: Main) {
     let Credentials {
         address,
         username,
@@ -366,6 +369,7 @@ fn login_callback(gdata: Arc<GlobalData>, stack: Stack, login_box: LoginBox) {
             if let Ok(result) = receiver.recv().await {
                 match result {
                     Ok(_) => {
+                        main.update_status();
                         stack.set_visible_child_name("main");
                         login_box.add_server(&remembered);
                         login_box.error.set_visible(false);

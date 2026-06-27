@@ -139,12 +139,15 @@ fn build_ui(app: &Application) {
 
     let gdata = GlobalData::new();
 
+    let main = Main::new(gdata.clone(), &stack, app, &window);
+    let login = LoginBox::new(gdata.clone(), &stack, &main);
+
     stack.add_named(
-        LoginBox::new(gdata.clone(), &stack).present(),
+        login.present(),
         Some("login"),
     );
     stack.add_named(
-        Main::new(gdata.clone(), &stack, app, &window).present(),
+        main.present(),
         Some("main"),
     );
 

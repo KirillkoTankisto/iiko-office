@@ -112,13 +112,19 @@ impl AnyTab for OlapReportsTab {
         button.connect_clicked(glib::clone!(
             #[weak]
             gdata,
+            #[weak]
+            report_table,
+            #[weak]
+            date_from,
+            #[weak]
+            date_to,
             move |button| {
                 olap_callback(
                     gdata,
                     button,
-                    report_table.clone(),
-                    date_from.clone(),
-                    date_to.clone(),
+                    report_table,
+                    date_from,
+                    date_to,
                 );
             }
         ));
@@ -164,7 +170,10 @@ fn olap_callback(
         }
     });
 
-    glib::spawn_future_local(async move {
+    glib::spawn_future_local(glib::clone!(
+        #[weak]
+        button,
+        async move {
         if let Ok(received) = receiver.recv().await {
             match received {
                 Ok(olap) => {
@@ -173,7 +182,9 @@ fn olap_callback(
                 Err(err) => eprintln!("{err}"),
             }
         }
-    });
+
+        button.set_sensitive(true);
+    }));
 }
 
 fn olap_table(table: &AnyTable, answer: &OlapAnswer) {
