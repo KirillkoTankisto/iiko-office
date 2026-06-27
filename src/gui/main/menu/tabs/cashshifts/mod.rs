@@ -132,13 +132,7 @@ impl AnyTab for CashShiftsTab {
                 let from = date_from.get_date();
                 let to = date_to.get_date();
 
-                cashshifts_callback(
-                    gdata,
-                    button,
-                    table,
-                    from,
-                    to,
-                );
+                cashshifts_callback(gdata, button, table, from, to);
             }
         ));
 

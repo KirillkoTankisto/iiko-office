@@ -20,7 +20,10 @@ impl StatusBar {
             .hexpand(true)
             .build();
 
-        let left = gtk4::Label::builder().halign(gtk4::Align::Start).hexpand(true).build();
+        let left = gtk4::Label::builder()
+            .halign(gtk4::Align::Start)
+            .hexpand(true)
+            .build();
         let right = gtk4::Label::builder().halign(gtk4::Align::End).build();
 
         root.append(&left);

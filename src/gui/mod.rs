@@ -142,14 +142,8 @@ fn build_ui(app: &Application) {
     let main = Main::new(gdata.clone(), &stack, app, &window);
     let login = LoginBox::new(gdata.clone(), &stack, &main);
 
-    stack.add_named(
-        login.present(),
-        Some("login"),
-    );
-    stack.add_named(
-        main.present(),
-        Some("main"),
-    );
+    stack.add_named(login.present(), Some("login"));
+    stack.add_named(main.present(), Some("main"));
 
     stack.set_visible_child_name("login");
     window.present();

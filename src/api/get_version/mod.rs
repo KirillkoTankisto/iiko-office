@@ -3,7 +3,7 @@ use serde::Deserialize;
 use crate::api::api_request::{ApiArgs, ApiRequest};
 
 pub struct GetVersion {
-    address: String
+    address: String,
 }
 
 #[allow(nonstandard_style)]

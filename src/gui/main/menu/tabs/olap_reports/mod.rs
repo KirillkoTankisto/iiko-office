@@ -119,13 +119,7 @@ impl AnyTab for OlapReportsTab {
             #[weak]
             date_to,
             move |button| {
-                olap_callback(
-                    gdata,
-                    button,
-                    report_table,
-                    date_from,
-                    date_to,
-                );
+                olap_callback(gdata, button, report_table, date_from, date_to);
             }
         ));
 
@@ -174,17 +168,18 @@ fn olap_callback(
         #[weak]
         button,
         async move {
-        if let Ok(received) = receiver.recv().await {
-            match received {
-                Ok(olap) => {
-                    olap_table(&report_table, &olap);
+            if let Ok(received) = receiver.recv().await {
+                match received {
+                    Ok(olap) => {
+                        olap_table(&report_table, &olap);
+                    }
+                    Err(err) => eprintln!("{err}"),
                 }
-                Err(err) => eprintln!("{err}"),
             }
-        }
 
-        button.set_sensitive(true);
-    }));
+            button.set_sensitive(true);
+        }
+    ));
 }
 
 fn olap_table(table: &AnyTable, answer: &OlapAnswer) {
@@ -225,8 +220,8 @@ fn olap_table(table: &AnyTable, answer: &OlapAnswer) {
             false,
             move |row: &IndexMap<String, Value>| {
                 row.get(key_owned.as_str())
-                .map(|v| v.to_string())
-                .unwrap_or_default()
+                    .map(|v| v.to_string())
+                    .unwrap_or_default()
             },
         ));
     }

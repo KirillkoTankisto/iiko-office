@@ -17,7 +17,7 @@ use gtk4::glib;
 #[derive(glib::Downgrade)]
 pub struct Main {
     root: Box,
-    statusbar: StatusBar
+    statusbar: StatusBar,
 }
 
 impl Main {
@@ -40,7 +40,7 @@ impl Main {
         root.append(MainMenu::new(gdata).present());
         root.append(statusbar.present());
 
-        Self { root, statusbar}
+        Self { root, statusbar }
     }
 
     pub fn present(&self) -> &Box {

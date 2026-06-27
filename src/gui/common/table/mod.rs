@@ -1,8 +1,8 @@
 use std::cell::Ref;
 
-use gtk4::glib;
 use gtk4::gdk::{ContentProvider, DragAction};
 use gtk4::gio::ListStore;
+use gtk4::glib;
 use gtk4::glib::BoxedAnyObject;
 use gtk4::{Align, DragSource, ScrolledWindow, SingleSelection, prelude::*};
 use gtk4::{
@@ -107,7 +107,8 @@ impl AnyTable {
 
     pub fn remove_columns(&self) {
         while let Some(column) = self.column_view.columns().item(0) {
-            self.column_view.remove_column(column.downcast_ref::<ColumnViewColumn>().unwrap());
+            self.column_view
+                .remove_column(column.downcast_ref::<ColumnViewColumn>().unwrap());
         }
     }
 
