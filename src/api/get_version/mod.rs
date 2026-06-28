@@ -21,9 +21,7 @@ pub struct VersionInfo {
 
 impl<'a> GetVersion<'a> {
     pub fn new(address: &'a str) -> Self {
-        Self {
-            address,
-        }
+        Self { address }
     }
 
     pub fn run(&self) -> Result<VersionInfo, ClientError> {

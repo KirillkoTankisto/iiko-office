@@ -38,6 +38,10 @@ pub enum Line {
     SUM,
     OLAP_REPORTS,
     OLAP_FIELDS,
+    ERROR_ADDRESS,
+    ERROR_INTERNAL,
+    ERROR_REQUEST,
+    ERROR_RESPONSE,
 }
 
 const TRANSLATIONS: Translations = &[
@@ -72,6 +76,10 @@ const TRANSLATIONS: Translations = &[
         "Sum",
         "OLAP Reports",
         "OLAP Fields",
+        "Invalid Address",
+        "Internal Error",
+        "Request Failed",
+        "Failed to parse response",
     ],
     &[
         "Альтернатива iikoOffice для Linux и macOS с открытым исходным кодом",
@@ -104,6 +112,10 @@ const TRANSLATIONS: Translations = &[
         "Сумма",
         "Отчёты OLAP",
         "Поля OLAP",
+        "Неверный Адрес",
+        "Внутренняя Ошибка",
+        "Ошибка Соединения с Сервером",
+        "Не удалось обработать ответ от сервера",
     ],
 ];
 

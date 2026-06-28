@@ -11,9 +11,7 @@ pub struct ApiArgs<'a, const N: usize> {
 
 impl<'a, const N: usize> ApiArgs<'a, N> {
     pub fn new(value: [(&'a str, &'a str); N]) -> Self {
-        Self {
-            value
-        }
+        Self { value }
     }
 }
 

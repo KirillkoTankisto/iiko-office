@@ -1,9 +1,6 @@
 use std::sync::Arc;
 
-use gtk4::{
-    Button,
-    Orientation,
-};
+use gtk4::{Button, Orientation};
 
 use crate::gui::{GlobalData, main::menu::view::MainView};
 

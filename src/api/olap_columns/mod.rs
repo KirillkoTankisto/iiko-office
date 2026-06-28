@@ -49,11 +49,7 @@ impl<'a> OlapColumnRequest<'a> {
             ("key", self.token),
             ("reportType", self.report_type.as_str()),
         ]);
-        ApiRequest::new(
-            self.address,
-            "/resto/api/v2/reports/olap/columns",
-            args,
-        )
-        .run::<OlapColumns>()
+        ApiRequest::new(self.address, "/resto/api/v2/reports/olap/columns", args)
+            .run::<OlapColumns>()
     }
 }

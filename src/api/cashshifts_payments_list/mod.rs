@@ -69,16 +69,8 @@ pub enum PaymentGroup {
 }
 
 impl<'a> CashShiftsPaymentsList<'a> {
-    pub fn new(
-        address: &'a str,
-        token: &'a str,
-        id: &'a str,
-    ) -> Self {
-        Self {
-            address,
-            token,
-            id,
-        }
+    pub fn new(address: &'a str, token: &'a str, id: &'a str) -> Self {
+        Self { address, token, id }
     }
 
     pub fn run(&self) -> Result<CashShiftsPayments, ClientError> {

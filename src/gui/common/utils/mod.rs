@@ -24,15 +24,22 @@ pub fn spawn_workflow<T, W, U>(
 
     let (sender, receiver) = async_channel::bounded(1);
 
-    std::thread::spawn(move || {
-        let result = gdata.get_credentials().and_then(work);
-        let _ = sender.send_blocking(result);
-    });
+    std::thread::spawn(glib::clone!(
+        #[weak]
+        gdata,
+        move || {
+            let result = gdata.get_credentials().and_then(work);
+            let _ = sender.send_blocking(result);
+        }
+    ));
 
     glib::spawn_future_local(async move {
         match receiver.recv().await {
             Ok(Ok(v)) => ui(v),
-            Ok(Err(e)) => eprintln!("{e}"),
+            Ok(Err(e)) => {
+                eprintln!("{e}");
+                gdata.message_send(e);
+            }
             Err(_) => {}
         }
         if let Some(b) = button {

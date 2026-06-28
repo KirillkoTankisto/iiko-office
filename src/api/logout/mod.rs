@@ -7,10 +7,7 @@ pub struct Logout<'a> {
 
 impl<'a> Logout<'a> {
     pub fn new(address: &'a str, token: &'a str) -> Self {
-        Self {
-            address,
-            token,
-        }
+        Self { address, token }
     }
 
     pub fn run(&self) -> Result<(), ClientError> {

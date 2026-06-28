@@ -1,7 +1,11 @@
 use std::{collections::HashSet, sync::Arc};
 
 use gtk4::{
-    Align::{self}, Button, Orientation::{Horizontal, Vertical}, glib::{self, BoxedAnyObject, object::Cast}, prelude::*
+    Align::{self},
+    Button,
+    Orientation::{Horizontal, Vertical},
+    glib::{self, BoxedAnyObject, object::Cast},
+    prelude::*,
 };
 use indexmap::IndexMap;
 use serde_json::Value;

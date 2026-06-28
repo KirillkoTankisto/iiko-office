@@ -71,10 +71,11 @@ impl DragSpace {
             items,
             move |_, n_press, _, _| {
                 if n_press == 2
-                    && let Some(idx) = Self::child_index(&container, &cell) {
-                        items.borrow_mut().remove(idx);
-                        container.remove(&cell);
-                    }
+                    && let Some(idx) = Self::child_index(&container, &cell)
+                {
+                    items.borrow_mut().remove(idx);
+                    container.remove(&cell);
+                }
             }
         ));
         cell.add_controller(click);

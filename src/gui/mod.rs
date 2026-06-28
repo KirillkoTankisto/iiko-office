@@ -12,6 +12,7 @@ mod main;
 use crate::api::error::ClientError;
 use crate::api::error::IikoError::UdataFailed;
 use crate::cfg::OfficeConfig;
+use crate::gui::common::message_bus::MessageBus;
 use crate::gui::login::LoginBox;
 use crate::gui::main::Main;
 use crate::gui::translation::CurrentLanguage::{self, EN, RU};
@@ -36,6 +37,7 @@ pub struct GlobalData {
     user_data: Mutex<UserData>,
     language: CurrentLanguage,
     config: Mutex<OfficeConfig>,
+    message_bus: MessageBus,
 }
 
 impl GlobalData {
@@ -49,6 +51,7 @@ impl GlobalData {
             }),
             language: get_language(),
             config: Mutex::new(OfficeConfig::load_config()),
+            message_bus: MessageBus::new(),
         })
     }
 
@@ -107,6 +110,14 @@ impl GlobalData {
             config.write_config();
         }
     }
+
+    pub fn message_send(&self, error: ClientError) {
+        self.message_bus.emit(error);
+    }
+
+    pub fn message_attach(&self, window: &ApplicationWindow) {
+        self.message_bus.attach(window, self.language);
+    }
 }
 
 pub fn start_gui() {
@@ -131,6 +142,7 @@ fn build_ui(app: &Application) {
     window.set_child(Some(&stack));
 
     let gdata = GlobalData::new();
+    gdata.message_attach(&window);
 
     let main = Main::new(gdata.clone(), &stack, app, &window);
     let login = LoginBox::new(gdata.clone(), &stack, &main);
