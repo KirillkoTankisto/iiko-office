@@ -1,10 +1,7 @@
 use std::{collections::HashSet, sync::Arc};
 
 use gtk4::{
-    Align::{self},
-    Button,
-    glib::{self, BoxedAnyObject, object::Cast},
-    prelude::*,
+    Align::{self}, Button, Orientation::{Horizontal, Vertical}, glib::{self, BoxedAnyObject, object::Cast}, prelude::*
 };
 use indexmap::IndexMap;
 use serde_json::Value;
@@ -23,7 +20,7 @@ use crate::{
             utils::spawn_workflow,
         },
         main::menu::{
-            tabs::{AnyTab, build_box, build_hbox},
+            tabs::{AnyTab, build_box},
             view::MainView,
         },
         translation::{
@@ -41,7 +38,7 @@ impl AnyTab for OlapReportsTab {
     }
 
     fn build(&self, gdata: Arc<GlobalData>, _view: &MainView) -> gtk4::Widget {
-        let olap_box = build_box();
+        let olap_box = build_box(Vertical);
 
         let grid = gtk4::Grid::builder()
             .column_spacing(8)
@@ -58,7 +55,7 @@ impl AnyTab for OlapReportsTab {
 
         olap_box.append(&grid);
 
-        let content = build_hbox();
+        let content = build_box(Horizontal);
 
         let table = AnyTable::new(false);
 

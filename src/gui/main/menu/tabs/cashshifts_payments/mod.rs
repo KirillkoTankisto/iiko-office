@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use gtk4::Align;
+use gtk4::Orientation::Vertical;
 use gtk4::glib::BoxedAnyObject;
 use gtk4::prelude::*;
 
@@ -29,7 +30,7 @@ impl AnyTab for CashShiftsPaymentsTab {
         translate(gdata.language(), PAYMENTS)
     }
     fn build(&self, gdata: Arc<GlobalData>, _view: &MainView) -> gtk4::Widget {
-        let cashshifts_payments_box = build_box();
+        let cashshifts_payments_box = build_box(Vertical);
 
         let table = AnyTable::new(true);
         table.add_column(AnyTableColumn::new(

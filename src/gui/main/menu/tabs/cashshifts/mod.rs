@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use gtk4::Align::{self};
+use gtk4::Orientation::Vertical;
 use gtk4::{Button, glib::BoxedAnyObject};
 
 use gtk4::glib;
@@ -37,7 +38,7 @@ impl AnyTab for CashShiftsTab {
     fn build(&self, gdata: Arc<GlobalData>, view: &MainView) -> gtk4::Widget {
         let view = view.clone();
 
-        let cashshifts_box = build_box();
+        let cashshifts_box = build_box(Vertical);
 
         let grid = gtk4::Grid::builder()
             .column_spacing(8)
