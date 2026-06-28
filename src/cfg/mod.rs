@@ -31,7 +31,8 @@ impl OfficeConfig {
         self.servers.clone()
     }
 
-    pub fn add_server(&mut self, address: String) {
+    pub fn add_server(&mut self, address: &str) {
+        let address = address.to_string();
         if !self.servers.contains(&address) {
             self.servers.push(address)
         }

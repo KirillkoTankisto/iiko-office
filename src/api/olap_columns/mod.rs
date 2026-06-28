@@ -3,7 +3,10 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 use strum_macros::Display;
 
-use crate::api::api_request::{ApiArgs, ApiRequest};
+use crate::api::{
+    api_request::{ApiArgs, ApiRequest},
+    error::ClientError,
+};
 
 #[derive(Serialize, Display)]
 pub enum ReportType {
@@ -26,28 +29,28 @@ pub struct OlapColumn {
 
 pub type OlapColumns = HashMap<String, OlapColumn>;
 
-pub struct OlapColumnRequest {
-    address: String,
-    token: String,
-    report_type: ReportType,
+pub struct OlapColumnRequest<'a> {
+    address: &'a str,
+    token: &'a str,
+    report_type: String,
 }
 
-impl OlapColumnRequest {
-    pub fn new(address: String, token: String, report_type: ReportType) -> Self {
+impl<'a> OlapColumnRequest<'a> {
+    pub fn new(address: &'a str, token: &'a str, report_type: ReportType) -> Self {
         Self {
             address,
             token,
-            report_type,
+            report_type: report_type.to_string(),
         }
     }
 
-    pub fn run(&self) -> Result<OlapColumns, String> {
+    pub fn run(&self) -> Result<OlapColumns, ClientError> {
         let args = ApiArgs::new([
-            ("key", self.token.clone()),
-            ("reportType", self.report_type.to_string()),
+            ("key", self.token),
+            ("reportType", self.report_type.as_str()),
         ]);
         ApiRequest::new(
-            self.address.clone(),
+            self.address,
             "/resto/api/v2/reports/olap/columns",
             args,
         )

@@ -1,103 +1,90 @@
 use reqwest::{Url, blocking::Client};
 use serde::de::DeserializeOwned;
 
+use crate::api::error::ClientError;
+
 const UAGENT: &str = concat!("iiko-office-libre/", env!("CARGO_PKG_VERSION"));
 
-pub struct ApiArgs<const N: usize> {
-    value: [(String, String); N],
+pub struct ApiArgs<'a, const N: usize> {
+    value: [(&'a str, &'a str); N],
 }
 
-impl<const N: usize> ApiArgs<N> {
-    pub fn new(input: [(impl Into<String>, impl Into<String>); N]) -> Self {
+impl<'a, const N: usize> ApiArgs<'a, N> {
+    pub fn new(value: [(&'a str, &'a str); N]) -> Self {
         Self {
-            value: input.map(|(key, value)| (key.into(), value.into())),
+            value
         }
     }
 }
 
-pub struct ApiRequest<const N: usize> {
-    address: String,
-    path: String,
-    args: ApiArgs<N>,
+pub struct ApiRequest<'a, const N: usize> {
+    address: &'a str,
+    path: &'a str,
+    args: ApiArgs<'a, N>,
 }
 
-impl<const N: usize> ApiRequest<N> {
-    pub fn new(address: impl Into<String>, path: impl Into<String>, args: ApiArgs<N>) -> Self {
+impl<'a, const N: usize> ApiRequest<'a, N> {
+    pub fn new(address: &'a str, path: &'a str, args: ApiArgs<'a, N>) -> Self {
         Self {
-            address: address.into(),
-            path: path.into(),
+            address,
+            path,
             args,
         }
     }
 
-    pub fn run<T: DeserializeOwned>(&self) -> Result<T, String> {
+    pub fn run<T: DeserializeOwned>(&self) -> Result<T, ClientError> {
         let client = build_client()?;
 
-        let mut url: Url = Url::parse(&self.address).map_err(|e| e.to_string())?;
-        url.set_path(&self.path);
-        url.query_pairs_mut().extend_pairs(&self.args.value);
+        let url = parse_url(self.address, self.path, &self.args)?;
 
-        let result: T = client
-            .get(url)
-            .send()
-            .map_err(|e| e.to_string())?
-            .error_for_status()
-            .map_err(|e| e.to_string())?
-            .json()
-            .map_err(|e| e.to_string())?;
+        let result: T = client.get(url).send()?.error_for_status()?.json()?;
 
         Ok(result)
     }
 
-    pub fn run_string(&self) -> Result<String, String> {
+    pub fn run_string(&self) -> Result<String, ClientError> {
         let client = build_client()?;
 
-        let mut url: Url = Url::parse(&self.address).map_err(|e| e.to_string())?;
-        url.set_path(&self.path);
-        url.query_pairs_mut().extend_pairs(&self.args.value);
+        let url = parse_url(self.address, self.path, &self.args)?;
 
-        let result: String = client
-            .get(url)
-            .send()
-            .map_err(|e| e.to_string())?
-            .error_for_status()
-            .map_err(|e| e.to_string())?
-            .text()
-            .map_err(|e| e.to_string())?;
+        let result: String = client.get(url).send()?.error_for_status()?.text()?;
 
         Ok(result)
     }
 
-    pub fn run_xml<T: DeserializeOwned>(&self) -> Result<T, String> {
-        let result = Self::run_string(&self)?;
-        quick_xml::de::from_str(&result).map_err(|e| e.to_string())
+    pub fn run_xml<T: DeserializeOwned>(&self) -> Result<T, ClientError> {
+        let result = Self::run_string(self)?;
+        Ok(quick_xml::de::from_str(&result)?)
     }
 
-    pub fn run_post<T: DeserializeOwned>(&self, data: String) -> Result<T, String> {
+    pub fn run_post<T: DeserializeOwned>(&self, data: String) -> Result<T, ClientError> {
         let client = build_client()?;
 
-        let mut url: Url = Url::parse(&self.address).map_err(|e| e.to_string())?;
-        url.set_path(&self.path);
-        url.query_pairs_mut().extend_pairs(&self.args.value);
+        let url = parse_url(self.address, self.path, &self.args)?;
 
         let result: T = client
             .post(url)
             .header("Content-Type", "application/json")
             .body(data)
-            .send()
-            .map_err(|e| e.to_string())?
-            .error_for_status()
-            .map_err(|e| e.to_string())?
-            .json()
-            .map_err(|e| e.to_string())?;
+            .send()?
+            .error_for_status()?
+            .json()?;
 
         Ok(result)
     }
 }
 
-fn build_client() -> Result<Client, String> {
-    Client::builder()
-        .user_agent(UAGENT)
-        .build()
-        .map_err(|e| e.to_string())
+fn build_client() -> Result<Client, ClientError> {
+    Ok(Client::builder().user_agent(UAGENT).build()?)
+}
+
+fn parse_url<const N: usize>(
+    address: &str,
+    path: &str,
+    args: &ApiArgs<N>,
+) -> Result<Url, url::ParseError> {
+    let mut url: Url = Url::parse(address)?;
+    url.set_path(path);
+    url.query_pairs_mut().extend_pairs(&args.value);
+    Ok(url)
 }

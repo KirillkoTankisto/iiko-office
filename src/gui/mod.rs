@@ -9,6 +9,8 @@ pub mod translation;
 mod login;
 mod main;
 
+use crate::api::error::ClientError;
+use crate::api::error::IikoError::UdataFailed;
 use crate::cfg::OfficeConfig;
 use crate::gui::login::LoginBox;
 use crate::gui::main::Main;
@@ -29,11 +31,6 @@ pub struct UserData {
     password: String,
     token: String,
 }
-
-pub struct Address(Option<String>);
-pub struct User(Option<String>);
-pub struct Password(Option<String>);
-pub struct Token(Option<String>);
 
 pub struct GlobalData {
     user_data: Mutex<UserData>,
@@ -59,34 +56,30 @@ impl GlobalData {
         self.language
     }
 
-    pub fn get_credentials(&self) -> Option<UserData> {
-        if let Ok(udata) = self.user_data.lock() {
-            Some(udata.clone())
-        } else {
-            None
-        }
+    pub fn get_credentials(&self) -> Result<UserData, ClientError> {
+        Ok(self.user_data.lock().map_err(|_| UdataFailed)?.clone())
     }
 
     pub fn paste_credentials(
         &self,
-        address: Address,
-        user: User,
-        password: Password,
-        token: Token,
+        address: Option<&str>,
+        user: Option<&str>,
+        password: Option<&str>,
+        token: Option<&str>,
     ) {
         if let Ok(mut udata) = self.user_data.lock() {
-            if let Some(address) = address.0 {
-                udata.address = address
-            };
-            if let Some(user) = user.0 {
-                udata.user = user
-            };
-            if let Some(password) = password.0 {
-                udata.password = password
-            };
-            if let Some(token) = token.0 {
-                udata.token = token
-            };
+            macro_rules! paste_if_some {
+                ($dst:ident, $field:ident, $value:expr) => {
+                    if let Some(value) = $value {
+                        $dst.$field = value.into();
+                    }
+                };
+            }
+
+            paste_if_some!(udata, address, address);
+            paste_if_some!(udata, user, user);
+            paste_if_some!(udata, password, password);
+            paste_if_some!(udata, token, token);
         }
     }
 
@@ -97,7 +90,7 @@ impl GlobalData {
             .unwrap_or_default()
     }
 
-    pub fn add_server(&self, address: String) {
+    pub fn add_server(&self, address: &str) {
         if let Ok(mut config) = self.config.lock() {
             config.add_server(address);
         }

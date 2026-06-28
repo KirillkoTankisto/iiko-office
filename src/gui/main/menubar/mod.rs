@@ -12,6 +12,7 @@ use crate::{
     gui::{
         GlobalData,
         about::AboutPopup,
+        common::utils::spawn_workflow,
         translation::{
             Line::{ABOUT, FILE, LOGOUT},
             translate,
@@ -75,25 +76,13 @@ impl MainMenuBar {
     }
 
     fn logout_callback(gdata: Arc<GlobalData>, stack: Stack) {
-        let (sender, receiver) = async_channel::bounded(1);
-
-        std::thread::spawn(move || {
-            if let Some(udata) = gdata.get_credentials() {
-                let logout = Logout::new(udata.address, udata.token);
-
-                if logout.run().is_ok() {
-                    println!("Logout success");
-                } else {
-                    println!("Logout failure");
-                }
-            }
-
-            let _ = sender.send_blocking(());
-        });
-
-        gtk4::glib::spawn_future_local(async move {
-            let _ = receiver.recv().await;
-            stack.set_visible_child_name("login");
-        });
+        spawn_workflow(
+            gdata,
+            None,
+            move |udata| Logout::new(&udata.address, &udata.token).run(),
+            move |_| {
+                stack.set_visible_child_name("login");
+            },
+        );
     }
 }

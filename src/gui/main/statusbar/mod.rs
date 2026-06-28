@@ -1,6 +1,9 @@
 use std::sync::Arc;
 
-use crate::{api::get_version::GetVersion, gui::GlobalData};
+use crate::{
+    api::get_version::GetVersion,
+    gui::{GlobalData, common::utils::spawn_workflow},
+};
 use gtk4::{glib, prelude::BoxExt};
 
 #[derive(glib::Downgrade)]
@@ -38,42 +41,30 @@ impl StatusBar {
     }
 
     pub fn update(&self) {
-        if let Some(udata) = self.gdata.get_credentials() {
-            let (sender, receiver) = async_channel::bounded(1);
+        let sleft = self.left.clone();
+        let sright = self.right.clone();
 
-            std::thread::spawn(move || {
-                _ = sender.send_blocking(GetVersion::new(udata.address).run());
-            });
-
-            let sleft = &self.left;
-            let sright = &self.right;
-
-            glib::spawn_future_local(glib::clone!(
-                #[weak]
-                sleft,
-                #[weak]
-                sright,
-                async move {
-                    if let Ok(received) = receiver.recv().await {
-                        match received {
-                            Ok(version) => {
-                                let left = format!(
-                                    "{} {}, {} ({})",
-                                    version.version,
-                                    version.edition,
-                                    version.serverName,
-                                    version.computerName
-                                );
-                                let right = format!("{}, {}", udata.user, version.serverState);
-                                sleft.set_label(&left);
-                                sright.set_label(&right);
-                            }
-                            Err(e) => eprintln!("{e}"),
-                        }
-                    }
-                }
-            ));
-        }
+        spawn_workflow(
+            self.gdata.clone(),
+            None,
+            move |udata| {
+                GetVersion::new(&udata.address)
+                    .run()
+                    .map(|result| (udata.user.clone(), result))
+            },
+            move |version| {
+                let left = format!(
+                    "{} {}, {} ({})",
+                    version.1.version,
+                    version.1.edition,
+                    version.1.serverName,
+                    version.1.computerName
+                );
+                let right = format!("{}, {}", version.0, version.1.serverState);
+                sleft.set_label(&left);
+                sright.set_label(&right);
+            },
+        );
     }
 
     pub fn present(&self) -> &gtk4::Box {

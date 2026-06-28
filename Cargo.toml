@@ -1,6 +1,6 @@
 [package]
 name = "iiko-office"
-version = "0.8.0"
+version = "0.9.0"
 edition = "2024"
 repository = "https://github.com/KirillkoTankisto/iiko-office"
 license = "GPL-2.0-or-later"
@@ -15,6 +15,8 @@ serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.150"
 sha1 = "0.11.0"
 strum_macros = "0.28.0"
+thiserror = "2.0.18"
+url = "2.5.8"
 
 [profile.release]
 strip = true

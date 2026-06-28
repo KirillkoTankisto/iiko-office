@@ -4,12 +4,13 @@ use strum_macros::Display;
 use crate::api::{
     api_request::{ApiArgs, ApiRequest},
     cashshifts_list::SessionStatus,
+    error::ClientError,
 };
 
-pub struct CashShiftsPaymentsList {
-    address: String,
-    token: String,
-    id: String,
+pub struct CashShiftsPaymentsList<'a> {
+    address: &'a str,
+    token: &'a str,
+    id: &'a str,
 }
 
 #[derive(Deserialize, Debug)]
@@ -67,24 +68,24 @@ pub enum PaymentGroup {
     PAYIN,
 }
 
-impl CashShiftsPaymentsList {
+impl<'a> CashShiftsPaymentsList<'a> {
     pub fn new(
-        address: impl Into<String>,
-        token: impl Into<String>,
-        id: impl Into<String>,
+        address: &'a str,
+        token: &'a str,
+        id: &'a str,
     ) -> Self {
         Self {
-            address: address.into(),
-            token: token.into(),
-            id: id.into(),
+            address,
+            token,
+            id,
         }
     }
 
-    pub fn run(&self) -> Result<CashShiftsPayments, String> {
-        let args = ApiArgs::new([("key", self.token.as_str()), ("hideAccepted", "false")]);
+    pub fn run(&self) -> Result<CashShiftsPayments, ClientError> {
+        let args = ApiArgs::new([("key", self.token), ("hideAccepted", "false")]);
         ApiRequest::new(
-            self.address.clone(),
-            format!("/resto/api/v2/cashshifts/payments/list/{}", self.id),
+            self.address,
+            &format!("/resto/api/v2/cashshifts/payments/list/{}", self.id),
             args,
         )
         .run()

@@ -5,12 +5,12 @@ use gtk4::glib::BoxedAnyObject;
 use gtk4::prelude::*;
 
 use crate::api::cashshifts_payments_list::CashShiftsPayment;
-use crate::api::cashshifts_payments_list::CashShiftsPayments;
 use crate::api::cashshifts_payments_list::CashShiftsPaymentsList;
 use crate::gui::GlobalData;
 use crate::gui::common::datetime::reformat_date;
 use crate::gui::common::table::AnyTable;
 use crate::gui::common::table::AnyTableColumn;
+use crate::gui::common::utils::spawn_workflow;
 use crate::gui::main::menu::tabs::AnyTab;
 use crate::gui::main::menu::tabs::build_box;
 use crate::gui::main::menu::view::MainView;
@@ -53,36 +53,23 @@ impl AnyTab for CashShiftsPaymentsTab {
 
         cashshifts_payments_box.append(table.present());
 
-        let (sender, receiver) = async_channel::bounded::<Option<CashShiftsPayments>>(1);
-
         let id = self.id.clone();
 
-        std::thread::spawn(move || {
-            if let Some(udata) = gdata.get_credentials() {
-                let cashshifts_payments =
-                    CashShiftsPaymentsList::new(udata.address, udata.token, id);
-                let _ = sender.send_blocking(cashshifts_payments.run().ok());
-            } else {
-                eprintln!("Cannot get data from gdata");
-                let _ = sender.send_blocking(None);
-            }
-        });
-
-        gtk4::glib::spawn_future_local(async move {
-            if let Ok(received) = receiver.recv().await
-                && let Some(payments) = received
-            {
+        spawn_workflow(
+            gdata,
+            None,
+            move |udata| CashShiftsPaymentsList::new(&udata.address, &udata.token, &id).run(),
+            move |payments| {
                 let all_payments = connect_payments([
                     payments.cashlessRecords,
                     payments.payInRecords,
                     payments.payOutsRecords,
                 ]);
-
                 for payment in all_payments {
                     table.add_object(&BoxedAnyObject::new(payment));
                 }
-            }
-        });
+            },
+        );
 
         cashshifts_payments_box.upcast()
     }

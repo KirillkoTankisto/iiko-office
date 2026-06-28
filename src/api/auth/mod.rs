@@ -1,25 +1,25 @@
 use sha1::{Digest, Sha1};
 
-use crate::api::api_request::*;
+use crate::api::{api_request::*, error::ClientError};
 
-pub struct Auth {
-    address: String,
-    user: String,
-    pass: String,
+pub struct Auth<'a> {
+    address: &'a str,
+    user: &'a str,
+    pass: &'a str,
 }
 
-impl Auth {
-    pub fn new<S: Into<String>>(address: S, user: S, pass: S) -> Self {
+impl<'a> Auth<'a> {
+    pub fn new(address: &'a str, user: &'a str, pass: &'a str) -> Self {
         Self {
-            address: address.into(),
-            user: user.into(),
-            pass: pass.into(),
+            address,
+            user,
+            pass,
         }
     }
 
-    pub fn run(&self) -> Result<String, String> {
-        let args = ApiArgs::new([("login", &self.user), ("pass", &self.pass)]);
-        ApiRequest::new(self.address.clone(), "/resto/api/auth", args).run_string()
+    pub fn run(&self) -> Result<String, ClientError> {
+        let args = ApiArgs::new([("login", self.user), ("pass", self.pass)]);
+        ApiRequest::new(self.address, "/resto/api/auth", args).run_string()
     }
 }
 

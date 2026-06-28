@@ -1,11 +1,11 @@
-use crate::api::api_request::*;
+use crate::api::{api_request::*, error::ClientError};
 
-pub struct CashShiftsList {
-    address: String,
-    token: String,
-    date_from: String,
-    date_to: String,
-    status: String,
+pub struct CashShiftsList<'a> {
+    address: &'a str,
+    token: &'a str,
+    date_from: &'a str,
+    date_to: &'a str,
+    status: &'a str,
 }
 
 pub type CashShifts = Vec<CashShift>;
@@ -48,32 +48,32 @@ pub struct CashShift {
     pub pointOfSaleId: String,
 }
 
-impl CashShiftsList {
+impl<'a> CashShiftsList<'a> {
     pub fn new(
-        address: impl Into<String>,
-        token: impl Into<String>,
-        date_from: impl Into<String>,
-        date_to: impl Into<String>,
-        status: impl Into<String>,
+        address: &'a str,
+        token: &'a str,
+        date_from: &'a str,
+        date_to: &'a str,
+        status: &'a str,
     ) -> Self {
         Self {
-            address: address.into(),
-            token: token.into(),
-            date_from: date_from.into(),
-            date_to: date_to.into(),
-            status: status.into(),
+            address,
+            token,
+            date_from,
+            date_to,
+            status,
         }
     }
 
-    pub fn run(&self) -> Result<CashShifts, String> {
+    pub fn run(&self) -> Result<CashShifts, ClientError> {
         let args = ApiArgs::new([
-            ("key", &self.token),
-            ("openDateFrom", &self.date_from),
-            ("openDateTo", &self.date_to),
-            ("status", &self.status),
+            ("key", self.token),
+            ("openDateFrom", self.date_from),
+            ("openDateTo", self.date_to),
+            ("status", self.status),
         ]);
         let mut result: CashShifts =
-            ApiRequest::new(self.address.clone(), "/resto/api/v2/cashshifts/list", args).run()?;
+            ApiRequest::new(self.address, "/resto/api/v2/cashshifts/list", args).run()?;
         result.sort_by_key(|shift| shift.sessionNumber);
 
         Ok(result)

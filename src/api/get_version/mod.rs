@@ -1,9 +1,12 @@
 use serde::Deserialize;
 
-use crate::api::api_request::{ApiArgs, ApiRequest};
+use crate::api::{
+    api_request::{ApiArgs, ApiRequest},
+    error::ClientError,
+};
 
-pub struct GetVersion {
-    address: String,
+pub struct GetVersion<'a> {
+    address: &'a str,
 }
 
 #[allow(nonstandard_style)]
@@ -16,15 +19,15 @@ pub struct VersionInfo {
     pub serverState: String,
 }
 
-impl GetVersion {
-    pub fn new(address: impl Into<String>) -> Self {
+impl<'a> GetVersion<'a> {
+    pub fn new(address: &'a str) -> Self {
         Self {
-            address: address.into(),
+            address,
         }
     }
 
-    pub fn run(&self) -> Result<VersionInfo, String> {
+    pub fn run(&self) -> Result<VersionInfo, ClientError> {
         let args = ApiArgs::new([("encoding", "UTF-8")]);
-        ApiRequest::new(&self.address, "/resto/get_server_info.jsp", args).run_xml()
+        ApiRequest::new(self.address, "/resto/get_server_info.jsp", args).run_xml()
     }
 }

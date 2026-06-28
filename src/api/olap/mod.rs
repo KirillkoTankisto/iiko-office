@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::api::{
     api_request::{ApiArgs, ApiRequest},
+    error::ClientError,
     olap::{FilterType::DateRange, PeriodType::CUSTOM},
 };
 
@@ -10,11 +11,11 @@ use super::olap_columns::ReportType;
 
 #[allow(nonstandard_style)]
 #[derive(Serialize)]
-pub struct OlapRequest {
+pub struct OlapRequest<'a> {
     #[serde(skip_serializing)]
-    address: String,
+    address: &'a str,
     #[serde(skip_serializing)]
-    token: String,
+    token: &'a str,
     reportType: ReportType,
     #[serde(skip_serializing_if = "Option::is_none")]
     buildSummary: Option<bool>,
@@ -141,10 +142,10 @@ pub struct OlapAnswer {
     pub summary: Vec<SummaryBlock>,
 }
 
-impl OlapRequest {
+impl<'a> OlapRequest<'a> {
     pub fn new(
-        address: String,
-        token: String,
+        address: &'a str,
+        token: &'a str,
         report_type: ReportType,
         build_summary: Option<bool>,
         group_by_row_fields: Vec<String>,
@@ -164,11 +165,11 @@ impl OlapRequest {
         }
     }
 
-    pub fn run(&self) -> Result<OlapAnswer, String> {
-        let args = ApiArgs::new([("key", &self.token)]);
+    pub fn run(&self) -> Result<OlapAnswer, ClientError> {
+        let args = ApiArgs::new([("key", self.token)]);
 
-        let body = serde_json::to_string_pretty(&self).map_err(|e| e.to_string())?;
+        let body = serde_json::to_string_pretty(&self)?;
 
-        ApiRequest::new(&self.address, "/resto/api/v2/reports/olap", args).run_post(body)
+        ApiRequest::new(self.address, "/resto/api/v2/reports/olap", args).run_post(body)
     }
 }

@@ -1,21 +1,21 @@
-use crate::api::api_request::*;
+use crate::api::{api_request::*, error::ClientError};
 
-pub struct Logout {
-    address: String,
-    token: String,
+pub struct Logout<'a> {
+    address: &'a str,
+    token: &'a str,
 }
 
-impl Logout {
-    pub fn new<S: Into<String>>(address: S, token: S) -> Self {
+impl<'a> Logout<'a> {
+    pub fn new(address: &'a str, token: &'a str) -> Self {
         Self {
-            address: address.into(),
-            token: token.into(),
+            address,
+            token,
         }
     }
 
-    pub fn run(&self) -> Result<(), String> {
-        let args = ApiArgs::new([("key", &self.token)]);
-        _ = ApiRequest::new(self.address.clone(), "/resto/api/logout", args).run_string()?;
+    pub fn run(&self) -> Result<(), ClientError> {
+        let args = ApiArgs::new([("key", self.token)]);
+        _ = ApiRequest::new(self.address, "/resto/api/logout", args).run_string()?;
         Ok(())
     }
 }

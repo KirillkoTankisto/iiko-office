@@ -18,6 +18,7 @@ use gtk4::glib;
 use crate::api::auth::*;
 use crate::gui::GlobalData;
 use crate::gui::common::logo::get_logo_image;
+use crate::gui::common::utils::spawn_workflow;
 use crate::gui::main::Main;
 use crate::gui::translation::Line::ADD_SERVER;
 use crate::gui::translation::Line::ADDRESS;
@@ -129,8 +130,8 @@ impl LoginBox {
             stack,
             #[weak]
             login_box,
-            move |_| {
-                login_callback(gdata.clone(), stack, login_box, main);
+            move |button| {
+                login_callback(gdata.clone(), button, login_box, stack, main);
             }
         ));
 
@@ -151,10 +152,6 @@ impl LoginBox {
             username,
             password,
         }
-    }
-
-    pub fn set_sensitive(&self, value: bool) {
-        self.button.set_sensitive(value);
     }
 
     pub fn add_server(&self, address: &str) {
@@ -318,7 +315,13 @@ impl AddressBox {
     }
 }
 
-fn login_callback(gdata: Arc<GlobalData>, stack: Stack, login_box: LoginBox, main: Main) {
+fn login_callback(
+    gdata: Arc<GlobalData>,
+    button: &Button,
+    login_box: LoginBox,
+    stack: Stack,
+    main: Main,
+) {
     let Credentials {
         address,
         username,
@@ -329,62 +332,28 @@ fn login_callback(gdata: Arc<GlobalData>, stack: Stack, login_box: LoginBox, mai
         return;
     }
 
-    login_box.set_sensitive(false);
-
-    let remembered = address.clone();
-
-    let (sender, receiver) = async_channel::bounded::<Result<(), String>>(1);
-
-    std::thread::spawn(glib::clone!(
-        #[strong]
-        gdata,
-        move || {
+    spawn_workflow(
+        gdata.clone(),
+        Some(button),
+        move |_| {
             let password_hashed = get_password_hash(&password);
 
-            let auth = Auth::new(address.clone(), username.clone(), password_hashed.clone());
-            let result = auth.run().map_err(|e| e.to_string());
-
-            match result {
-                Ok(string) => {
-                    gdata.paste_credentials(
-                        super::Address(Some(address)),
-                        super::User(Some(username)),
-                        super::Password(Some(password_hashed)),
-                        super::Token(Some(string)),
-                    );
-                    let _ = sender.send_blocking(Ok(()));
-                }
-                Err(err) => {
-                    eprintln!("{}", err);
-                    let _ = sender.send_blocking(Err(err));
-                }
+            let auth = Auth::new(&address, &username, &password_hashed);
+            let result = auth.run();
+            if let Ok(token) = &result {
+                gdata.paste_credentials(
+                    Some(&address),
+                    Some(&username),
+                    Some(&password),
+                    Some(token),
+                );
             }
-        }
-    ));
-
-    gtk4::glib::spawn_future_local(glib::clone!(
-        #[strong]
-        gdata,
-        async move {
-            if let Ok(result) = receiver.recv().await {
-                match result {
-                    Ok(_) => {
-                        main.update_status();
-                        stack.set_visible_child_name("main");
-                        login_box.add_server(&remembered);
-                        login_box.error.set_visible(false);
-
-                        gdata.add_server(remembered);
-                        gdata.write_config();
-                    }
-                    Err(err) => {
-                        login_box.error.set_label(&err);
-                        login_box.error.set_visible(true);
-                    }
-                }
-            }
-
-            login_box.set_sensitive(true);
-        }
-    ));
+            result.map(|_| address)
+        },
+        move |address| {
+            login_box.add_server(&address);
+            main.update_status();
+            stack.set_visible_child_name("main");
+        },
+    );
 }

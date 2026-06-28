@@ -7,6 +7,7 @@ use gtk4::glib;
 use gtk4::prelude::*;
 
 use crate::gui::common::table::{AnyTable, AnyTableColumn};
+use crate::gui::common::utils::spawn_workflow;
 use crate::gui::main::menu::tabs::cashshifts_payments::CashShiftsPaymentsTab;
 use crate::gui::main::menu::tabs::{AnyTab, build_box, open_tab};
 use crate::gui::main::menu::view::MainView;
@@ -15,7 +16,7 @@ use crate::gui::translation::Line::{
     SHIFT_NUMBER,
 };
 use crate::{
-    api::cashshifts_list::{CashShift, CashShifts, CashShiftsList},
+    api::cashshifts_list::{CashShift, CashShiftsList},
     gui::{
         GlobalData,
         common::{datepicker::DatePicker, datetime::reformat_date},
@@ -147,37 +148,17 @@ fn cashshifts_callback(
     date_from: String,
     date_to: String,
 ) {
-    button.set_sensitive(false);
-
-    let (sender, receiver) = async_channel::bounded::<Result<CashShifts, String>>(1);
-
-    std::thread::spawn(move || {
-        if let Some(udata) = gdata.get_credentials() {
-            let cashshifts_list =
-                CashShiftsList::new(udata.address, udata.token, date_from, date_to, "ANY");
-            let _ = sender.send_blocking(cashshifts_list.run());
-        } else {
-            let _ = sender.send_blocking(Err("Couldn't get udata (Cash Shifts)".to_string()));
-        }
-    });
-
-    gtk4::glib::spawn_future_local(glib::clone!(
-        #[weak]
-        button,
-        async move {
-            if let Ok(received) = receiver.recv().await {
-                match received {
-                    Ok(cashshifts) => {
-                        table.clear_table();
-                        for shift in cashshifts {
-                            table.add_object(&BoxedAnyObject::new(shift));
-                        }
-                    }
-                    Err(s) => eprintln!("{s}"),
-                }
+    spawn_workflow(
+        gdata,
+        Some(button),
+        move |udata| {
+            CashShiftsList::new(&udata.address, &udata.token, &date_from, &date_to, "ANY").run()
+        },
+        move |shifts| {
+            table.clear_table();
+            for shift in shifts {
+                table.add_object(&BoxedAnyObject::new(shift));
             }
-
-            button.set_sensitive(true);
-        }
-    ));
+        },
+    );
 }
