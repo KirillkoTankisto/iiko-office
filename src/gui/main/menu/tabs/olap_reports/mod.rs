@@ -20,6 +20,7 @@ use crate::{
         common::{
             datepicker::DatePicker,
             drag_space::DragSpace,
+            period_list::PeriodList,
             table::{AnyTable, AnyTableColumn},
             utils::spawn_workflow,
         },
@@ -28,7 +29,10 @@ use crate::{
             view::MainView,
         },
         translation::{
-            Line::{DATE_FROM, DATE_TO, OLAP_FIELDS, OLAP_REPORTS, REFRESH},
+            Line::{
+                DATE_FROM, DATE_TO, OLAP_AGGREGATE_FIELDS, OLAP_COLUMN_FIELDS, OLAP_FIELDS,
+                OLAP_REPORTS, OLAP_ROW_FIELDS, REFRESH,
+            },
             translate,
         },
     },
@@ -51,11 +55,26 @@ impl AnyTab for OlapReportsTab {
 
         let date_from = DatePicker::new(translate(gdata.language(), DATE_FROM), gdata.language());
         let date_to = DatePicker::new(translate(gdata.language(), DATE_TO), gdata.language());
-        let button = gtk4::Button::with_label(translate(gdata.language(), REFRESH));
 
-        date_from.attach_to(&grid, 0);
-        date_to.attach_to(&grid, 1);
-        grid.attach(&button, 1, 2, 1, 1);
+        let button = gtk4::Button::with_label(translate(gdata.language(), REFRESH));
+        let period_list = PeriodList::new(
+            gdata.language(),
+            glib::clone!(
+                #[weak]
+                date_from,
+                #[weak]
+                date_to,
+                move |value| {
+                    date_from.set_visisble(value);
+                    date_to.set_visisble(value);
+                }
+            ),
+        );
+
+        date_from.attach_to(&grid, 0, 1);
+        date_to.attach_to(&grid, 1, 1);
+        grid.attach(period_list.present(), 0, 0, 1, 1);
+        grid.attach(&button, 0, 1, 1, 1);
 
         olap_box.append(&grid);
 
@@ -78,9 +97,18 @@ impl AnyTab for OlapReportsTab {
             .build();
 
         let report_table = AnyTable::new(true);
-        let aggregation_field = DragSpace::new(gtk4::Orientation::Horizontal);
-        let column_field = DragSpace::new(gtk4::Orientation::Horizontal);
-        let row_field = DragSpace::new(gtk4::Orientation::Vertical);
+        let aggregation_field = DragSpace::new(
+            translate(gdata.language(), OLAP_AGGREGATE_FIELDS),
+            gtk4::Orientation::Horizontal,
+        );
+        let column_field = DragSpace::new(
+            translate(gdata.language(), OLAP_COLUMN_FIELDS),
+            gtk4::Orientation::Horizontal,
+        );
+        let row_field = DragSpace::new(
+            translate(gdata.language(), OLAP_ROW_FIELDS),
+            gtk4::Orientation::Vertical,
+        );
 
         table_grid.attach(aggregation_field.present(), 1, 0, 1, 1);
         table_grid.attach(column_field.present(), 1, 1, 1, 1);

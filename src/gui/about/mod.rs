@@ -4,7 +4,7 @@ use crate::gui::{
     common::logo::LOGO,
     translation::{
         CurrentLanguage,
-        Line::{COMMENT, SOURCE_CODE},
+        Line::{ABOUT_COMMENT, ABOUT_SOURCE_CODE},
         translate,
     },
 };
@@ -27,13 +27,13 @@ impl AboutPopup {
                 .transient_for(window)
                 .modal(true)
                 .program_name(PROGRAMNAME)
-                .comments(translate(language, COMMENT))
+                .comments(translate(language, ABOUT_COMMENT))
                 .authors(AUTHORS)
                 .license_type(Gpl20)
                 .logo(&logo)
                 .version(env!("CARGO_PKG_VERSION"))
                 .website(WEBSITE)
-                .website_label(translate(language, SOURCE_CODE))
+                .website_label(translate(language, ABOUT_SOURCE_CODE))
                 .build(),
         }
     }

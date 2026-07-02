@@ -20,12 +20,12 @@ use crate::gui::GlobalData;
 use crate::gui::common::logo::get_logo_image;
 use crate::gui::common::utils::spawn_workflow;
 use crate::gui::main::Main;
-use crate::gui::translation::Line::ADD_SERVER;
-use crate::gui::translation::Line::ADDRESS;
 use crate::gui::translation::Line::LOGIN;
-use crate::gui::translation::Line::PASSWORD;
-use crate::gui::translation::Line::REMOVE_SERVER;
-use crate::gui::translation::Line::USERNAME;
+use crate::gui::translation::Line::LOGIN_ADD_SERVER;
+use crate::gui::translation::Line::LOGIN_ADDRESS;
+use crate::gui::translation::Line::LOGIN_PASSWORD;
+use crate::gui::translation::Line::LOGIN_REMOVE_SERVER;
+use crate::gui::translation::Line::LOGIN_USERNAME;
 use crate::gui::translation::translate;
 
 const FORM_WIDTH: i32 = 640;
@@ -84,11 +84,11 @@ impl LoginBox {
             .halign(Align::Fill)
             .build();
 
-        root.append(&label(ADDRESS));
+        root.append(&label(LOGIN_ADDRESS));
         root.append(&address.root);
-        root.append(&label(USERNAME));
+        root.append(&label(LOGIN_USERNAME));
         root.append(&username);
-        root.append(&label(PASSWORD));
+        root.append(&label(LOGIN_PASSWORD));
         root.append(&password);
 
         let button = Button::builder()
@@ -183,7 +183,7 @@ impl AddressBox {
         for server in &servers {
             server_list.append(server);
         }
-        server_list.append(translate(language, ADD_SERVER));
+        server_list.append(translate(language, LOGIN_ADD_SERVER));
 
         let server_row = gtk4::Box::builder()
             .orientation(Orientation::Horizontal)
@@ -198,7 +198,7 @@ impl AddressBox {
 
         let delete_button = Button::builder()
             .icon_name("user-trash-symbolic")
-            .tooltip_text(translate(gdata.language(), REMOVE_SERVER))
+            .tooltip_text(translate(gdata.language(), LOGIN_REMOVE_SERVER))
             .build();
 
         delete_button.set_sensitive(!servers.is_empty());

@@ -14,7 +14,7 @@ use crate::{
         about::AboutPopup,
         common::utils::spawn_workflow,
         translation::{
-            Line::{ABOUT, FILE, LOGOUT},
+            Line::{MENUBAR_ABOUT, MENUBAR_FILE, MENUBAR_LOGOUT},
             translate,
         },
     },
@@ -36,14 +36,17 @@ impl MainMenuBar {
 
         let logout_action = gtk4::gio::SimpleAction::new("logout", None);
         file_menu.append(
-            Some(translate(gdata.language(), LOGOUT)),
+            Some(translate(gdata.language(), MENUBAR_LOGOUT)),
             Some("app.logout"),
         );
 
         let about_action = gtk4::gio::SimpleAction::new("about", None);
-        file_menu.append(Some(translate(gdata.language(), ABOUT)), Some("app.about"));
+        file_menu.append(
+            Some(translate(gdata.language(), MENUBAR_ABOUT)),
+            Some("app.about"),
+        );
 
-        menu.append_submenu(Some(translate(gdata.language(), FILE)), &file_menu);
+        menu.append_submenu(Some(translate(gdata.language(), MENUBAR_FILE)), &file_menu);
 
         logout_action.connect_activate(glib::clone!(
             #[weak]

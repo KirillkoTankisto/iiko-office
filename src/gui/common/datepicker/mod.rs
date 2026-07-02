@@ -100,9 +100,15 @@ impl DatePicker {
         self.entry.text().to_string()
     }
 
-    pub fn attach_to(&self, grid: &gtk4::Grid, row: i32) {
-        grid.attach(&self.label, 0, row, 1, 1);
-        grid.attach(&self.entry, 1, row, 1, 1);
-        grid.attach(&self.menu_button, 2, row, 1, 1);
+    pub fn attach_to(&self, grid: &gtk4::Grid, row: i32, column: i32) {
+        grid.attach(&self.label, column, row, 1, 1);
+        grid.attach(&self.entry, column + 1, row, 1, 1);
+        grid.attach(&self.menu_button, column + 2, row, 1, 1);
+    }
+
+    pub fn set_visisble(&self, value: bool) {
+        self.label.set_visible(value);
+        self.entry.set_visible(value);
+        self.menu_button.set_visible(value);
     }
 }

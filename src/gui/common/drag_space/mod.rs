@@ -1,19 +1,20 @@
 use std::{cell::RefCell, rc::Rc};
 
+use gtk4::GestureClick;
 use gtk4::Orientation::Vertical;
+use gtk4::glib;
 use gtk4::prelude::*;
 use gtk4::{DropTarget, Orientation, gdk::DragAction, glib::types::Type};
 
+#[derive(glib::Downgrade)]
 pub struct DragSpace {
     root: gtk4::Frame,
     items: Rc<RefCell<Vec<String>>>,
 }
 
-use gtk4::{GestureClick, glib};
-
 impl DragSpace {
-    pub fn new(orientation: Orientation) -> Self {
-        let root = gtk4::Frame::new(Some("olap"));
+    pub fn new(title: &str, orientation: Orientation) -> Self {
+        let root = gtk4::Frame::new(Some(title));
         let container = gtk4::Box::builder()
             .homogeneous(false)
             .orientation(orientation)

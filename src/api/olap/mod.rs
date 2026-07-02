@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::api::{
     api_request::{ApiArgs, ApiRequest},
+    consts::{EnumRange, FilterType, PeriodType},
     error::ClientError,
     olap::{FilterType::DateRange, PeriodType::CUSTOM},
 };
@@ -27,36 +28,6 @@ pub struct OlapRequest<'a> {
     aggregateFields: Vec<String>,
     #[serde(skip_serializing_if = "IndexMap::is_empty")]
     filters: IndexMap<String, Filter>,
-}
-
-#[derive(Serialize)]
-pub enum FilterType {
-    IncludeValues,
-    ExcludeValues,
-    DateRange,
-}
-
-#[allow(nonstandard_style)]
-#[derive(Serialize)]
-pub enum PeriodType {
-    CUSTOM,
-    OPEN_PERIOD,
-    TODAY,
-    YESTERDAY,
-    CURRENT_WEEK,
-    CURRENT_MONTH,
-    CURRENT_YEAR,
-    LAST_WEEK,
-    LAST_MONTH,
-    LAST_YEAR,
-}
-
-#[derive(Serialize)]
-#[serde(untagged)]
-pub enum EnumRange {
-    I64(i64),
-    F64(f64),
-    String(String),
 }
 
 #[allow(nonstandard_style)]

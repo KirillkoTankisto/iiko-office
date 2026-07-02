@@ -49,8 +49,8 @@ impl AnyTab for CashShiftsTab {
         let date_to = DatePicker::new(translate(gdata.language(), DATE_TO), gdata.language());
         let refresh_button = Button::with_label(translate(gdata.language(), REFRESH));
 
-        date_from.attach_to(&grid, 0);
-        date_to.attach_to(&grid, 1);
+        date_from.attach_to(&grid, 0, 0);
+        date_to.attach_to(&grid, 1, 0);
         grid.attach(&refresh_button, 1, 2, 1, 1);
 
         let table = AnyTable::new(true);
