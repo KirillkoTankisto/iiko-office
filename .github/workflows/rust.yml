@@ -22,9 +22,7 @@ jobs:
     - uses: actions/upload-artifact@7
       with:
         name: iiko-office-macos-arm64
-        path: |
-          target/release/iiko-office
-          iikoOffice.dmg
+        path: iikoOffice.dmg
   build-linux:
     name: build for Linux
     runs-on: ubuntu-latest
