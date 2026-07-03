@@ -15,7 +15,7 @@ pub enum ReportType {
     DELIVERIES,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone)]
 #[allow(nonstandard_style)]
 pub struct OlapColumn {
     pub name: String,

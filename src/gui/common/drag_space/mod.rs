@@ -106,4 +106,11 @@ impl DragSpace {
     pub fn items(&self) -> Vec<String> {
         self.items.borrow().clone()
     }
+
+    pub fn items_match<M: Fn(Vec<String>) -> Vec<String> + 'static>(
+        &self,
+        matcher: M,
+    ) -> Vec<String> {
+        matcher(self.items())
+    }
 }

@@ -1,4 +1,7 @@
-use std::{collections::HashSet, sync::Arc};
+use std::{
+    collections::{HashMap, HashSet},
+    sync::Arc,
+};
 
 use gtk4::{
     Align::{self},
@@ -12,6 +15,7 @@ use serde_json::Value;
 
 use crate::{
     api::{
+        consts::PeriodType,
         olap::{Filter, OlapAnswer, OlapRequest},
         olap_columns::{OlapColumn, OlapColumnRequest, ReportType},
     },
@@ -126,11 +130,15 @@ impl AnyTab for OlapReportsTab {
             move |udata| {
                 OlapColumnRequest::new(&udata.address, &udata.token, ReportType::SALES).run()
             },
-            move |columns| {
-                for column in columns {
-                    table.add_object(&BoxedAnyObject::new(column));
+            glib::clone!(
+                #[weak]
+                table,
+                move |columns| {
+                    for column in columns {
+                        table.add_object(&BoxedAnyObject::new(column));
+                    }
                 }
-            },
+            ),
         );
 
         button.connect_clicked(glib::clone!(
@@ -142,8 +150,29 @@ impl AnyTab for OlapReportsTab {
             date_from,
             #[weak]
             date_to,
+            #[weak]
+            row_field,
+            #[weak]
+            column_field,
+            #[weak]
+            aggregation_field,
+            #[weak]
+            period_list,
+            #[weak]
+            table,
             move |button| {
-                olap_callback(gdata, button, report_table, date_from, date_to);
+                olap_callback(
+                    gdata,
+                    button,
+                    report_table,
+                    date_from,
+                    date_to,
+                    row_field,
+                    column_field,
+                    aggregation_field,
+                    period_list,
+                    table,
+                );
             }
         ));
 
@@ -157,41 +186,75 @@ fn olap_callback(
     report_table: AnyTable,
     date_from: DatePicker,
     date_to: DatePicker,
+    row_field: DragSpace,
+    column_field: DragSpace,
+    aggregation_field: DragSpace,
+    period_list: PeriodList,
+    fields_table: AnyTable,
 ) {
-    button.set_sensitive(false);
     let from = date_from.get_date();
     let to = date_to.get_date();
+
+    let fields: Vec<(String, OlapColumn)> = fields_table
+        .get_items::<(String, OlapColumn)>()
+        .iter()
+        .map(|m| m.clone())
+        .collect();
+
+    let name_to_id: HashMap<String, String> = fields
+        .iter()
+        .map(|(id, col)| (col.name.clone(), id.clone()))
+        .collect();
+
+    let id_to_name: HashMap<String, String> = fields
+        .iter()
+        .map(|(id, col)| (id.clone(), col.name.clone()))
+        .collect();
+
+    let resolve = |space: &DragSpace| -> Vec<String> {
+        let map = name_to_id.clone();
+        space.items_match(move |items| {
+            items
+                .iter()
+                .filter_map(|name| map.get(name).cloned())
+                .collect()
+        })
+    };
+
+    let rfield = resolve(&row_field);
+    let cfield = resolve(&column_field);
+    let afield = resolve(&aggregation_field);
+
+    let period_type = period_list.get_value();
 
     spawn_workflow(
         gdata,
         Some(button),
         move |udata| {
-            let date_filter = Filter::new_date_range(from, to);
+            let date_filter = match period_type {
+                PeriodType::CUSTOM => Filter::new_date_range(from, to),
+                _ => Filter::preset_date_range(period_type),
+            };
             let filters = indexmap::IndexMap::from([date_filter]);
             OlapRequest::new(
                 &udata.address,
                 &udata.token,
                 ReportType::SALES,
                 None,
-                vec![String::from("DishCategory")],
-                vec![],
-                vec![
-                    String::from("GuestNum"),
-                    String::from("DishSumInt"),
-                    String::from("DishDiscountSumInt"),
-                    String::from("UniqOrderId"),
-                ],
+                rfield,
+                cfield,
+                afield,
                 filters,
             )
             .run()
         },
         move |olap| {
-            olap_table(&report_table, &olap);
+            olap_table(&report_table, &olap, &id_to_name);
         },
     );
 }
 
-fn olap_table(table: &AnyTable, answer: &OlapAnswer) {
+fn olap_table(table: &AnyTable, answer: &OlapAnswer, id_to_name: &HashMap<String, String>) {
     table.clear_table();
     table.remove_columns();
 
@@ -207,24 +270,23 @@ fn olap_table(table: &AnyTable, answer: &OlapAnswer) {
     }
 
     for key in &columns {
-        let align = {
-            if answer
-                .data
-                .iter()
-                .filter_map(|row| row.get(key))
-                .find(|v| !v.is_null())
-                .is_some_and(Value::is_number)
-            {
-                Align::End
-            } else {
-                Align::Start
-            }
+        let align = if answer
+            .data
+            .iter()
+            .filter_map(|row| row.get(key))
+            .find(|v| !v.is_null())
+            .is_some_and(Value::is_number)
+        {
+            Align::End
+        } else {
+            Align::Start
         };
 
+        let title = id_to_name.get(key).cloned().unwrap_or_else(|| key.clone());
         let key_owned = key.clone();
 
         table.add_column(AnyTableColumn::new(
-            key,
+            &title,
             align,
             false,
             move |row: &IndexMap<String, Value>| {

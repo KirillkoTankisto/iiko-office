@@ -1,4 +1,5 @@
 use std::cell::Ref;
+use std::rc::Rc;
 
 use gtk4::gdk::{ContentProvider, DragAction};
 use gtk4::gio::ListStore;
@@ -142,7 +143,7 @@ impl AnyTable {
             .downcast::<SignalListItemFactory>()
             .unwrap();
 
-        let getter = std::rc::Rc::new(getter);
+        let getter = Rc::new(getter);
 
         factory.connect_setup(move |_, item| {
             let list_item = item.downcast_ref::<ListItem>().unwrap();
@@ -165,6 +166,14 @@ impl AnyTable {
 
             child.add_controller(drag_source);
         });
+    }
+
+    pub fn get_items<T: Clone + 'static>(&self) -> Vec<T> {
+        self.store
+            .iter::<BoxedAnyObject>()
+            .filter_map(Result::ok)
+            .map(|obj| obj.borrow::<T>().clone())
+            .collect()
     }
 }
 
