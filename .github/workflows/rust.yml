@@ -12,14 +12,14 @@ jobs:
     runs-on: macos-latest
 
     steps:
-    - uses: actions/checkout@7
+    - uses: actions/checkout@v7
     - name: install dependencies
       run: brew install gtk4 dylibbundler create-dmg
     - name: build
       run: cargo build --release
     - name: package
       run: make
-    - uses: actions/upload-artifact@7
+    - uses: actions/upload-artifact@v7
       with:
         name: iiko-office-macos-arm64
         path: iikoOffice.dmg
@@ -33,7 +33,7 @@ jobs:
       run: sudo apt update && sudo apt install -y libgtk-4-dev
     - name: build
       run: cargo build --release
-    - uses: actions/upload-artifact@7
+    - uses: actions/upload-artifact@v7
       with:
         name: iiko-office-linux-amd64
         path: target/release/iiko-office

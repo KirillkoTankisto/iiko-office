@@ -1,0 +1,161 @@
+use std::sync::Arc;
+
+use gtk4::Align::{self};
+use gtk4::Orientation::Vertical;
+use gtk4::{Button, glib::BoxedAnyObject};
+
+use gtk4::glib;
+use gtk4::prelude::*;
+use iiko_api::cashshifts_list::{CashShift, SessionStatus};
+
+use crate::gui::common::table::{AnyTable, AnyTableColumn};
+use crate::gui::common::utils::spawn_workflow;
+use crate::gui::main::menu::tabs::cashshifts_payments::CashShiftsPaymentsTab;
+use crate::gui::main::menu::tabs::{AnyTab, build_box, open_tab};
+use crate::gui::main::menu::view::MainView;
+use crate::gui::translation::Line::{
+    ACCEPT_DATE, CLOSE_DATE, OPEN_DATE, REFRESH, SALES_CARD, SALES_CASH, SALES_CREDIT, SALES_SUM,
+    SHIFT_NUMBER,
+};
+use crate::gui::{
+    GlobalData,
+    common::{datepicker::DatePicker, datetime::reformat_date},
+    translation::{
+        Line::{CASH_SHIFTS, DATE_FROM, DATE_TO},
+        translate,
+    },
+};
+
+pub struct CashShiftsTab;
+
+impl AnyTab for CashShiftsTab {
+    fn title(&self, gdata: &GlobalData) -> &str {
+        translate(gdata.language(), CASH_SHIFTS)
+    }
+
+    fn build(&self, gdata: Arc<GlobalData>, view: &MainView) -> gtk4::Widget {
+        let view = view.clone();
+
+        let cashshifts_box = build_box(Vertical);
+
+        let grid = gtk4::Grid::builder()
+            .column_spacing(8)
+            .row_spacing(8)
+            .build();
+
+        let date_from = DatePicker::new(translate(gdata.language(), DATE_FROM), gdata.language());
+        let date_to = DatePicker::new(translate(gdata.language(), DATE_TO), gdata.language());
+        let refresh_button = Button::with_label(translate(gdata.language(), REFRESH));
+
+        date_from.attach_to(&grid, 0, 0);
+        date_to.attach_to(&grid, 1, 0);
+        grid.attach(&refresh_button, 1, 2, 1, 1);
+
+        let table = AnyTable::new(true);
+        table.add_column(AnyTableColumn::new(
+            translate(gdata.language(), OPEN_DATE),
+            Align::Start,
+            false,
+            |s: &CashShift| reformat_date(&Some(s.open_date.clone())),
+        ));
+        table.add_column(AnyTableColumn::new(
+            translate(gdata.language(), CLOSE_DATE),
+            Align::Start,
+            false,
+            |s: &CashShift| reformat_date(&s.close_date),
+        ));
+        table.add_column(AnyTableColumn::new(
+            translate(gdata.language(), ACCEPT_DATE),
+            Align::Start,
+            false,
+            |s: &CashShift| reformat_date(&s.accept_date),
+        ));
+        table.add_column(AnyTableColumn::new(
+            translate(gdata.language(), SALES_SUM),
+            Align::End,
+            false,
+            |s: &CashShift| (s.sales_cash + s.sales_card + s.sales_credit).to_string(),
+        ));
+        table.add_column(AnyTableColumn::new(
+            translate(gdata.language(), SALES_CARD),
+            Align::End,
+            false,
+            |s: &CashShift| s.sales_card.to_string(),
+        ));
+        table.add_column(AnyTableColumn::new(
+            translate(gdata.language(), SALES_CASH),
+            Align::End,
+            false,
+            |s: &CashShift| s.sales_cash.to_string(),
+        ));
+        table.add_column(AnyTableColumn::new(
+            translate(gdata.language(), SALES_CREDIT),
+            Align::End,
+            false,
+            |s: &CashShift| s.sales_credit.to_string(),
+        ));
+        table.add_column(AnyTableColumn::new(
+            translate(gdata.language(), SHIFT_NUMBER),
+            Align::End,
+            true,
+            |s: &CashShift| s.session_number.to_string(),
+        ));
+
+        table.connect(glib::clone!(
+            #[weak]
+            gdata,
+            #[strong]
+            view,
+            move |column_view, row| {
+                let model = column_view
+                    .model()
+                    .expect("Couldn't get the model (Cash Shifts)");
+                let item = model
+                    .item(row)
+                    .expect("Couldn't get an item on that position (Cash Shifts)");
+                let object = item.downcast_ref::<BoxedAnyObject>().unwrap();
+                let id = object.borrow::<CashShift>().id.clone();
+
+                open_tab(&CashShiftsPaymentsTab { id }, gdata, &view, None);
+            }
+        ));
+
+        cashshifts_box.append(&grid);
+        cashshifts_box.append(table.present());
+
+        refresh_button.connect_clicked(glib::clone!(
+            #[weak]
+            gdata,
+            #[weak]
+            table,
+            move |button| {
+                let from = date_from.get_date();
+                let to = date_to.get_date();
+
+                cashshifts_callback(gdata, button, table, from, to);
+            }
+        ));
+
+        cashshifts_box.upcast()
+    }
+}
+
+fn cashshifts_callback(
+    gdata: Arc<GlobalData>,
+    button: &Button,
+    table: AnyTable,
+    date_from: String,
+    date_to: String,
+) {
+    spawn_workflow(
+        gdata,
+        Some(button),
+        move |session| session.cashshifts_list(&date_from, &date_to, SessionStatus::Any),
+        move |shifts| {
+            table.clear_table();
+            for shift in shifts {
+                table.add_object(&BoxedAnyObject::new(shift));
+            }
+        },
+    );
+}

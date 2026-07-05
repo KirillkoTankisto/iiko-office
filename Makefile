@@ -1,16 +1,16 @@
 MACOS_REQUIRED := tar dylibbundler create-dmg sips iconutil
-ICON := src/assets/logo.png
+ICON := iiko-office/src/assets/logo.png
 TMP := temp
 
 all: dmg_macos
 
 dmg_macos: checkdeps_macos dot_app_macos
-	create-dmg --volname "iikoOffice" --eula LICENSE --skip-jenkins iikoOffice.dmg $(TMP)/iikoOffice.app
+	create-dmg --volname "iikoOffice" --eula LICENSE --volicon $(TMP)/AppIcon.icns --app-drop-link 0 0 --skip-jenkins iikoOffice.dmg $(TMP)/iikoOffice.app
 
 dot_app_macos: icons_macos
 	mkdir -p $(TMP)/iikoOffice.app/Contents/{MacOS,Resources}
 	cp target/release/iiko-office $(TMP)/iikoOffice.app/Contents/MacOS
-	cp src/assets/Info.plist $(TMP)/iikoOffice.app/Contents
+	cp iiko-office/src/assets/Info.plist $(TMP)/iikoOffice.app/Contents
 	cp $(TMP)/AppIcon.icns $(TMP)/iikoOffice.app/Contents/Resources
 	dylibbundler -cd -b -x $(TMP)/iikoOffice.app/Contents/MacOS/iiko-office -d $(TMP)/iikoOffice.app/Contents/libs -p @executable_path/../libs
 

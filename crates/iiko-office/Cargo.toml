@@ -1,0 +1,15 @@
+[package]
+name = "iiko-office"
+version.workspace = true
+edition.workspace = true
+repository.workspace = true
+license.workspace = true
+
+[dependencies]
+iiko-api = { path = "../iiko-api" }
+gtk4.workspace = true
+async-channel.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+indexmap.workspace = true
+thiserror.workspace = true
