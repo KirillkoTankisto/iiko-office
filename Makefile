@@ -1,11 +1,19 @@
-MACOS_REQUIRED := tar dylibbundler create-dmg sips iconutil
+MACOS_REQUIRED := tar dylibbundler python3 sips iconutil
 ICON := crates/iiko-office/src/assets/logo.png
 TMP := temp
 
 all: dmg_macos
 
 dmg_macos: checkdeps_macos dot_app_macos
-	create-dmg --volname "iikoOffice" --eula LICENSE --volicon $(TMP)/AppIcon.icns --app-drop-link 0 0 --skip-jenkins iikoOffice.dmg $(TMP)/iikoOffice.app
+	rm -f iikoOffice.dmg
+	python3 -m venv $(TMP)/venv
+	$(TMP)/venv/bin/pip install --quiet dmgbuild
+	$(TMP)/venv/bin/dmgbuild \
+		-s crates/iiko-office/src/assets/dmg.py \
+		-D app=$(abspath $(TMP)/iikoOffice.app) \
+		-D icon=$(abspath $(TMP)/AppIcon.icns) \
+		-D eula=$(abspath LICENSE.rtf) \
+		"iikoOffice" iikoOffice.dmg
 
 dot_app_macos: icons_macos
 	mkdir -p $(TMP)/iikoOffice.app/Contents/{MacOS,Resources}

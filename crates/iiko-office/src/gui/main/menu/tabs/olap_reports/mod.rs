@@ -82,16 +82,21 @@ impl AnyTab for OlapReportsTab {
 
         let content = build_box(Horizontal);
 
-        let table = AnyTable::new(false);
+        let search_and_columns = build_box(Vertical);
 
-        table.add_column(AnyTableColumn::new(
+        let columns_table = AnyTable::new(false);
+        search_and_columns.append(&columns_table.search_entry());
+        search_and_columns.append(columns_table.present());
+
+        columns_table.add_column(AnyTableColumn::new(
             translate(gdata.language(), OLAP_FIELDS),
             Align::Start,
             false,
+            true,
             |p: &(String, OlapColumn)| p.1.name.clone(),
         ));
 
-        table.set_row_drag(|p: &(String, OlapColumn)| p.1.name.clone());
+        columns_table.set_row_drag(|p: &(String, OlapColumn)| p.1.name.clone());
 
         let table_grid = gtk4::Grid::builder()
             .column_spacing(8)
@@ -117,7 +122,7 @@ impl AnyTab for OlapReportsTab {
         table_grid.attach(report_table.present(), 1, 2, 1, 1);
         table_grid.attach(row_field.present(), 0, 2, 1, 1);
 
-        content.append(table.present());
+        content.append(&search_and_columns);
         content.append(&table_grid);
 
         olap_box.append(&content);
@@ -128,10 +133,10 @@ impl AnyTab for OlapReportsTab {
             move |session| session.olap_columns(ReportType::Sales),
             glib::clone!(
                 #[weak]
-                table,
+                columns_table,
                 move |columns| {
                     for column in columns {
-                        table.add_object(&BoxedAnyObject::new(column));
+                        columns_table.add_object(&BoxedAnyObject::new(column));
                     }
                 }
             ),
@@ -155,7 +160,7 @@ impl AnyTab for OlapReportsTab {
             #[weak]
             period_list,
             #[weak]
-            table,
+            columns_table,
             move |button| {
                 olap_callback(
                     gdata,
@@ -167,7 +172,7 @@ impl AnyTab for OlapReportsTab {
                     column_field,
                     aggregation_field,
                     period_list,
-                    table,
+                    columns_table,
                 );
             }
         ));
@@ -191,9 +196,8 @@ fn olap_callback(
     let from = date_from.get_date();
     let to = date_to.get_date();
 
-    let fields: Vec<(String, OlapColumn)> = fields_table
-        .get_items::<(String, OlapColumn)>()
-        .to_vec();
+    let fields: Vec<(String, OlapColumn)> =
+        fields_table.get_items::<(String, OlapColumn)>().to_vec();
 
     let name_to_id: HashMap<String, String> = fields
         .iter()
@@ -273,6 +277,7 @@ fn olap_table(table: &AnyTable, answer: &OlapAnswer, id_to_name: &HashMap<String
             &title,
             align,
             false,
+            true,
             move |row: &IndexMap<String, Value>| {
                 row.get(key_owned.as_str())
                     .map(display_value)

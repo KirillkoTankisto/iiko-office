@@ -36,17 +36,20 @@ impl AnyTab for CashShiftsPaymentsTab {
             translate(gdata.language(), DATE),
             Align::Start,
             false,
+            false,
             |p: &CashShiftsPayment| reformat_date(&Some(p.info.creationDate.clone())),
         ));
         table.add_column(AnyTableColumn::new(
             translate(gdata.language(), GROUP),
             Align::Center,
             false,
+            false,
             |p: &CashShiftsPayment| p.info.group.to_string(),
         ));
         table.add_column(AnyTableColumn::new(
             translate(gdata.language(), SUM),
             Align::End,
+            false,
             false,
             |p: &CashShiftsPayment| p.info.sum.to_string(),
         ));

@@ -16,6 +16,7 @@ use crate::gui::common::message_bus::MessageBus;
 use crate::gui::login::LoginBox;
 use crate::gui::main::Main;
 use crate::gui::translation::CurrentLanguage::{self, EN, RU};
+use std::env;
 use std::sync::{Arc, Mutex};
 
 const APP_ID: &str = "org.fargo.iiko-office-libre";
@@ -98,6 +99,8 @@ impl GlobalData {
 }
 
 pub fn start_gui() {
+    set_language();
+
     let app = Application::builder().application_id(APP_ID).build();
 
     app.connect_activate(build_ui);
@@ -143,11 +146,30 @@ fn startup(app: &Application) {
     action_quit.connect_activate(move |_, _| action_app.clone().quit());
 }
 
+// Should always be called before anything
+fn set_language() {
+    if env::var_os("LANG").is_none()
+        && env::var_os("LC_ALL").is_none()
+        && let Some(locale) = sys_locale::get_locale()
+    {
+        unsafe {
+            env::set_var("LC_ALL", &locale);
+            env::set_var("LANG", &locale);
+        }
+    }
+}
+
 fn get_language() -> CurrentLanguage {
-    let language_str = gtk4::default_language().to_string();
-    if language_str.starts_with("ru") {
-        RU
-    } else {
-        EN
+    let locale_full = gtk4::default_language().to_string();
+
+    let primary = locale_full
+        .split(['-', '_', '.'])
+        .next()
+        .unwrap_or("")
+        .to_ascii_lowercase();
+
+    match primary.as_str() {
+        "ru" => RU,
+        _ => EN,
     }
 }
