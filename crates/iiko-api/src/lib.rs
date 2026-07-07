@@ -78,6 +78,7 @@ impl IikoConnection {
         Ok(quick_xml::de::from_str(&check_status(resp)?.text()?)?)
     }
 
+    // Supports only json POST
     fn request_post<T: DeserializeOwned>(
         &self,
         path: &str,
@@ -87,6 +88,7 @@ impl IikoConnection {
         let resp = self
             .client
             .post(Self::parse_url(&self.base, path, args))
+            .header("Content-Type", "application/json")
             .body(data)
             .send()?;
         Ok(check_status(resp)?.json()?)
