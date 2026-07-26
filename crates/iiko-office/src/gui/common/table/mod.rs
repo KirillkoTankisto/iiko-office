@@ -15,6 +15,8 @@ use gtk4::{CustomFilter, glib};
 
 use std::marker::PhantomData;
 
+use crate::gui::translation::CurrentLanguage;
+
 type SearchGetter = Box<dyn Fn(&BoxedAnyObject) -> String>;
 
 #[derive(Clone, glib::Downgrade)]
@@ -161,6 +163,7 @@ impl AnyTable {
             self.column_view
                 .remove_column(column.downcast_ref::<ColumnViewColumn>().unwrap());
         }
+        self.search_getters.borrow_mut().clear();
     }
 
     pub fn connect<F>(&self, f: F)
@@ -288,4 +291,8 @@ where
             _marker: PhantomData,
         }
     }
+}
+
+pub trait AsTable {
+    fn as_table(language: CurrentLanguage) -> AnyTable;
 }

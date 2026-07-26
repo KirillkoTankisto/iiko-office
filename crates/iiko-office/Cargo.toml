@@ -7,10 +7,10 @@ license.workspace = true
 
 [dependencies]
 iiko-api = { path = "../iiko-api" }
-gtk4.workspace = true
-async-channel.workspace = true
+gtk4 = { version = "0.11.4", features = ["v4_14"] }
+sys-locale = "0.3.2"
+async-channel = "2.5.0"
 serde.workspace = true
 serde_json.workspace = true
 indexmap.workspace = true
 thiserror.workspace = true
-sys-locale = "0.3.2"

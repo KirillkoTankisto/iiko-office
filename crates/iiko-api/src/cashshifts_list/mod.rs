@@ -6,7 +6,7 @@ use crate::{IikoSession, error::ClientError};
 
 pub type CashShifts = Vec<CashShift>;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, PartialEq, Debug)]
 #[serde(rename_all = "UPPERCASE")]
 pub enum SessionStatus {
     Any,
@@ -30,7 +30,7 @@ impl Display for SessionStatus {
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, PartialEq, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct CashShift {
     pub id: String,
@@ -51,7 +51,7 @@ pub struct CashShift {
     pub pay_in: f64,
     pub pay_out: f64,
     pub pay_income: f64,
-    pub cash_remain: Option<i64>,
+    pub cash_remain: Option<f64>,
     pub cash_diff: f64,
     pub session_status: SessionStatus,
     pub conception_id: Option<String>,
@@ -73,5 +73,53 @@ impl IikoSession {
                 ("status", &session_status.to_string()),
             ],
         )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::IikoConnection;
+    use httpmock::prelude::*;
+    use std::sync::Mutex;
+
+    const CASH_SHIFTS_ANSWER: &str = include_str!("../../tests/cashshifts.json");
+    const DATE_FROM: &str = "2026-01-01";
+    const DATE_TO: &str = "2026-12-01";
+    const STATUS: &str = "ANY";
+    const KEY: &str = "da39a3ee5e6b4b0d3255bfef95601890afd80709";
+    const PASSWORD: &str = "5baa61e4c9b93f3f0682250b6cf8331b7ee68fd8";
+    const USER: &str = "admin";
+
+    #[test]
+    fn cashshifts_list_get() {
+        let server = httpmock::MockServer::start();
+        let mock = server.mock(|when, then| {
+            when.method(GET)
+                .path("/resto/api/v2/cashshifts/list")
+                .query_param("key", KEY)
+                .query_param("openDateFrom", DATE_FROM)
+                .query_param("openDateTo", DATE_TO)
+                .query_param("status", STATUS);
+            then.status(200).body(CASH_SHIFTS_ANSWER);
+        });
+
+        let session = IikoSession {
+            connection: IikoConnection::new(&server.base_url()).unwrap(),
+            user: USER.to_string(),
+            hashed_password: PASSWORD.to_string(),
+            token: Mutex::new(KEY.to_string()),
+        };
+
+        let answer = session
+            .cashshifts_list(DATE_FROM, DATE_TO, SessionStatus::Any)
+            .unwrap();
+
+        mock.assert();
+
+        assert_eq!(
+            serde_json::from_str::<CashShifts>(CASH_SHIFTS_ANSWER).unwrap(),
+            answer
+        );
     }
 }

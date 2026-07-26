@@ -3,23 +3,16 @@ resolver = "3"
 members = ["crates/iiko-api", "crates/iiko-office"]
 
 [workspace.package]
-version = "0.10.2"
+version = "0.10.3"
 edition = "2024"
 repository = "https://github.com/KirillkoTankisto/iiko-office"
 license = "GPL-2.0-or-later"
 
 [workspace.dependencies]
-async-channel = "2.5.0"
-gtk4 = { version = "0.11.4", features = ["v4_14"] }
 indexmap = { version = "2.14.0", features = ["serde"] }
-quick-xml = { version = "0.41.0", features = ["serialize"] }
-reqwest = { version = "0.13.4", features = ["blocking", "json"] }
-serde = { version = "1.0.228", features = ["derive"] }
-serde_json = "1.0.150"
-sha1 = "0.11.0"
-strum_macros = "0.28.0"
-thiserror = "2.0.18"
-url = "2.5.8"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
+thiserror = "2.0.19"
 
 [profile.release]
 strip = true

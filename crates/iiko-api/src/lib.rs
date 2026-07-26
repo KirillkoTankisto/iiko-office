@@ -18,6 +18,7 @@ use crate::error::ClientError;
 
 const UAGENT: &str = concat!("iiko-office-libre/", env!("CARGO_PKG_VERSION"));
 
+#[derive(Debug)]
 pub struct IikoConnection {
     client: reqwest::blocking::Client,
     base: url::Url,
@@ -103,6 +104,7 @@ impl IikoConnection {
     }
 }
 
+#[derive(Debug)]
 pub struct IikoSession {
     connection: IikoConnection,
     user: String,

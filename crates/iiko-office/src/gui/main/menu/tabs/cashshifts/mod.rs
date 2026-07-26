@@ -8,25 +8,88 @@ use gtk4::glib;
 use gtk4::prelude::*;
 use iiko_api::cashshifts_list::{CashShift, SessionStatus};
 
-use crate::gui::common::table::{AnyTable, AnyTableColumn};
+use crate::gui::common::datepicker::DateFromToPicker;
+use crate::gui::common::table::{AnyTable, AnyTableColumn, AsTable};
 use crate::gui::common::utils::spawn_workflow;
 use crate::gui::main::menu::tabs::cashshifts_payments::CashShiftsPaymentsTab;
 use crate::gui::main::menu::tabs::{AnyTab, build_box, open_tab};
 use crate::gui::main::menu::view::MainView;
+use crate::gui::translation::CurrentLanguage;
 use crate::gui::translation::Line::{
     ACCEPT_DATE, CLOSE_DATE, OPEN_DATE, REFRESH, SALES_CARD, SALES_CASH, SALES_CREDIT, SALES_SUM,
     SHIFT_NUMBER,
 };
 use crate::gui::{
     GlobalData,
-    common::{datepicker::DatePicker, datetime::reformat_date},
-    translation::{
-        Line::{CASH_SHIFTS, DATE_FROM, DATE_TO},
-        translate,
-    },
+    common::datetime::reformat_date,
+    translation::{Line::CASH_SHIFTS, translate},
 };
 
 pub struct CashShiftsTab;
+
+impl AsTable for CashShiftsTab {
+    fn as_table(language: CurrentLanguage) -> AnyTable {
+        let table = AnyTable::new(true);
+        table.add_column(AnyTableColumn::new(
+            translate(language, OPEN_DATE),
+            Align::Start,
+            false,
+            false,
+            |s: &CashShift| reformat_date(&Some(s.open_date.clone())),
+        ));
+        table.add_column(AnyTableColumn::new(
+            translate(language, CLOSE_DATE),
+            Align::Start,
+            false,
+            false,
+            |s: &CashShift| reformat_date(&s.close_date),
+        ));
+        table.add_column(AnyTableColumn::new(
+            translate(language, ACCEPT_DATE),
+            Align::Start,
+            false,
+            false,
+            |s: &CashShift| reformat_date(&s.accept_date),
+        ));
+        table.add_column(AnyTableColumn::new(
+            translate(language, SALES_SUM),
+            Align::End,
+            false,
+            false,
+            |s: &CashShift| (s.sales_cash + s.sales_card + s.sales_credit).to_string(),
+        ));
+        table.add_column(AnyTableColumn::new(
+            translate(language, SALES_CARD),
+            Align::End,
+            false,
+            false,
+            |s: &CashShift| s.sales_card.to_string(),
+        ));
+        table.add_column(AnyTableColumn::new(
+            translate(language, SALES_CASH),
+            Align::End,
+            false,
+            false,
+            |s: &CashShift| s.sales_cash.to_string(),
+        ));
+        table.add_column(AnyTableColumn::new(
+            translate(language, SALES_CREDIT),
+            Align::End,
+            false,
+            false,
+            |s: &CashShift| s.sales_credit.to_string(),
+        ));
+        table.add_column(AnyTableColumn::new(
+            translate(language, SHIFT_NUMBER),
+            Align::End,
+            true,
+            false,
+            |s: &CashShift| s.session_number.to_string(),
+        ));
+
+        table
+    }
+}
 
 impl AnyTab for CashShiftsTab {
     fn title(&self, gdata: &GlobalData) -> &str {
@@ -43,71 +106,13 @@ impl AnyTab for CashShiftsTab {
             .row_spacing(8)
             .build();
 
-        let date_from = DatePicker::new(translate(gdata.language(), DATE_FROM), gdata.language());
-        let date_to = DatePicker::new(translate(gdata.language(), DATE_TO), gdata.language());
-        let refresh_button = Button::with_label(translate(gdata.language(), REFRESH));
+        let date_from_to = DateFromToPicker::new(gdata.language());
+        date_from_to.attach_to(&grid, 0, 0);
 
-        date_from.attach_to(&grid, 0, 0);
-        date_to.attach_to(&grid, 1, 0);
+        let refresh_button = Button::with_label(translate(gdata.language(), REFRESH));
         grid.attach(&refresh_button, 1, 2, 1, 1);
 
-        let table = AnyTable::new(true);
-        table.add_column(AnyTableColumn::new(
-            translate(gdata.language(), OPEN_DATE),
-            Align::Start,
-            false,
-            false,
-            |s: &CashShift| reformat_date(&Some(s.open_date.clone())),
-        ));
-        table.add_column(AnyTableColumn::new(
-            translate(gdata.language(), CLOSE_DATE),
-            Align::Start,
-            false,
-            false,
-            |s: &CashShift| reformat_date(&s.close_date),
-        ));
-        table.add_column(AnyTableColumn::new(
-            translate(gdata.language(), ACCEPT_DATE),
-            Align::Start,
-            false,
-            false,
-            |s: &CashShift| reformat_date(&s.accept_date),
-        ));
-        table.add_column(AnyTableColumn::new(
-            translate(gdata.language(), SALES_SUM),
-            Align::End,
-            false,
-            false,
-            |s: &CashShift| (s.sales_cash + s.sales_card + s.sales_credit).to_string(),
-        ));
-        table.add_column(AnyTableColumn::new(
-            translate(gdata.language(), SALES_CARD),
-            Align::End,
-            false,
-            false,
-            |s: &CashShift| s.sales_card.to_string(),
-        ));
-        table.add_column(AnyTableColumn::new(
-            translate(gdata.language(), SALES_CASH),
-            Align::End,
-            false,
-            false,
-            |s: &CashShift| s.sales_cash.to_string(),
-        ));
-        table.add_column(AnyTableColumn::new(
-            translate(gdata.language(), SALES_CREDIT),
-            Align::End,
-            false,
-            false,
-            |s: &CashShift| s.sales_credit.to_string(),
-        ));
-        table.add_column(AnyTableColumn::new(
-            translate(gdata.language(), SHIFT_NUMBER),
-            Align::End,
-            true,
-            false,
-            |s: &CashShift| s.session_number.to_string(),
-        ));
+        let table = Self::as_table(gdata.language());
 
         table.connect(glib::clone!(
             #[weak]
@@ -136,11 +141,10 @@ impl AnyTab for CashShiftsTab {
             gdata,
             #[weak]
             table,
+            #[weak]
+            date_from_to,
             move |button| {
-                let from = date_from.get_date();
-                let to = date_to.get_date();
-
-                cashshifts_callback(gdata, button, table, from, to);
+                cashshifts_callback(gdata, button, table, date_from_to);
             }
         ));
 
@@ -152,13 +156,13 @@ fn cashshifts_callback(
     gdata: Arc<GlobalData>,
     button: &Button,
     table: AnyTable,
-    date_from: String,
-    date_to: String,
+    date_from_to: DateFromToPicker,
 ) {
+    let (from, to) = date_from_to.get_date();
     spawn_workflow(
         gdata,
         Some(button),
-        move |session| session.cashshifts_list(&date_from, &date_to, SessionStatus::Any),
+        move |session| session.cashshifts_list(&from, &to, SessionStatus::Any),
         move |shifts| {
             table.clear_table();
             for shift in shifts {

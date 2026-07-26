@@ -107,3 +107,70 @@ impl IikoSession {
         self.request_post("/resto/api/v2/reports/olap", &[], body)
     }
 }
+
+pub struct OlapTable {
+    pub columns: Vec<String>,
+    pub rows: Vec<Vec<String>>,
+}
+
+impl OlapAnswer {
+    pub fn to_table(&self) -> OlapTable {
+        let mut columns: IndexMap<String, ()> = IndexMap::new();
+        let mut flat_rows: Vec<IndexMap<String, String>> = Vec::with_capacity(self.data.len());
+        for record in &self.data {
+            let mut flat = IndexMap::new();
+            for (key, value) in record {
+                Self::flatten(key, value, &mut flat);
+            }
+            for col in flat.keys() {
+                columns.entry(col.clone()).or_insert(());
+            }
+            flat_rows.push(flat);
+        }
+
+        let column_list: Vec<String> = columns.into_keys().collect();
+        let rows = flat_rows
+            .into_iter()
+            .map(|flat| {
+                column_list
+                    .iter()
+                    .map(|c| flat.get(c).cloned().unwrap_or_default())
+                    .collect()
+            })
+            .collect();
+
+        OlapTable {
+            columns: column_list,
+            rows,
+        }
+    }
+
+    fn flatten(prefix: &str, value: &serde_json::Value, out: &mut IndexMap<String, String>) {
+        match value {
+            serde_json::Value::Object(map) => {
+                for (key, value) in map {
+                    Self::flatten(&format!("{prefix} / {key}"), value, out);
+                }
+            }
+            serde_json::Value::Array(arr) => {
+                let joined = arr
+                    .iter()
+                    .map(Self::value_to_string)
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                out.insert(prefix.to_string(), joined);
+            }
+            scalar => {
+                out.insert(prefix.to_string(), Self::value_to_string(scalar));
+            }
+        }
+    }
+
+    fn value_to_string(value: &serde_json::Value) -> String {
+        match value {
+            serde_json::Value::String(s) => s.clone(),
+            serde_json::Value::Null => String::new(),
+            other => other.to_string(),
+        }
+    }
+}

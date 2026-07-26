@@ -1,6 +1,7 @@
 pub mod datepicker;
 pub mod datetime;
 pub mod drag_space;
+pub mod global_data;
 pub mod logo;
 pub mod message_bus;
 pub mod period_list;

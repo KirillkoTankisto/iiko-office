@@ -11,6 +11,8 @@ use gtk4::prelude::*;
 
 use crate::gui::translation::CurrentLanguage;
 use crate::gui::translation::Line::CLOSE;
+use crate::gui::translation::Line::DATE_FROM;
+use crate::gui::translation::Line::DATE_TO;
 use crate::gui::translation::translate;
 
 #[derive(Clone, glib::Downgrade)]
@@ -110,5 +112,34 @@ impl DatePicker {
         self.label.set_visible(value);
         self.entry.set_visible(value);
         self.menu_button.set_visible(value);
+    }
+}
+
+#[derive(glib::Downgrade)]
+pub struct DateFromToPicker {
+    from: DatePicker,
+    to: DatePicker,
+}
+
+impl DateFromToPicker {
+    pub fn new(language: CurrentLanguage) -> Self {
+        Self {
+            from: DatePicker::new(translate(language, DATE_FROM), language),
+            to: DatePicker::new(translate(language, DATE_TO), language),
+        }
+    }
+
+    pub fn attach_to(&self, grid: &gtk4::Grid, row: i32, column: i32) {
+        self.from.attach_to(grid, row, column);
+        self.to.attach_to(grid, row + 1, column);
+    }
+
+    pub fn get_date(&self) -> (String, String) {
+        (self.from.get_date(), self.to.get_date())
+    }
+
+    pub fn set_visible(&self, value: bool) {
+        self.from.set_visible(value);
+        self.to.set_visible(value);
     }
 }

@@ -9,6 +9,7 @@ use crate::gui::GlobalData;
 use crate::gui::common::datetime::reformat_date;
 use crate::gui::common::table::AnyTable;
 use crate::gui::common::table::AnyTableColumn;
+use crate::gui::common::table::AsTable;
 use crate::gui::common::utils::spawn_workflow;
 use crate::gui::main::menu::tabs::AnyTab;
 use crate::gui::main::menu::tabs::build_box;
@@ -24,35 +25,44 @@ pub struct CashShiftsPaymentsTab {
     pub id: String,
 }
 
-impl AnyTab for CashShiftsPaymentsTab {
-    fn title(&self, gdata: &GlobalData) -> &str {
-        translate(gdata.language(), PAYMENTS)
-    }
-    fn build(&self, gdata: Arc<GlobalData>, _view: &MainView) -> gtk4::Widget {
-        let cashshifts_payments_box = build_box(Vertical);
-
+impl AsTable for CashShiftsPaymentsTab {
+    fn as_table(language: crate::gui::translation::CurrentLanguage) -> AnyTable {
         let table = AnyTable::new(true);
         table.add_column(AnyTableColumn::new(
-            translate(gdata.language(), DATE),
+            translate(language, DATE),
             Align::Start,
             false,
             false,
             |p: &CashShiftsPayment| reformat_date(&Some(p.info.creationDate.clone())),
         ));
         table.add_column(AnyTableColumn::new(
-            translate(gdata.language(), GROUP),
+            translate(language, GROUP),
             Align::Center,
             false,
             false,
             |p: &CashShiftsPayment| p.info.group.to_string(),
         ));
         table.add_column(AnyTableColumn::new(
-            translate(gdata.language(), SUM),
+            translate(language, SUM),
             Align::End,
             false,
             false,
             |p: &CashShiftsPayment| p.info.sum.to_string(),
         ));
+
+        table
+    }
+}
+
+impl AnyTab for CashShiftsPaymentsTab {
+    fn title(&self, gdata: &GlobalData) -> &str {
+        translate(gdata.language(), PAYMENTS)
+    }
+
+    fn build(&self, gdata: Arc<GlobalData>, _view: &MainView) -> gtk4::Widget {
+        let cashshifts_payments_box = build_box(Vertical);
+
+        let table = Self::as_table(gdata.language());
 
         cashshifts_payments_box.append(table.present());
 
