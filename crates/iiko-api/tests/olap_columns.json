@@ -1,0 +1,114 @@
+{
+  "OpenDate.Typed": {
+    "name": "Order open date and time",
+    "type": "DATETIME",
+    "aggregationAllowed": false,
+    "groupingAllowed": true,
+    "filteringAllowed": true,
+    "tags": ["Time", "Order"]
+  },
+  "CloseTime": {
+    "name": "Order close date and time",
+    "type": "DATETIME",
+    "aggregationAllowed": false,
+    "groupingAllowed": true,
+    "filteringAllowed": true,
+    "tags": ["Time", "Order"]
+  },
+  "Department": {
+    "name": "Department",
+    "type": "STRING",
+    "aggregationAllowed": false,
+    "groupingAllowed": true,
+    "filteringAllowed": true,
+    "tags": ["Organizational unit"]
+  },
+  "Department.Id": {
+    "name": "Department ID",
+    "type": "ID",
+    "aggregationAllowed": false,
+    "groupingAllowed": true,
+    "filteringAllowed": true,
+    "tags": ["Organizational unit"]
+  },
+  "DishName": {
+    "name": "Dish",
+    "type": "STRING",
+    "aggregationAllowed": false,
+    "groupingAllowed": true,
+    "filteringAllowed": true,
+    "tags": ["Menu item"]
+  },
+  "DishAmountInt": {
+    "name": "Dish quantity",
+    "type": "INTEGER",
+    "aggregationAllowed": true,
+    "groupingAllowed": false,
+    "filteringAllowed": true,
+    "tags": ["Menu item", "Amount"]
+  },
+  "DishDiscountSumInt": {
+    "name": "Sum with discount",
+    "type": "MONEY",
+    "aggregationAllowed": true,
+    "groupingAllowed": false,
+    "filteringAllowed": true,
+    "tags": ["Money", "Discount"]
+  },
+  "DishReturnSum": {
+    "name": "Return sum",
+    "type": "MONEY",
+    "aggregationAllowed": true,
+    "groupingAllowed": false,
+    "filteringAllowed": true,
+    "tags": ["Money"]
+  },
+  "FoodCostPercent": {
+    "name": "Food cost, %",
+    "type": "PERCENT",
+    "aggregationAllowed": true,
+    "groupingAllowed": false,
+    "filteringAllowed": false,
+    "tags": ["Money", "Cost"]
+  },
+  "CookingTime": {
+    "name": "Cooking time",
+    "type": "DURATION_IN_SECONDS",
+    "aggregationAllowed": true,
+    "groupingAllowed": false,
+    "filteringAllowed": true,
+    "tags": ["Time", "Kitchen"]
+  },
+  "OrderDeleted": {
+    "name": "Order deleted",
+    "type": "BOOLEAN",
+    "aggregationAllowed": false,
+    "groupingAllowed": true,
+    "filteringAllowed": true,
+    "tags": ["Order", "Deletion"]
+  },
+  "WaiterName": {
+    "name": "Waiter",
+    "type": "STRING",
+    "aggregationAllowed": false,
+    "groupingAllowed": true,
+    "filteringAllowed": true,
+    "tags": ["Employee"]
+  },
+  "SessionNum": {
+    "name": "Cash shift number",
+    "type": "INTEGER",
+    "aggregationAllowed": false,
+    "groupingAllowed": true,
+    "filteringAllowed": true,
+    "tags": ["Cash shift"]
+  },
+  "Conception": {
+    "name": "Conception",
+    "type": "STRING",
+    "aggregationAllowed": false,
+    "groupingAllowed": true,
+    "filteringAllowed": true,
+    "tags": []
+  }
+}
