@@ -3,11 +3,9 @@ use std::sync::{Arc, Mutex};
 use gtk4::ApplicationWindow;
 use iiko_api::IikoSession;
 
-use crate::{
-    cfg::OfficeConfig,
-    error::AppError,
-    gui::{common::message_bus::MessageBus, get_language, translation::CurrentLanguage},
-};
+use crate::gui::language::get_language;
+use crate::gui::translation::CurrentLanguage;
+use crate::{cfg::OfficeConfig, error::AppError, gui::common::message_bus::MessageBus};
 
 pub struct GlobalData {
     session: Mutex<Option<Arc<IikoSession>>>,

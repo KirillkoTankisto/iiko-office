@@ -1,4 +1,5 @@
 use std::cell::{Ref, RefCell};
+use std::collections::HashMap;
 use std::rc::Rc;
 
 use gtk4::gdk::{ContentProvider, DragAction};
@@ -12,6 +13,7 @@ use gtk4::{
     ColumnView, ColumnViewColumn, Label, ListItem, SignalListItemFactory, glib::object::Cast,
 };
 use gtk4::{CustomFilter, glib};
+use iiko_api::olap::OlapTable;
 
 use std::marker::PhantomData;
 
@@ -27,6 +29,18 @@ pub struct AnyTable {
     filter: CustomFilter,
     query: Rc<RefCell<String>>,
     search_getters: Rc<RefCell<Vec<SearchGetter>>>,
+}
+
+const MIN_WIDTH_CHARS: i32 = 12;
+const MAX_WIDTH_CHARS: i32 = 40;
+
+#[derive(Clone, Copy)]
+pub enum OlapLayout {
+    /// Flat listing: every column is a field id; alignment inferred from data.
+    Flat,
+    /// Pivot: the first `key_count` columns are field ids, the rest are
+    /// category values holding aggregates.
+    Pivot { key_count: usize },
 }
 
 impl AnyTable {
@@ -87,6 +101,59 @@ impl AnyTable {
         }
     }
 
+    pub fn set_olap_table(
+        &self,
+        olap_table: OlapTable,
+        // Field name resolution
+        id_to_name: &HashMap<String, String>,
+        layout: OlapLayout,
+    ) {
+        self.clear_table();
+        self.remove_columns();
+
+        let OlapTable { columns, rows } = olap_table;
+
+        let key_count = match layout {
+            OlapLayout::Flat => columns.len(),
+            OlapLayout::Pivot { key_count } => key_count,
+        };
+
+        for (index, column) in columns.iter().enumerate() {
+            let title = if index < key_count {
+                id_to_name
+                    .get(column)
+                    .cloned()
+                    .unwrap_or_else(|| column.clone())
+            } else {
+                column.clone()
+            };
+
+            let align = match layout {
+                OlapLayout::Pivot { .. } => {
+                    if index < key_count {
+                        Align::Start
+                    } else {
+                        Align::End
+                    }
+                }
+                OlapLayout::Flat if column_is_numeric(&rows, index) => Align::End,
+                OlapLayout::Flat => Align::Start,
+            };
+
+            self.add_column(AnyTableColumn::new(
+                &title,
+                align,
+                false,
+                true,
+                move |row: &Vec<String>| row.get(index).cloned().unwrap_or_default(),
+            ));
+        }
+
+        for row in rows {
+            self.add_object(&BoxedAnyObject::new(row));
+        }
+    }
+
     pub fn add_column<T, F>(&self, column: AnyTableColumn<'_, T, F>)
     where
         T: 'static,
@@ -119,16 +186,16 @@ impl AnyTable {
 
         let factory = SignalListItemFactory::new();
         factory.connect_setup(move |_, item| {
+            let attrs = gtk4::pango::AttrList::new();
+            attrs.insert(gtk4::pango::AttrFloat::new_scale(0.8333));
             item.downcast_ref::<ListItem>().unwrap().set_child(Some(
                 &Label::builder()
                     .halign(align)
                     .xalign(xalign)
                     .ellipsize(gtk4::pango::EllipsizeMode::End)
-                    .max_width_chars(40)
-                    .margin_start(4)
-                    .margin_end(4)
-                    .margin_top(4)
-                    .margin_bottom(4)
+                    .width_chars(MIN_WIDTH_CHARS)
+                    .max_width_chars(MAX_WIDTH_CHARS)
+                    .attributes(&attrs)
                     .build(),
             ));
         });
@@ -295,4 +362,11 @@ where
 
 pub trait AsTable {
     fn as_table(language: CurrentLanguage) -> AnyTable;
+}
+
+fn column_is_numeric(rows: &[Vec<String>], index: usize) -> bool {
+    rows.iter()
+        .filter_map(|row| row.get(index))
+        .find(|cell| !cell.is_empty())
+        .is_some_and(|cell| cell.parse::<f64>().is_ok())
 }

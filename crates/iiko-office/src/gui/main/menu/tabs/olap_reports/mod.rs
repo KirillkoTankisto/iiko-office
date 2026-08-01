@@ -14,7 +14,7 @@ use crate::gui::{
         datepicker::DateFromToPicker,
         drag_space::DragSpace,
         period_list::PeriodList,
-        table::{AnyTable, AnyTableColumn, AsTable},
+        table::{AnyTable, AnyTableColumn, AsTable, OlapLayout},
         utils::spawn_workflow,
     },
     main::menu::{
@@ -25,14 +25,14 @@ use crate::gui::{
         CurrentLanguage,
         Line::{
             OLAP_AGGREGATE_FIELDS, OLAP_COLUMN_FIELDS, OLAP_FIELDS, OLAP_REPORTS, OLAP_ROW_FIELDS,
-            REFRESH,
+            REFRESH, TOTAL,
         },
         translate,
     },
 };
 use iiko_api::{
     consts::{PeriodType, ReportType},
-    olap::{Filter, OlapAnswer, OlapTable},
+    olap::{Filter, OlapAnswer},
     olap_columns::OlapColumn,
 };
 
@@ -210,7 +210,7 @@ fn olap_callback(
         .map(|(id, col)| (id.clone(), col.name.clone()))
         .collect();
 
-    let resolve = |space: &DragSpace| -> Vec<String> {
+    let get_fields = |space: &DragSpace| -> Vec<String> {
         let map = name_to_id.clone();
         space.items_match(move |items| {
             items
@@ -220,62 +220,61 @@ fn olap_callback(
         })
     };
 
-    let rfield = resolve(&olap_fields.row_field);
-    let cfield = resolve(&olap_fields.column_field);
-    let afield = resolve(&olap_fields.aggregation_field);
+    let rfield = get_fields(&olap_fields.row_field);
+    let cfield = get_fields(&olap_fields.column_field);
+    let afield = get_fields(&olap_fields.aggregation_field);
 
     let period_type = period_list.get_value();
 
+    let row_fields_clone = rfield.clone();
+    let col_field = cfield.first().cloned();
+    let value_field = afield.first().cloned();
     spawn_workflow(
-        gdata,
+        gdata.clone(),
         Some(button),
         move |session| {
             let date_filter = match period_type {
-                PeriodType::CUSTOM => Filter::new_date_range(from, to),
+                PeriodType::CUSTOM => Filter::custom_date_range(from, to),
                 _ => Filter::preset_date_range(period_type),
             };
-            let filters = indexmap::IndexMap::from([date_filter]);
+            let filters =
+                indexmap::IndexMap::from([(String::from(Filter::OPEN_DATE_FIELD), date_filter)]);
             session.olap(ReportType::Sales, false, rfield, cfield, afield, filters)
         },
         move |olap| {
-            olap_table(&report_table, &olap, &id_to_name);
+            olap_table(
+                &report_table,
+                &olap,
+                &id_to_name,
+                &row_fields_clone,
+                col_field.as_deref(),
+                value_field.as_deref(),
+                translate(gdata.language(), TOTAL),
+            );
         },
     );
 }
 
-fn olap_table(table: &AnyTable, answer: &OlapAnswer, id_to_name: &HashMap<String, String>) {
+fn olap_table(
+    table: &AnyTable,
+    answer: &OlapAnswer,
+    id_to_name: &HashMap<String, String>,
+    row_fields: &[String],
+    col_field: Option<&str>,
+    value_field: Option<&str>,
+    total_label: &str,
+) {
     table.clear_table();
     table.remove_columns();
 
-    let OlapTable { columns, rows } = answer.to_table();
-
-    for (index, column) in columns.iter().enumerate() {
-        let align = if rows
-            .iter()
-            .filter_map(|row| row.get(index))
-            .find(|cell| !cell.is_empty())
-            .is_some_and(|cell| cell.parse::<f64>().is_ok())
-        {
-            Align::End
-        } else {
-            Align::Start
-        };
-
-        let title = id_to_name
-            .get(column)
-            .cloned()
-            .unwrap_or_else(|| column.clone());
-
-        table.add_column(AnyTableColumn::new(
-            &title,
-            align,
-            false,
-            true,
-            move |row: &Vec<String>| row.get(index).cloned().unwrap_or_default(),
-        ));
-    }
-
-    for row in rows {
-        table.add_object(&BoxedAnyObject::new(row));
-    }
+    let (data, layout) = match col_field.zip(value_field) {
+        Some((col, value)) => (
+            answer.to_pivot_table(row_fields, col, value, total_label),
+            OlapLayout::Pivot {
+                key_count: row_fields.len(),
+            },
+        ),
+        None => (answer.to_table_sorted(row_fields), OlapLayout::Flat),
+    };
+    table.set_olap_table(data, id_to_name, layout);
 }

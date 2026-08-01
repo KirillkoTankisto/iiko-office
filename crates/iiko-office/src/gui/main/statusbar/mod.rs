@@ -18,10 +18,10 @@ impl StatusBar {
             .orientation(gtk4::Orientation::Horizontal)
             .halign(gtk4::Align::Fill)
             .hexpand(true)
-            .margin_bottom(32)
+            .margin_bottom(16)
             .margin_top(0)
-            .margin_start(32)
-            .margin_end(32)
+            .margin_start(16)
+            .margin_end(16)
             .build();
 
         let left = gtk4::Label::builder()

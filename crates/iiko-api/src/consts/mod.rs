@@ -2,13 +2,6 @@ use std::fmt::Display;
 
 use serde::Serialize;
 
-#[derive(Serialize)]
-pub enum FilterType {
-    IncludeValues,
-    ExcludeValues,
-    DateRange,
-}
-
 #[allow(nonstandard_style)]
 #[derive(Clone, Copy, Serialize)]
 pub enum PeriodType {

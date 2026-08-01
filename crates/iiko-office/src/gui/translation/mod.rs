@@ -58,6 +58,7 @@ pub enum Line {
     PERIOD_LAST_WEEK,
     PERIOD_LAST_MONTH,
     PERIOD_LAST_YEAR,
+    TOTAL,
 }
 
 const TRANSLATIONS: Translations = &[
@@ -110,6 +111,7 @@ const TRANSLATIONS: Translations = &[
         "Last Week",
         "Last Month",
         "Last Year",
+        "Total",
     ],
     &[
         "Альтернатива iikoOffice для Linux и macOS с открытым исходным кодом",
@@ -160,6 +162,7 @@ const TRANSLATIONS: Translations = &[
         "Предыдущая Неделя",
         "Предыдущий Месяц",
         "Предыдущий Год",
+        "Итого",
     ],
 ];
 
