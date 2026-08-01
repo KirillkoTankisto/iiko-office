@@ -1,5 +1,4 @@
 use serde::Deserialize;
-use strum_macros::Display;
 
 use crate::{IikoSession, cashshifts_list::SessionStatus, error::ClientError};
 
@@ -50,12 +49,29 @@ pub struct PaymentAuth {
     pub card: String,
 }
 
-#[derive(Deserialize, Display, PartialEq, Debug)]
+#[derive(Deserialize, PartialEq, Debug)]
 pub enum PaymentGroup {
     CARD,
     CREDIT,
     PAYOUT,
     PAYIN,
+}
+
+impl PaymentGroup {
+    pub const fn as_str(&self) -> &'static str {
+        match self {
+            Self::CARD => "CARD",
+            Self::CREDIT => "CREDIT",
+            Self::PAYOUT => "PAYOUT",
+            Self::PAYIN => "PAYIN",
+        }
+    }
+}
+
+impl std::fmt::Display for PaymentGroup {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
 }
 
 impl IikoSession {

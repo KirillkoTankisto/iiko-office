@@ -53,8 +53,8 @@ impl AnyTable {
             let query = query.clone();
             let search_getters = search_getters.clone();
             move |obj| {
-                let query = query.borrow();
-                if query.is_empty() {
+                let needle = query.borrow();
+                if needle.is_empty() {
                     return true;
                 }
                 let getters = search_getters.borrow();
@@ -64,10 +64,9 @@ impl AnyTable {
                 let Some(obj) = obj.downcast_ref::<BoxedAnyObject>() else {
                     return true;
                 };
-                let needle = query.to_lowercase();
                 getters
                     .iter()
-                    .any(|getter| getter(obj).to_lowercase().contains(&needle))
+                    .any(|getter| getter(obj).to_lowercase().contains(&*needle))
             }
         });
 
@@ -143,8 +142,6 @@ impl AnyTable {
             self.add_column(AnyTableColumn::new(
                 &title,
                 align,
-                false,
-                true,
                 move |row: &Vec<String>| row.get(index).cloned().unwrap_or_default(),
             ));
         }
@@ -309,17 +306,16 @@ impl AnyTable {
     }
 
     pub fn set_search_query(&self, text: &str) {
-        let old = self.query.replace(text.to_string());
+        let new = text.to_lowercase();
+        let old = self.query.replace(new.clone());
 
-        let new_lowercase = text.to_lowercase();
-        let old_lowercase = old.to_lowercase();
-        if new_lowercase == old_lowercase {
+        if new == old {
             return;
         }
 
-        let change = if new_lowercase.contains(&old_lowercase) {
+        let change = if new.contains(&old) {
             FilterChange::MoreStrict
-        } else if old_lowercase.contains(&new_lowercase) {
+        } else if old.contains(&new) {
             FilterChange::LessStrict
         } else {
             FilterChange::Different
@@ -348,15 +344,25 @@ impl<'a, T, F> AnyTableColumn<'a, T, F>
 where
     F: Fn(&T) -> String,
 {
-    pub fn new(title: &'a str, align: Align, expand: bool, searchable: bool, getter: F) -> Self {
+    pub fn new(title: &'a str, align: Align, getter: F) -> Self {
         Self {
             title,
             align,
-            expand,
-            searchable,
+            expand: false,
+            searchable: false,
             getter,
             _marker: PhantomData,
         }
+    }
+
+    pub fn expand(mut self) -> Self {
+        self.expand = true;
+        self
+    }
+
+    pub fn searchable(mut self) -> Self {
+        self.searchable = true;
+        self
     }
 }
 

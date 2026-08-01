@@ -21,7 +21,7 @@ impl IikoSession {
     pub fn olap_columns(&self, report_type: ReportType) -> Result<OlapColumns, ClientError> {
         self.request_json(
             "/resto/api/v2/reports/olap/columns",
-            &[("reportType", &report_type.to_string())],
+            &[("reportType", report_type.as_str())],
         )
     }
 }

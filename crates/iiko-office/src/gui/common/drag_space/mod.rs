@@ -87,16 +87,8 @@ impl DragSpace {
 
     fn child_index(container: &gtk4::Box, target: &impl IsA<gtk4::Widget>) -> Option<usize> {
         let target = target.as_ref();
-        let mut child = container.first_child();
-        let mut i = 0;
-        while let Some(c) = child {
-            if c == *target {
-                return Some(i);
-            }
-            child = c.next_sibling();
-            i += 1;
-        }
-        None
+        std::iter::successors(container.first_child(), |child| child.next_sibling())
+            .position(|child| child == *target)
     }
 
     pub fn present(&self) -> &gtk4::Frame {

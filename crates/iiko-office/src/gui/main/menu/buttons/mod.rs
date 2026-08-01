@@ -6,17 +6,17 @@ use gtk4::{Box, Button, Orientation::Vertical};
 
 use gtk4::prelude::*;
 
-use crate::gui::main::menu::tabs::{AnyTab, open_tab};
-use crate::gui::{
-    GlobalData,
-    main::menu::{
-        buttons::{cashshifts::CashShiftsButton, olap_reports::OlapReportsButton},
-        view::MainView,
-    },
-};
+use crate::gui::main::menu::tabs::AnyTab;
+use crate::gui::main::menu::tabs::cashshifts::CashShiftsTab;
+use crate::gui::main::menu::tabs::olap_reports::OlapReportsTab;
+use crate::gui::translation::{Line, translate};
+use crate::gui::{GlobalData, main::menu::view::MainView};
 
-mod cashshifts;
-mod olap_reports;
+/// Every entry becomes one sidebar button that opens the associated tab.
+const TAB_BUTTONS: &[(&dyn AnyTab, Line)] = &[
+    (&CashShiftsTab, Line::CASH_SHIFTS),
+    (&OlapReportsTab, Line::OLAP_REPORTS),
+];
 
 pub fn create_buttons(gdata: Arc<GlobalData>, view: &MainView) -> Box {
     let buttons_box = Box::builder()
@@ -28,8 +28,14 @@ pub fn create_buttons(gdata: Arc<GlobalData>, view: &MainView) -> Box {
         .orientation(Vertical)
         .build();
 
-    CashShiftsButton::attach_to(&buttons_box, gdata.clone(), view);
-    OlapReportsButton::attach_to(&buttons_box, gdata.clone(), view);
+    for (tab, line) in TAB_BUTTONS {
+        buttons_box.append(&create_any_button(
+            *tab,
+            translate(gdata.language(), *line),
+            gdata.clone(),
+            view,
+        ));
+    }
 
     buttons_box
 }
@@ -45,15 +51,13 @@ pub fn create_any_button(
     button.connect_clicked(glib::clone!(
         #[strong]
         view,
+        #[weak]
+        gdata,
         move |button| {
             button.set_sensitive(false);
-            open_tab(anytab, gdata.clone(), &view, Some(button));
+            view.add_tab(anytab, gdata, &view, Some(button));
         }
     ));
 
     button
-}
-
-pub trait AnyButton {
-    fn attach_to(a_box: &gtk4::Box, gdata: Arc<GlobalData>, view: &MainView);
 }

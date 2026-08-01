@@ -1,5 +1,3 @@
-use std::fmt::Display;
-
 use serde::Serialize;
 
 #[allow(nonstandard_style)]
@@ -33,12 +31,12 @@ pub enum ReportType {
     Deliveries,
 }
 
-impl Display for ReportType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl ReportType {
+    pub const fn as_str(&self) -> &'static str {
         match self {
-            ReportType::Sales => f.write_str("SALES"),
-            ReportType::Transactions => f.write_str("TRANSACTIONS"),
-            ReportType::Deliveries => f.write_str("DELIVERIES"),
+            Self::Sales => "SALES",
+            Self::Transactions => "TRANSACTIONS",
+            Self::Deliveries => "DELIVERIES",
         }
     }
 }

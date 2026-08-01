@@ -131,25 +131,28 @@ impl IikoSession {
         self.token.lock().unwrap_or_else(|e| e.into_inner()).clone()
     }
 
-    fn with_reauth<T>(
+    fn with_key<T>(
         &self,
-        attempt: impl Fn(&str) -> Result<T, ClientError>,
+        args: &[(&str, &str)],
+        call: impl Fn(&[(&str, &str)]) -> Result<T, ClientError>,
     ) -> Result<T, ClientError> {
-        match attempt(&self.token()) {
+        let run = |token: &str| {
+            let mut full_args = vec![("key", token)];
+            full_args.extend_from_slice(args);
+            call(&full_args)
+        };
+
+        match run(&self.token()) {
             Err(ClientError::Unauthorized) => {
                 self.reauth()?;
-                attempt(&self.token())
+                run(&self.token())
             }
             other => other,
         }
     }
 
     fn request_string(&self, path: &str, args: &[(&str, &str)]) -> Result<String, ClientError> {
-        self.with_reauth(|token| {
-            let mut full_args: Vec<(&str, &str)> = vec![("key", token)];
-            full_args.extend_from_slice(args);
-            self.connection.request_string(path, &full_args)
-        })
+        self.with_key(args, |args| self.connection.request_string(path, args))
     }
 
     fn request_json<T: DeserializeOwned>(
@@ -157,24 +160,7 @@ impl IikoSession {
         path: &str,
         args: &[(&str, &str)],
     ) -> Result<T, ClientError> {
-        self.with_reauth(|token| {
-            let mut full_args: Vec<(&str, &str)> = vec![("key", token)];
-            full_args.extend_from_slice(args);
-            self.connection.request_json(path, &full_args)
-        })
-    }
-
-    #[allow(unused)]
-    fn request_xml<T: DeserializeOwned>(
-        &self,
-        path: &str,
-        args: &[(&str, &str)],
-    ) -> Result<T, ClientError> {
-        self.with_reauth(|token| {
-            let mut full_args: Vec<(&str, &str)> = vec![("key", token)];
-            full_args.extend_from_slice(args);
-            self.connection.request_xml(path, &full_args)
-        })
+        self.with_key(args, |args| self.connection.request_json(path, args))
     }
 
     fn request_post<T: DeserializeOwned>(
@@ -183,10 +169,8 @@ impl IikoSession {
         args: &[(&str, &str)],
         data: String,
     ) -> Result<T, ClientError> {
-        self.with_reauth(|token| {
-            let mut full_args: Vec<(&str, &str)> = vec![("key", token)];
-            full_args.extend_from_slice(args);
-            self.connection.request_post(path, &full_args, data.clone())
+        self.with_key(args, |args| {
+            self.connection.request_post(path, args, data.clone())
         })
     }
 }

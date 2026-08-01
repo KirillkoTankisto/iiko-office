@@ -1,4 +1,4 @@
-MACOS_REQUIRED := tar dylibbundler python3 sips iconutil
+MACOS_REQUIRED := dylibbundler python3 sips iconutil
 ICON := crates/iiko-office/src/assets/logo.png
 TMP := temp
 

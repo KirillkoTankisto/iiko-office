@@ -1,33 +1,23 @@
 use std::sync::Arc;
 
-use gtk4::Button;
-use gtk4::DropDown;
-use gtk4::StringList;
-use gtk4::StringObject;
-use gtk4::prelude::*;
+use gtk4::{
+    Align, Button, DropDown, Entry, Label, Orientation, PasswordEntry, Stack, StringList,
+    StringObject, glib, prelude::*,
+};
+use iiko_api::{IikoConnection, utils::get_password_hash};
 
-use gtk4::Align;
-use gtk4::Entry;
-use gtk4::Label;
-use gtk4::Orientation;
-use gtk4::PasswordEntry;
-use gtk4::Stack;
-
-use gtk4::glib;
-use iiko_api::IikoConnection;
-use iiko_api::utils::get_password_hash;
-
-use crate::gui::GlobalData;
-use crate::gui::common::logo::get_logo_image;
-use crate::gui::common::utils::spawn_task;
-use crate::gui::main::Main;
-use crate::gui::translation::Line::LOGIN;
-use crate::gui::translation::Line::LOGIN_ADD_SERVER;
-use crate::gui::translation::Line::LOGIN_ADDRESS;
-use crate::gui::translation::Line::LOGIN_PASSWORD;
-use crate::gui::translation::Line::LOGIN_REMOVE_SERVER;
-use crate::gui::translation::Line::LOGIN_USERNAME;
-use crate::gui::translation::translate;
+use crate::gui::{
+    GlobalData,
+    common::{logo::get_logo_image, utils::spawn_task},
+    main::Main,
+    translation::{
+        Line::{
+            LOGIN, LOGIN_ADD_SERVER, LOGIN_ADDRESS, LOGIN_PASSWORD, LOGIN_REMOVE_SERVER,
+            LOGIN_USERNAME,
+        },
+        translate,
+    },
+};
 
 const FORM_WIDTH: i32 = 640;
 
@@ -226,10 +216,7 @@ impl AddressBox {
             #[weak]
             delete_button,
             move |dropdown| {
-                let sentinel = server_list.n_items().saturating_sub(1);
-                let on_sentinel = dropdown.selected() == sentinel;
-                new_server_row.set_visible(on_sentinel);
-                delete_button.set_sensitive(!on_sentinel);
+                Self::sync_add_server_row(dropdown, &server_list, &new_server_row, &delete_button);
             }
         ));
 
@@ -246,9 +233,8 @@ impl AddressBox {
             delete_button,
             move |_| {
                 let selected = server_dropdown.selected();
-                let sentinel = server_list.n_items().saturating_sub(1);
 
-                if selected >= sentinel {
+                if selected >= Self::add_server_index(&server_list) {
                     return;
                 }
 
@@ -261,10 +247,12 @@ impl AddressBox {
 
                 server_list.remove(selected);
 
-                let on_sentinel =
-                    server_dropdown.selected() == server_list.n_items().saturating_sub(1);
-                new_server_row.set_visible(on_sentinel);
-                delete_button.set_sensitive(!on_sentinel);
+                Self::sync_add_server_row(
+                    &server_dropdown,
+                    &server_list,
+                    &new_server_row,
+                    &delete_button,
+                );
             }
         ));
 
@@ -278,25 +266,40 @@ impl AddressBox {
         }
     }
 
-    fn add_server(&self, address: &str) {
-        let sentinel = self.servers.n_items().saturating_sub(1);
+    fn add_server_index(list: &StringList) -> u32 {
+        list.n_items().saturating_sub(1)
+    }
 
-        let exists = (0..sentinel)
+    fn sync_add_server_row(
+        dropdown: &DropDown,
+        list: &StringList,
+        new_server_row: &gtk4::Box,
+        delete_button: &Button,
+    ) {
+        let adding_new = dropdown.selected() == Self::add_server_index(list);
+        new_server_row.set_visible(adding_new);
+        delete_button.set_sensitive(!adding_new);
+    }
+
+    fn add_server(&self, address: &str) {
+        let index = Self::add_server_index(&self.servers);
+
+        let exists = (0..index)
             .filter_map(|i| self.servers.string(i))
             .any(|s| s.as_str() == address);
         if exists {
             return;
         }
 
-        self.servers.splice(sentinel, 0, &[address]);
+        self.servers.splice(index, 0, &[address]);
     }
 
-    fn is_add_new_selected(&self) -> bool {
-        self.server_dropdown.selected() == self.servers.n_items().saturating_sub(1)
+    fn is_add_server_selected(&self) -> bool {
+        self.server_dropdown.selected() == Self::add_server_index(&self.servers)
     }
 
     fn url(&self) -> String {
-        if self.is_add_new_selected() {
+        if self.is_add_server_selected() {
             let scheme = self
                 .scheme_dropdown
                 .selected_item()
@@ -343,9 +346,6 @@ fn login_callback(
         move |(address, session)| {
             gdata.set_session(session);
             gdata.add_server(&address);
-            if let Err(e) = gdata.write_config() {
-                gdata.message_send(e);
-            }
 
             login_box.clear_password();
             login_box.add_server(&address);

@@ -8,6 +8,7 @@ pub enum CurrentLanguage {
     RU,
 }
 
+#[derive(Clone, Copy)]
 #[allow(nonstandard_style)]
 pub enum Line {
     ABOUT_COMMENT,

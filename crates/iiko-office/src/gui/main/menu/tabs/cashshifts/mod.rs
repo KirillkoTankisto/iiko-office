@@ -12,7 +12,7 @@ use crate::gui::common::datepicker::DateFromToPicker;
 use crate::gui::common::table::{AnyTable, AnyTableColumn, AsTable};
 use crate::gui::common::utils::spawn_workflow;
 use crate::gui::main::menu::tabs::cashshifts_payments::CashShiftsPaymentsTab;
-use crate::gui::main::menu::tabs::{AnyTab, build_box, open_tab};
+use crate::gui::main::menu::tabs::{AnyTab, build_box};
 use crate::gui::main::menu::view::MainView;
 use crate::gui::translation::CurrentLanguage;
 use crate::gui::translation::Line::{
@@ -33,59 +33,46 @@ impl AsTable for CashShiftsTab {
         table.add_column(AnyTableColumn::new(
             translate(language, OPEN_DATE),
             Align::Start,
-            false,
-            false,
-            |s: &CashShift| reformat_date(&Some(s.open_date.clone())),
+            |s: &CashShift| reformat_date(Some(&s.open_date)),
         ));
         table.add_column(AnyTableColumn::new(
             translate(language, CLOSE_DATE),
             Align::Start,
-            false,
-            false,
-            |s: &CashShift| reformat_date(&s.close_date),
+            |s: &CashShift| reformat_date(s.close_date.as_deref()),
         ));
         table.add_column(AnyTableColumn::new(
             translate(language, ACCEPT_DATE),
             Align::Start,
-            false,
-            false,
-            |s: &CashShift| reformat_date(&s.accept_date),
+            |s: &CashShift| reformat_date(s.accept_date.as_deref()),
         ));
         table.add_column(AnyTableColumn::new(
             translate(language, SALES_SUM),
             Align::End,
-            false,
-            false,
             |s: &CashShift| (s.sales_cash + s.sales_card + s.sales_credit).to_string(),
         ));
         table.add_column(AnyTableColumn::new(
             translate(language, SALES_CARD),
             Align::End,
-            false,
-            false,
             |s: &CashShift| s.sales_card.to_string(),
         ));
         table.add_column(AnyTableColumn::new(
             translate(language, SALES_CASH),
             Align::End,
-            false,
-            false,
             |s: &CashShift| s.sales_cash.to_string(),
         ));
         table.add_column(AnyTableColumn::new(
             translate(language, SALES_CREDIT),
             Align::End,
-            false,
-            false,
             |s: &CashShift| s.sales_credit.to_string(),
         ));
-        table.add_column(AnyTableColumn::new(
-            translate(language, SHIFT_NUMBER),
-            Align::End,
-            true,
-            false,
-            |s: &CashShift| s.session_number.to_string(),
-        ));
+        table.add_column(
+            AnyTableColumn::new(
+                translate(language, SHIFT_NUMBER),
+                Align::End,
+                |s: &CashShift| s.session_number.to_string(),
+            )
+            .expand(),
+        );
 
         table
     }
@@ -129,7 +116,7 @@ impl AnyTab for CashShiftsTab {
                 let object = item.downcast_ref::<BoxedAnyObject>().unwrap();
                 let id = object.borrow::<CashShift>().id.clone();
 
-                open_tab(&CashShiftsPaymentsTab { id }, gdata, &view, None);
+                view.add_tab(&CashShiftsPaymentsTab { id }, gdata, &view, None);
             }
         ));
 

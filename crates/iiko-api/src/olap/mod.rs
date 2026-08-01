@@ -13,16 +13,16 @@ use crate::{
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct OlapRequest {
-    report_type: ReportType,
-    build_summary: bool,
+    pub report_type: ReportType,
+    pub build_summary: bool,
     #[serde(skip_serializing_if = "Vec::is_empty")]
-    group_by_row_fields: Vec<String>,
+    pub group_by_row_fields: Vec<String>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
-    group_by_col_fields: Vec<String>,
+    pub group_by_col_fields: Vec<String>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
-    aggregate_fields: Vec<String>,
+    pub aggregate_fields: Vec<String>,
     #[serde(skip_serializing_if = "IndexMap::is_empty")]
-    filters: IndexMap<String, Filter>,
+    pub filters: IndexMap<String, Filter>,
 }
 
 #[derive(Serialize)]
@@ -87,24 +87,8 @@ pub struct OlapAnswer {
 }
 
 impl IikoSession {
-    pub fn olap(
-        &self,
-        report_type: ReportType,
-        build_summary: bool,
-        group_by_row_fields: Vec<String>,
-        group_by_col_fields: Vec<String>,
-        aggregate_fields: Vec<String>,
-        filters: IndexMap<String, Filter>,
-    ) -> Result<OlapAnswer, ClientError> {
-        let body = serde_json::to_string_pretty(&OlapRequest {
-            report_type,
-            build_summary,
-            group_by_row_fields,
-            group_by_col_fields,
-            aggregate_fields,
-            filters,
-        })?;
-
+    pub fn olap(&self, request: &OlapRequest) -> Result<OlapAnswer, ClientError> {
+        let body = serde_json::to_string(request)?;
         self.request_post("/resto/api/v2/reports/olap", &[], body)
     }
 }

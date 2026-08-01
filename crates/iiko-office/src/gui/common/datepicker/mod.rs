@@ -46,45 +46,20 @@ impl DatePicker {
             popup.popdown();
         });
 
-        calendar.connect_day_selected(glib::clone!(
-            #[weak]
-            entry,
-            move |calendar| {
-                Self::set_date(calendar, &entry);
+        let sync = {
+            let entry = entry.downgrade();
+            move |calendar: &Calendar| {
+                if let Some(entry) = entry.upgrade() {
+                    Self::set_date(calendar, &entry);
+                }
             }
-        ));
+        };
 
-        calendar.connect_next_month(glib::clone!(
-            #[weak]
-            entry,
-            move |calendar| {
-                Self::set_date(calendar, &entry);
-            }
-        ));
-
-        calendar.connect_prev_month(glib::clone!(
-            #[weak]
-            entry,
-            move |calendar| {
-                Self::set_date(calendar, &entry);
-            }
-        ));
-
-        calendar.connect_next_year(glib::clone!(
-            #[weak]
-            entry,
-            move |calendar| {
-                Self::set_date(calendar, &entry);
-            }
-        ));
-
-        calendar.connect_prev_year(glib::clone!(
-            #[weak]
-            entry,
-            move |calendar| {
-                Self::set_date(calendar, &entry);
-            }
-        ));
+        calendar.connect_day_selected(sync.clone());
+        calendar.connect_next_month(sync.clone());
+        calendar.connect_prev_month(sync.clone());
+        calendar.connect_next_year(sync.clone());
+        calendar.connect_prev_year(sync);
 
         Self {
             label,

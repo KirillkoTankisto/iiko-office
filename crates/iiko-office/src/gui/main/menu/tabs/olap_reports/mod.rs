@@ -32,7 +32,7 @@ use crate::gui::{
 };
 use iiko_api::{
     consts::{PeriodType, ReportType},
-    olap::{Filter, OlapAnswer},
+    olap::{Filter, OlapAnswer, OlapRequest},
     olap_columns::OlapColumn,
 };
 
@@ -41,13 +41,14 @@ pub struct OlapReportsTab;
 impl AsTable for OlapReportsTab {
     fn as_table(language: crate::gui::translation::CurrentLanguage) -> AnyTable {
         let table = AnyTable::new(false);
-        table.add_column(AnyTableColumn::new(
-            translate(language, OLAP_FIELDS),
-            Align::Start,
-            false,
-            true,
-            |p: &(String, OlapColumn)| p.1.name.clone(),
-        ));
+        table.add_column(
+            AnyTableColumn::new(
+                translate(language, OLAP_FIELDS),
+                Align::Start,
+                |p: &(String, OlapColumn)| p.1.name.clone(),
+            )
+            .searchable(),
+        );
 
         table.set_row_drag(|p: &(String, OlapColumn)| p.1.name.clone());
 
@@ -197,27 +198,20 @@ fn olap_callback(
 ) {
     let (from, to) = date_from_to.get_date();
 
-    let fields: Vec<(String, OlapColumn)> =
-        fields_table.get_items::<(String, OlapColumn)>().to_vec();
+    let mut name_to_id: HashMap<String, String> = HashMap::new();
+    let mut id_to_name: HashMap<String, String> = HashMap::new();
 
-    let name_to_id: HashMap<String, String> = fields
-        .iter()
-        .map(|(id, col)| (col.name.clone(), id.clone()))
-        .collect();
-
-    let id_to_name: HashMap<String, String> = fields
-        .iter()
-        .map(|(id, col)| (id.clone(), col.name.clone()))
-        .collect();
+    for (id, column) in fields_table.get_items::<(String, OlapColumn)>() {
+        name_to_id.insert(column.name.clone(), id.clone());
+        id_to_name.insert(id, column.name);
+    }
 
     let get_fields = |space: &DragSpace| -> Vec<String> {
-        let map = name_to_id.clone();
-        space.items_match(move |items| {
-            items
-                .iter()
-                .filter_map(|name| map.get(name).cloned())
-                .collect()
-        })
+        space
+            .items()
+            .iter()
+            .filter_map(|name| name_to_id.get(name).cloned())
+            .collect()
     };
 
     let rfield = get_fields(&olap_fields.row_field);
@@ -239,7 +233,14 @@ fn olap_callback(
             };
             let filters =
                 indexmap::IndexMap::from([(String::from(Filter::OPEN_DATE_FIELD), date_filter)]);
-            session.olap(ReportType::Sales, false, rfield, cfield, afield, filters)
+            session.olap(&OlapRequest {
+                report_type: ReportType::Sales,
+                build_summary: false,
+                group_by_row_fields: rfield,
+                group_by_col_fields: cfield,
+                aggregate_fields: afield,
+                filters,
+            })
         },
         move |olap| {
             olap_table(

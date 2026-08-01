@@ -11,8 +11,9 @@ serde_json.workspace = true
 thiserror.workspace = true
 indexmap.workspace = true
 sha1 = "0.11.0"
-strum_macros = "0.28.0"
 url = "2.5.8"
 quick-xml = { version = "0.41.0", features = ["serialize"] }
 reqwest = { version = "0.13.4", features = ["blocking", "json"] }
+
+[dev-dependencies]
 httpmock = "0.8.3"

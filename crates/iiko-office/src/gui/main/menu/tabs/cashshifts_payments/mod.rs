@@ -31,22 +31,16 @@ impl AsTable for CashShiftsPaymentsTab {
         table.add_column(AnyTableColumn::new(
             translate(language, DATE),
             Align::Start,
-            false,
-            false,
-            |p: &CashShiftsPayment| reformat_date(&Some(p.info.creationDate.clone())),
+            |p: &CashShiftsPayment| reformat_date(Some(&p.info.creationDate)),
         ));
         table.add_column(AnyTableColumn::new(
             translate(language, GROUP),
             Align::Center,
-            false,
-            false,
             |p: &CashShiftsPayment| p.info.group.to_string(),
         ));
         table.add_column(AnyTableColumn::new(
             translate(language, SUM),
             Align::End,
-            false,
-            false,
             |p: &CashShiftsPayment| p.info.sum.to_string(),
         ));
 
