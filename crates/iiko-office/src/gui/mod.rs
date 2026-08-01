@@ -1,3 +1,4 @@
+use gtk4::glib;
 use gtk4::prelude::*;
 
 pub mod about;
@@ -23,10 +24,21 @@ pub fn start_gui() {
     set_language();
 
     let app = IikoOffice::build();
+    let gdata = GlobalData::new();
 
-    app.connect_activate(on_activate);
     app.connect_startup(on_startup);
-    app.connect_shutdown(on_shutdown);
+
+    app.connect_activate(glib::clone!(
+        #[weak]
+        gdata,
+        move |app| on_activate(app, gdata.clone())
+    ));
+
+    app.connect_shutdown(glib::clone!(
+        #[weak]
+        gdata,
+        move |app| on_shutdown(app, gdata)
+    ));
 
     app.run();
 }

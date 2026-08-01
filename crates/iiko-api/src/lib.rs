@@ -9,7 +9,7 @@ pub mod olap_columns;
 pub mod utils;
 pub mod version;
 
-use std::sync::Mutex;
+use std::{sync::Mutex, time::Duration};
 
 use reqwest::StatusCode;
 use serde::de::DeserializeOwned;
@@ -39,6 +39,7 @@ impl IikoConnection {
     pub fn new(address: &str) -> Result<Self, ClientError> {
         let client = reqwest::blocking::Client::builder()
             .user_agent(UAGENT)
+            .timeout(Duration::from_secs(10))
             .build()?;
         let base = url::Url::parse(address)?;
 

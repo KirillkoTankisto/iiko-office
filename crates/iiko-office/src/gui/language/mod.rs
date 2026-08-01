@@ -15,10 +15,16 @@ pub fn set_language() {
 }
 
 pub fn get_language() -> CurrentLanguage {
-    let locale_full = gtk4::default_language().to_string();
+    let locale = env::var("LANGUAGE")
+        .or_else(|_| env::var("LC_ALL"))
+        .or_else(|_| env::var("LC_MESSAGES"))
+        .or_else(|_| env::var("LANG"))
+        .ok()
+        .or_else(sys_locale::get_locale)
+        .unwrap_or_default();
 
-    let primary = locale_full
-        .split(['-', '_', '.'])
+    let primary = locale
+        .split(['-', '_', '.', ':'])
         .next()
         .unwrap_or("")
         .to_ascii_lowercase();
