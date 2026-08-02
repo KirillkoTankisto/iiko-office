@@ -4,6 +4,7 @@ pub mod drag_space;
 pub mod global_data;
 pub mod logo;
 pub mod message_bus;
+pub mod modal;
 pub mod period_list;
 pub mod table;
 pub mod utils;

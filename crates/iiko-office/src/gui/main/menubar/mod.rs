@@ -8,8 +8,7 @@ use gtk4::{
 use gtk4::glib;
 
 use crate::gui::{
-    GlobalData,
-    about::AboutPopup,
+    GlobalData, about,
     common::utils::spawn_task,
     translation::{
         Line::{MENUBAR_ABOUT, MENUBAR_FILE, MENUBAR_LOGOUT},
@@ -58,8 +57,12 @@ impl MainMenuBar {
         about_action.connect_activate(glib::clone!(
             #[weak]
             window,
+            #[weak]
+            gdata,
             move |_, _| {
-                AboutPopup::new(&window, gdata.language()).present();
+                gtk4::glib::spawn_future_local(async move {
+                    about::show_about(&window, gdata.language()).await
+                });
             }
         ));
 
