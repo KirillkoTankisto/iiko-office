@@ -16,7 +16,12 @@ impl Modal {
         Self { overlay, content }
     }
 
-    pub async fn show(&self, margin: i32, widgets: &[&gtk4::Widget], closed: async_channel::Receiver<()>) {
+    pub async fn show(
+        &self,
+        margin: i32,
+        widgets: &[&gtk4::Widget],
+        closed: async_channel::Receiver<()>,
+    ) {
         let inner = gtk4::Box::new(gtk4::Orientation::Vertical, 12);
         inner.set_margin_top(margin);
         inner.set_margin_bottom(margin);
@@ -54,7 +59,7 @@ impl Modal {
 
 pub fn closer(language: CurrentLanguage) -> (gtk4::Button, async_channel::Receiver<()>) {
     let (tx, rx) = async_channel::bounded(1);
-    let button = gtk4::Button::with_label(&translate(language, CLOSE));
+    let button = gtk4::Button::with_label(translate(language, CLOSE));
     button.connect_clicked(move |_| {
         let _ = tx.try_send(());
     });

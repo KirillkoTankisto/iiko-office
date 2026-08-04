@@ -50,7 +50,7 @@ pub enum Filter {
 
 impl Filter {
     pub const OPEN_DATE_FIELD: &str = "OpenDate.Typed";
-    pub const DATE_STUB: &str = "2000-01-01T00:00:00.000";
+    const DATE_STUB: &str = "2000-01-01T00:00:00.000";
 
     pub fn custom_date_range(from: String, to: String) -> Self {
         Self::DateRange {
@@ -93,9 +93,66 @@ impl IikoSession {
     }
 }
 
+#[derive(Clone, Copy, Default)]
+pub enum OlapRowKind {
+    #[default]
+    Data,
+    Subtotal {
+        level: usize,
+    },
+    GrandTotal,
+}
+
 pub struct OlapTable {
     pub columns: Vec<String>,
     pub rows: Vec<Vec<String>>,
+    pub row_kinds: Vec<OlapRowKind>,
+    pub key_count: usize,
+}
+
+impl OlapTable {
+    pub fn flat(columns: Vec<String>, rows: Vec<Vec<String>>) -> Self {
+        let row_kinds = vec![OlapRowKind::Data; rows.len()];
+        Self {
+            columns,
+            rows,
+            row_kinds,
+            key_count: 0,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct GroupOptions<'a> {
+    pub total_label: &'a str,
+    pub blank_repeats: bool,
+    pub subtotals: bool,
+    pub grand_total: bool,
+}
+
+impl<'a> GroupOptions<'a> {
+    pub fn grouped(total_label: &'a str) -> Self {
+        Self {
+            total_label,
+            blank_repeats: true,
+            subtotals: true,
+            grand_total: false,
+        }
+    }
+
+    pub fn plain() -> Self {
+        Self {
+            total_label: "",
+            blank_repeats: false,
+            subtotals: false,
+            grand_total: false,
+        }
+    }
+
+    pub fn with_grand_total(mut self, grand_total: bool) -> Self {
+        self.grand_total = grand_total;
+        self
+    }
 }
 
 impl OlapAnswer {
@@ -119,6 +176,7 @@ impl OlapAnswer {
                 .iter()
                 .map(|f| record.get(f).map(Self::cell_string).unwrap_or_default())
                 .collect();
+
             let row_sums = cells.entry(keys).or_default();
 
             let mut add = |col: String, val: f64| {
@@ -167,7 +225,7 @@ impl OlapAnswer {
         // Totals row
         let mut totals = vec![String::new(); row_fields.len()];
 
-        // Insert total_label as the first item in a row
+        // Insert total_label as the first item in a Totals row
         if let Some(first) = totals.first_mut() {
             *first = total_label.to_string();
         }
@@ -175,11 +233,185 @@ impl OlapAnswer {
         totals.extend(column_totals.into_iter().map(Self::fmt_cell));
         rows.push(totals);
 
-        OlapTable { columns, rows }
+        let mut row_kinds = vec![OlapRowKind::Data; rows.len()];
+        if let Some(last) = row_kinds.last_mut() {
+            *last = OlapRowKind::GrandTotal;
+        }
+
+        OlapTable {
+            columns,
+            rows,
+            row_kinds,
+            key_count: row_fields.len(),
+        }
     }
 
-    pub fn to_table_sorted(&self, sort_by: &[String]) -> OlapTable {
-        let mut column_set: IndexSet<String> = IndexSet::from([String::new()]);
+    pub fn to_table_grouped(&self, row_fields: &[String], opts: GroupOptions<'_>) -> OlapTable {
+        let (all_columns, flat_rows) = self.flatten_records();
+
+        let mut columns: IndexSet<String> = IndexSet::new();
+        for field in row_fields {
+            let hit = all_columns
+                .iter()
+                .find(|c| *c == field)
+                .or_else(|| all_columns.iter().find(|c| c.starts_with(field)));
+            if let Some(name) = hit {
+                columns.insert(name.clone());
+            }
+        }
+
+        let key_count = columns.len();
+        columns.extend(all_columns.iter().cloned());
+
+        let columns: Vec<String> = columns.into_iter().collect();
+        let width = columns.len();
+
+        let rows: Vec<Vec<String>> = flat_rows
+            .into_iter()
+            .map(|flat| {
+                columns
+                    .iter()
+                    .map(|c| flat.get(c).cloned().unwrap_or_default())
+                    .collect()
+            })
+            .collect();
+
+        let mut order: Vec<usize> = (0..rows.len()).collect();
+        order.sort_by(|&a, &b| {
+            (0..key_count)
+                .map(|d| Self::cmp_key(&rows[a][d], &rows[b][d]))
+                .find(|o| o.is_ne())
+                .unwrap_or(Ordering::Equal)
+        });
+
+        let mut out = OlapTable {
+            columns,
+            rows: Vec::with_capacity(order.len()),
+            row_kinds: Vec::with_capacity(order.len()),
+            key_count,
+        };
+
+        let mut group_start = vec![0usize; key_count];
+
+        for pos in 0..order.len() {
+            let row = &rows[order[pos]];
+
+            let start_level = if pos == 0 {
+                0
+            } else {
+                let prev = &rows[order[pos - 1]];
+                (0..key_count)
+                    .find(|&d| row[d] != prev[d])
+                    .unwrap_or(key_count)
+            };
+
+            if pos > 0 && opts.subtotals && start_level < key_count {
+                Self::close_groups(
+                    &mut out,
+                    &rows,
+                    &order,
+                    &group_start,
+                    start_level,
+                    pos,
+                    &opts,
+                );
+            }
+            for slot in group_start.iter_mut().skip(start_level) {
+                *slot = pos;
+            }
+
+            let mut cells = row.clone();
+            if opts.blank_repeats {
+                for cell in cells.iter_mut().take(start_level) {
+                    cell.clear();
+                }
+            }
+            out.rows.push(cells);
+            out.row_kinds.push(OlapRowKind::Data);
+        }
+
+        if !order.is_empty() {
+            if opts.subtotals {
+                Self::close_groups(&mut out, &rows, &order, &group_start, 0, order.len(), &opts);
+            }
+            if opts.grand_total {
+                let sums: Vec<Option<f64>> = (key_count..width)
+                    .map(|col| Self::sum_column(&rows, &order, col))
+                    .collect();
+
+                if sums.iter().any(Option::is_some) {
+                    let mut row = vec![String::new(); width];
+                    row[0] = opts.total_label.to_string();
+                    for (col, sum) in (key_count..width).zip(sums) {
+                        if let Some(sum) = sum {
+                            row[col] = Self::fmt_cell(sum);
+                        }
+                    }
+                    out.rows.push(row);
+                    out.row_kinds.push(OlapRowKind::GrandTotal);
+                }
+            }
+        }
+
+        out
+    }
+
+    fn close_groups(
+        out: &mut OlapTable,
+        rows: &[Vec<String>],
+        order: &[usize],
+        group_start: &[usize],
+        from_level: usize,
+        end_pos: usize,
+        opts: &GroupOptions<'_>,
+    ) {
+        let width = out.columns.len();
+        let key_count = out.key_count;
+        // The innermost level gets no subtotal: its groups are single rows.
+        for level in (from_level..key_count.saturating_sub(1)).rev() {
+            let start = group_start[level];
+            if end_pos.saturating_sub(start) < 2 {
+                continue; // No total is needed
+            }
+
+            let sums: Vec<Option<f64>> = (key_count..width)
+                .map(|col| Self::sum_column(rows, &order[start..end_pos], col))
+                .collect();
+
+            if sums.iter().all(Option::is_none) {
+                continue;
+            }
+
+            let mut row = vec![String::new(); width];
+            row[level] = format!("{} {}", rows[order[start]][level], opts.total_label);
+            for (col, sum) in (key_count..width).zip(sums) {
+                if let Some(sum) = sum {
+                    row[col] = Self::fmt_cell(sum);
+                }
+            }
+            out.rows.push(row);
+            out.row_kinds.push(OlapRowKind::Subtotal { level });
+        }
+    }
+
+    fn sum_column(rows: &[Vec<String>], members: &[usize], col: usize) -> Option<f64> {
+        let mut acc = None;
+        for &i in members {
+            let cell = rows[i]
+                .get(col)
+                .map(String::as_str)
+                .unwrap_or_default()
+                .trim();
+            if cell.is_empty() {
+                continue;
+            }
+            acc = Some(acc.unwrap_or(0.0) + Self::parse_num(cell)?);
+        }
+        acc
+    }
+
+    fn flatten_records(&self) -> (Vec<String>, Vec<IndexMap<String, String>>) {
+        let mut column_set: IndexSet<String> = IndexSet::new();
         let mut flat_rows: Vec<IndexMap<String, String>> = Vec::with_capacity(self.data.len());
 
         for record in &self.data {
@@ -191,35 +423,111 @@ impl OlapAnswer {
             flat_rows.push(flat);
         }
 
-        let columns: Vec<String> = column_set.into_iter().collect();
-        let mut rows: Vec<Vec<String>> = flat_rows
-            .into_iter()
-            .map(|flat| {
-                columns
-                    .iter()
-                    .map(|c| flat.get(c).cloned().unwrap_or_default())
-                    .collect()
-            })
-            .collect();
-
-        let idx: Vec<usize> = sort_by
-            .iter()
-            .filter_map(|k| {
-                let exact = columns.iter().position(|c| c == k);
-                exact.or_else(|| columns.iter().position(|c| c.starts_with(k)))
-            })
-            .collect();
-
-        rows.sort_by(|a, b| {
-            idx.iter()
-                .map(|&i| Self::cmp_key(&a[i], &b[i]))
-                .find(|o| o.is_ne())
-                .unwrap_or(Ordering::Equal)
-        });
-
-        OlapTable { columns, rows }
+        (column_set.into_iter().collect(), flat_rows)
     }
 
+    /* Sorting functions */
+
+    fn cmp_key(a: &str, b: &str) -> Ordering {
+        let (ka, kb) = (Self::classify(a), Self::classify(b));
+        match (ka, kb) {
+            (CellKey::Empty, CellKey::Empty) => Ordering::Equal,
+            (CellKey::Number(x), CellKey::Number(y)) => x.total_cmp(&y),
+            (CellKey::Date(x), CellKey::Date(y)) => x.cmp(&y),
+            (CellKey::Text, CellKey::Text) => Self::cmp_ci(a, b),
+            _ => ka.rank().cmp(&kb.rank()),
+        }
+    }
+
+    // Same as above but with lists: first difference wins, shorter key first
+    fn cmp_keys(a: &[String], b: &[String]) -> Ordering {
+        a.iter()
+            .zip(b)
+            .map(|(x, y)| Self::cmp_key(x, y))
+            .find(|o| o.is_ne())
+            .unwrap_or_else(|| a.len().cmp(&b.len()))
+    }
+
+    // case-sensitive compare
+    fn cmp_ci(a: &str, b: &str) -> Ordering {
+        let mut x = a.chars().flat_map(char::to_lowercase);
+        let mut y = b.chars().flat_map(char::to_lowercase);
+        loop {
+            match (x.next(), y.next()) {
+                (None, None) => return Ordering::Equal,
+                (None, Some(_)) => return Ordering::Less,
+                (Some(_), None) => return Ordering::Greater,
+                (Some(p), Some(q)) if p != q => return p.cmp(&q),
+                _ => {}
+            }
+        }
+    }
+
+    // Classify the entry
+    fn classify(s: &str) -> CellKey {
+        let t = s.trim();
+        if t.is_empty() {
+            CellKey::Empty
+        } else if let Some(d) = Self::parse_date(t) {
+            CellKey::Date(d)
+        } else if let Some(n) = Self::parse_num(t) {
+            CellKey::Number(n)
+        } else {
+            CellKey::Text
+        }
+    }
+
+    // parses date as an array. If the input is not an array, returns None
+    fn parse_date(s: &str) -> Option<[u16; 6]> {
+        let s = s.trim_end_matches('Z');
+        let (date, time) = match s.split_once(['T', ' ']) {
+            Some((d, t)) => (d, Some(t)),
+            None => (s, None),
+        };
+
+        let (y, m, d) = if let Some((a, rest)) = date.split_once('-') {
+            let (b, c) = rest.split_once('-')?;
+            (Self::field(a, 4)?, Self::field(b, 2)?, Self::field(c, 2)?)
+        } else if let Some((a, rest)) = date.split_once('.') {
+            let (b, c) = rest.split_once('.')?;
+            (Self::field(c, 4)?, Self::field(b, 2)?, Self::field(a, 2)?)
+        } else {
+            return None;
+        };
+        if !(1..=12).contains(&m) || !(1..=31).contains(&d) {
+            return None;
+        }
+
+        let mut out = [y, m, d, 0, 0, 0];
+        if let Some(t) = time {
+            let t = t.split('.').next().unwrap_or(t); // drop fractional seconds
+            for (i, part) in t.split(':').enumerate() {
+                *out.get_mut(3 + i)? = Self::field(part, 2)?;
+            }
+        }
+        Some(out)
+    }
+
+    // Parse date field as a number
+    fn field(s: &str, max_len: usize) -> Option<u16> {
+        if s.is_empty() || s.len() > max_len || !s.bytes().all(|b| b.is_ascii_digit()) {
+            return None;
+        }
+        s.parse().ok()
+    }
+
+    fn parse_num(t: &str) -> Option<f64> {
+        let first = *t.as_bytes().first()?;
+        if !(first.is_ascii_digit() || first == b'-' || first == b'+') {
+            return None;
+        }
+        let n: f64 = t.replace(',', ".").parse().ok()?;
+        n.is_finite().then_some(n)
+    }
+
+    /* Helperss */
+
+    // Json value to an owned string
     fn value_to_string(value: &Value) -> String {
         match value {
             // Format numbers
@@ -235,7 +543,7 @@ impl OlapAnswer {
         }
     }
 
-    // Stringify a json value
+    // Stringify a json value (String and Null, specifically)
     fn cell_string(v: &Value) -> String {
         match v {
             Value::String(s) => s.clone(),
@@ -254,6 +562,7 @@ impl OlapAnswer {
         }
     }
 
+    // f64 to String. Empty if zero
     fn fmt_cell(v: f64) -> String {
         if v == 0.0 {
             String::new() // Blank
@@ -268,23 +577,6 @@ impl OlapAnswer {
         } else {
             format!("{v:.2}")
         }
-    }
-
-    // Numeric keys compare numerically, everything else lexicographically
-    fn cmp_key(a: &str, b: &str) -> Ordering {
-        match (a.parse::<f64>(), b.parse::<f64>()) {
-            (Ok(x), Ok(y)) => x.total_cmp(&y),
-            _ => a.cmp(b),
-        }
-    }
-
-    // Same as above but with lists: first difference wins, shorter key first
-    fn cmp_keys(a: &[String], b: &[String]) -> Ordering {
-        a.iter()
-            .zip(b)
-            .map(|(x, y)| Self::cmp_key(x, y))
-            .find(|o| o.is_ne())
-            .unwrap_or_else(|| a.len().cmp(&b.len()))
     }
 
     fn flatten(prefix: &str, value: &Value, out: &mut IndexMap<String, String>) {
@@ -302,6 +594,28 @@ impl OlapAnswer {
             scalar => {
                 out.insert(prefix.to_string(), Self::value_to_string(scalar));
             }
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum CellKey {
+    Empty,
+    Number(f64),
+    /// year, month, day, hour, minute, second
+    Date([u16; 6]),
+    Text,
+}
+
+impl CellKey {
+    /// Different types have different weight.
+    /// Rank returns the weight of the value
+    fn rank(self) -> u8 {
+        match self {
+            CellKey::Empty => 0,
+            CellKey::Number(_) => 1,
+            CellKey::Date(_) => 2,
+            CellKey::Text => 3,
         }
     }
 }

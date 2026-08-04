@@ -25,8 +25,8 @@ pub async fn show_about(window: &gtk4::ApplicationWindow, language: CurrentLangu
 
     let name = label(PROGRAMNAME, &["title-1"]);
     let version = label(env!("CARGO_PKG_VERSION"), &["dim-label"]);
-    let comment = wrapped(&translate(language, ABOUT_COMMENT));
-    let link = gtk4::LinkButton::with_label(WEBSITE, &translate(language, ABOUT_SOURCE_CODE));
+    let comment = wrapped(translate(language, ABOUT_COMMENT));
+    let link = gtk4::LinkButton::with_label(WEBSITE, translate(language, ABOUT_SOURCE_CODE));
     let credits = label(&format!("{}\nGPL-2.0", AUTHORS.join(", ")), &["dim-label"]);
     credits.set_justify(gtk4::Justification::Center);
     let (close, closed) = closer(language);

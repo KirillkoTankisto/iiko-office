@@ -1,21 +1,24 @@
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, iter::successors, rc::Rc};
 
-use gtk4::GestureClick;
 use gtk4::Orientation::Vertical;
-use gtk4::glib;
+use gtk4::gdk::DragAction;
+use gtk4::glib::{self, types::Type};
+use gtk4::pango::EllipsizeMode;
 use gtk4::prelude::*;
-use gtk4::{DropTarget, Orientation, gdk::DragAction, glib::types::Type};
+use gtk4::{Align, Box, DropTarget, Frame, GestureClick, Label, Orientation, Widget};
+
+type Items = Rc<RefCell<Vec<String>>>;
 
 #[derive(glib::Downgrade)]
 pub struct DragSpace {
-    root: gtk4::Frame,
-    items: Rc<RefCell<Vec<String>>>,
+    root: Frame,
+    items: Items,
 }
 
 impl DragSpace {
     pub fn new(title: &str, orientation: Orientation) -> Self {
-        let root = gtk4::Frame::new(Some(title));
-        let container = gtk4::Box::builder()
+        let root = Frame::new(Some(title));
+        let container = Box::builder()
             .homogeneous(false)
             .orientation(orientation)
             .width_request(60)
@@ -25,7 +28,7 @@ impl DragSpace {
 
         root.set_child(Some(&container));
 
-        let items = Rc::new(RefCell::new(Vec::new()));
+        let items: Items = Rc::new(RefCell::new(Vec::new()));
 
         let drop_target = DropTarget::new(Type::STRING, DragAction::COPY);
         drop_target.connect_drop(glib::clone!(
@@ -48,18 +51,19 @@ impl DragSpace {
         Self { root, items }
     }
 
-    fn add_cell(container: &gtk4::Box, items: &Rc<RefCell<Vec<String>>>, text: String) {
-        let cell = gtk4::Label::builder()
+    fn add_cell(container: &Box, items: &Items, text: String) {
+        let vertical = container.orientation() == Vertical;
+
+        let cell = Label::builder()
             .label(&text)
             .xalign(0.0)
-            .halign(gtk4::Align::Start)
-            .valign(gtk4::Align::Start)
+            .valign(Align::Start)
+            .halign(if vertical { Align::Fill } else { Align::Start })
             .build();
 
-        if container.orientation() == Vertical {
-            cell.set_ellipsize(gtk4::pango::EllipsizeMode::End);
+        if vertical {
+            cell.set_ellipsize(EllipsizeMode::End);
             cell.set_max_width_chars(16);
-            cell.set_halign(gtk4::Align::Fill);
         }
 
         let click = GestureClick::new();
@@ -71,11 +75,14 @@ impl DragSpace {
             #[strong]
             items,
             move |_, n_press, _, _| {
+                let cell: &Widget = cell.upcast_ref();
                 if n_press == 2
-                    && let Some(idx) = Self::child_index(&container, &cell)
+                    && let Some(index) =
+                        successors(container.first_child(), |child| child.next_sibling())
+                            .position(|child| child == *cell)
                 {
-                    items.borrow_mut().remove(idx);
-                    container.remove(&cell);
+                    items.borrow_mut().remove(index);
+                    container.remove(cell);
                 }
             }
         ));
@@ -85,24 +92,11 @@ impl DragSpace {
         container.append(&cell);
     }
 
-    fn child_index(container: &gtk4::Box, target: &impl IsA<gtk4::Widget>) -> Option<usize> {
-        let target = target.as_ref();
-        std::iter::successors(container.first_child(), |child| child.next_sibling())
-            .position(|child| child == *target)
-    }
-
-    pub fn present(&self) -> &gtk4::Frame {
+    pub fn present(&self) -> &Frame {
         &self.root
     }
 
     pub fn items(&self) -> Vec<String> {
         self.items.borrow().clone()
-    }
-
-    pub fn items_match<M: Fn(Vec<String>) -> Vec<String> + 'static>(
-        &self,
-        matcher: M,
-    ) -> Vec<String> {
-        matcher(self.items())
     }
 }
