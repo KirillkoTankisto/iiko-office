@@ -3,9 +3,10 @@ use serde::Deserialize;
 use crate::{IikoSession, error::ClientError};
 
 #[derive(Deserialize)]
+#[serde(rename_all = "UPPERCASE")]
 pub enum CodesState {
-    EMPTY,
-    NULL,
+    Empty,
+    Null,
 }
 
 #[derive(Deserialize)]
@@ -35,13 +36,23 @@ pub struct Employee {
     pub employee: bool,
     pub client: bool,
     pub represents_store: bool,
-    pub public_external_data: Option<String>
+    pub public_external_data: Option<String>,
 }
 
 pub type EmployeeList = Vec<Employee>;
 
 impl IikoSession {
-    pub fn employees(&self, include_deleted: bool, revision_from: i32) -> Result<EmployeeList, ClientError> {
-        self.request_xml("/resto/api/v2/employees", &[("includeDeleted", &include_deleted.to_string()), ("revisionFrom", &revision_from.to_string())])
+    pub fn employees(
+        &self,
+        include_deleted: bool,
+        revision_from: i32,
+    ) -> Result<EmployeeList, ClientError> {
+        self.request_xml(
+            "/resto/api/employees",
+            &[
+                ("includeDeleted", &include_deleted.to_string()),
+                ("revisionFrom", &revision_from.to_string()),
+            ],
+        )
     }
 }

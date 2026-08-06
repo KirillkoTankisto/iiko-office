@@ -2,6 +2,7 @@ pub mod auth;
 pub mod cashshifts_list;
 pub mod cashshifts_payments_list;
 pub mod consts;
+pub mod employees;
 pub mod error;
 pub mod logout;
 pub mod olap;
@@ -156,6 +157,14 @@ impl IikoSession {
         args: &[(&str, &str)],
     ) -> Result<T, ClientError> {
         self.with_key(args, |args| self.connection.request_json(path, args))
+    }
+
+    fn request_xml<T: DeserializeOwned>(
+        &self,
+        path: &str,
+        args: &[(&str, &str)],
+    ) -> Result<T, ClientError> {
+        self.with_key(args, |args| self.connection.request_xml(path, args))
     }
 
     fn request_post<T: DeserializeOwned>(
