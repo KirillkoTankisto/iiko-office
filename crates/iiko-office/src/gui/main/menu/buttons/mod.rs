@@ -55,7 +55,7 @@ pub fn create_any_button(
         gdata,
         move |button| {
             button.set_sensitive(false);
-            view.add_tab(anytab, gdata, &view, Some(button));
+            view.add_tab(anytab, gdata, Some(button));
         }
     ));
 

@@ -1,9 +1,12 @@
-pub const LOGO: &[u8] = include_bytes!("../../../assets/logo.png");
+use gtk4::{gdk::Texture, glib::Bytes};
 
-pub fn get_logo_image() -> gtk4::Image {
-    let logo = gtk4::gdk::Texture::from_bytes(&gtk4::glib::Bytes::from_static(LOGO)).unwrap();
-    let image = gtk4::Image::from_paintable(Some(&logo));
-    image.set_pixel_size(128);
+const LOGO: &[u8] = include_bytes!("../../../assets/logo.png");
+
+/// The application logo, rendered at `size` pixels.
+pub fn logo_image(size: i32) -> gtk4::Image {
+    let texture = Texture::from_bytes(&Bytes::from_static(LOGO)).expect("invalid logo image");
+    let image = gtk4::Image::from_paintable(Some(&texture));
+    image.set_pixel_size(size);
 
     image
 }

@@ -17,16 +17,22 @@ pub enum SessionStatus {
     HasWarnings,
 }
 
+impl SessionStatus {
+    pub const fn as_str(&self) -> &'static str {
+        match self {
+            Self::Any => "ANY",
+            Self::Open => "OPEN",
+            Self::Closed => "CLOSED",
+            Self::Accepted => "ACCEPTED",
+            Self::Unaccepted => "UNACCEPTED",
+            Self::HasWarnings => "HASWARNINGS",
+        }
+    }
+}
+
 impl Display for SessionStatus {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Any => f.write_str("ANY"),
-            Self::Open => f.write_str("OPEN"),
-            Self::Closed => f.write_str("CLOSED"),
-            Self::Accepted => f.write_str("ACCEPTED"),
-            Self::Unaccepted => f.write_str("UNACCEPTED"),
-            Self::HasWarnings => f.write_str("HASWARNINGS"),
-        }
+        f.write_str(self.as_str())
     }
 }
 
@@ -70,7 +76,7 @@ impl IikoSession {
             &[
                 ("openDateFrom", from),
                 ("openDateTo", to),
-                ("status", &session_status.to_string()),
+                ("status", session_status.as_str()),
             ],
         )
     }
@@ -79,17 +85,13 @@ impl IikoSession {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::IikoConnection;
+    use crate::test_utils::{KEY, session};
     use httpmock::prelude::*;
-    use std::sync::Mutex;
 
     const CASH_SHIFTS_ANSWER: &str = include_str!("../../tests/cashshifts.json");
     const DATE_FROM: &str = "2026-01-01";
     const DATE_TO: &str = "2026-12-01";
     const STATUS: &str = "ANY";
-    const KEY: &str = "da39a3ee5e6b4b0d3255bfef95601890afd80709";
-    const PASSWORD: &str = "5baa61e4c9b93f3f0682250b6cf8331b7ee68fd8";
-    const USER: &str = "admin";
 
     #[test]
     fn cashshifts_list_get() {
@@ -104,12 +106,7 @@ mod tests {
             then.status(200).body(CASH_SHIFTS_ANSWER);
         });
 
-        let session = IikoSession {
-            connection: IikoConnection::new(&server.base_url()).unwrap(),
-            user: USER.to_string(),
-            hashed_password: PASSWORD.to_string(),
-            token: Mutex::new(KEY.to_string()),
-        };
+        let session = session(&server.base_url());
 
         let answer = session
             .cashshifts_list(DATE_FROM, DATE_TO, SessionStatus::Any)

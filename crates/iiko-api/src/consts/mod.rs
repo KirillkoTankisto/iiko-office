@@ -1,18 +1,18 @@
 use serde::Serialize;
 
-#[allow(nonstandard_style)]
-#[derive(Clone, Copy, Serialize)]
+#[derive(Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum PeriodType {
-    CUSTOM,
-    OPEN_PERIOD,
-    TODAY,
-    YESTERDAY,
-    CURRENT_WEEK,
-    CURRENT_MONTH,
-    CURRENT_YEAR,
-    LAST_WEEK,
-    LAST_MONTH,
-    LAST_YEAR,
+    Custom,
+    OpenPeriod,
+    Today,
+    Yesterday,
+    CurrentWeek,
+    CurrentMonth,
+    CurrentYear,
+    LastWeek,
+    LastMonth,
+    LastYear,
 }
 
 #[derive(Serialize)]

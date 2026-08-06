@@ -32,13 +32,7 @@ impl MainView {
         &self.root
     }
 
-    pub fn add_tab(
-        &self,
-        tab: &dyn AnyTab,
-        gdata: Arc<GlobalData>,
-        view: &MainView,
-        button: Option<&Button>,
-    ) {
+    pub fn add_tab(&self, tab: &dyn AnyTab, gdata: Arc<GlobalData>, button: Option<&Button>) {
         let tab_box = gtk4::Box::new(gtk4::Orientation::Horizontal, 16);
 
         let label = Label::new(Some(tab.title(&gdata)));
@@ -51,7 +45,7 @@ impl MainView {
         tab_box.append(&label);
         tab_box.append(&close_btn);
 
-        let widget = tab.build(gdata, view);
+        let widget = tab.build(gdata, self);
 
         if let Some(btn) = button {
             widget.connect_destroy(glib::clone!(

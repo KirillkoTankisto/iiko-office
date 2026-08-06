@@ -29,14 +29,10 @@ impl IikoSession {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::IikoConnection;
+    use crate::test_utils::{KEY, session};
     use httpmock::prelude::*;
-    use std::sync::Mutex;
 
     const OLAP_COLUMNS: &str = include_str!("../../tests/olap_columns.json");
-    const KEY: &str = "da39a3ee5e6b4b0d3255bfef95601890afd80709";
-    const PASSWORD: &str = "5baa61e4c9b93f3f0682250b6cf8331b7ee68fd8";
-    const USER: &str = "admin";
     const REPORT_TYPE: &str = "SALES";
 
     #[test]
@@ -51,12 +47,7 @@ mod tests {
             then.status(200).body(OLAP_COLUMNS);
         });
 
-        let session = IikoSession {
-            connection: IikoConnection::new(&server.base_url()).unwrap(),
-            user: USER.to_string(),
-            hashed_password: PASSWORD.to_string(),
-            token: Mutex::new(KEY.to_string()),
-        };
+        let session = session(&server.base_url());
 
         let answer = session.olap_columns(ReportType::Sales).unwrap();
 

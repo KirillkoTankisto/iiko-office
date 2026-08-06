@@ -8,7 +8,7 @@ use iiko_api::{IikoConnection, utils::get_password_hash};
 
 use crate::gui::{
     GlobalData,
-    common::{logo::get_logo_image, utils::spawn_task},
+    common::{logo::logo_image, utils::spawn_task},
     main::Main,
     translation::{
         Line::{
@@ -20,6 +20,7 @@ use crate::gui::{
 };
 
 const FORM_WIDTH: i32 = 640;
+const LOGO_SIZE: i32 = 128;
 
 pub struct Credentials {
     pub address: String,
@@ -50,7 +51,7 @@ impl LoginBox {
             .width_request(FORM_WIDTH)
             .build();
 
-        root.append(&get_logo_image());
+        root.append(&logo_image(LOGO_SIZE));
         root.append(
             &Label::builder()
                 .label("iikoOffice")

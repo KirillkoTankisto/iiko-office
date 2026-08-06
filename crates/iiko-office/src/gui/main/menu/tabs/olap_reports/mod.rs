@@ -205,7 +205,7 @@ fn olap_callback(
         Some(button),
         move |session| {
             let date_filter = match period_type {
-                PeriodType::CUSTOM => Filter::custom_date_range(from, to),
+                PeriodType::Custom => Filter::custom_date_range(from, to),
                 _ => Filter::preset_date_range(period_type),
             };
             session.olap(&OlapRequest {
@@ -226,15 +226,12 @@ fn olap_callback(
             let (data, layout) = match col_field.as_deref().zip(value_field.as_deref()) {
                 Some((col, value)) => (
                     olap.to_pivot_table(&row_fields, col, value, total),
-                    OlapLayout::Pivot {
-                        key_count: row_fields.len(),
-                    },
+                    OlapLayout::Pivot,
                 ),
-                None => {
-                    let data = olap.to_table_grouped(&row_fields, GroupOptions::grouped(total));
-                    let key_count = data.key_count;
-                    (data, OlapLayout::Grouped { key_count })
-                }
+                None => (
+                    olap.to_table_grouped(&row_fields, GroupOptions::grouped(total)),
+                    OlapLayout::Grouped,
+                ),
             };
 
             report_table.set_olap_table(data, &id_to_name, layout);

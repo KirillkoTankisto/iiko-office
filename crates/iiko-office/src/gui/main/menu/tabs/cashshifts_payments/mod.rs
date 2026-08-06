@@ -31,7 +31,7 @@ impl AsTable for CashShiftsPaymentsTab {
         table.add_column(AnyTableColumn::new(
             translate(language, DATE),
             Align::Start,
-            |p: &CashShiftsPayment| reformat_date(Some(&p.info.creationDate)),
+            |p: &CashShiftsPayment| reformat_date(Some(&p.info.creation_date)),
         ));
         table.add_column(AnyTableColumn::new(
             translate(language, GROUP),
@@ -67,11 +67,16 @@ impl AnyTab for CashShiftsPaymentsTab {
             None,
             move |session| session.cashshifts_payments_list(&id, false),
             move |payments| {
-                let all_payments = connect_payments([
-                    payments.cashlessRecords,
-                    payments.payInRecords,
-                    payments.payOutsRecords,
-                ]);
+                let mut all_payments: Vec<CashShiftsPayment> = [
+                    payments.cashless_records,
+                    payments.pay_in_records,
+                    payments.pay_outs_records,
+                ]
+                .into_iter()
+                .flatten()
+                .collect();
+                all_payments.sort_by(|a, b| a.info.creation_date.cmp(&b.info.creation_date));
+
                 for payment in all_payments {
                     table.add_object(&BoxedAnyObject::new(payment));
                 }
@@ -80,10 +85,4 @@ impl AnyTab for CashShiftsPaymentsTab {
 
         cashshifts_payments_box.upcast()
     }
-}
-
-fn connect_payments<const N: usize>(list: [Vec<CashShiftsPayment>; N]) -> Vec<CashShiftsPayment> {
-    let mut connected: Vec<CashShiftsPayment> = list.into_iter().flatten().collect();
-    connected.sort_by_key(|c| c.info.creationDate.clone());
-    connected
 }

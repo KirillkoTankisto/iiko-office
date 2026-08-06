@@ -23,7 +23,7 @@ pub struct DatePicker {
 }
 
 impl DatePicker {
-    pub fn new<'a, S: Into<&'a str>>(label: S, language: CurrentLanguage) -> Self {
+    pub fn new(label: &str, language: CurrentLanguage) -> Self {
         let calendar = Calendar::new();
         let close_button = Button::with_label(translate(language, CLOSE));
 
@@ -33,7 +33,7 @@ impl DatePicker {
 
         let popup = Popover::builder().child(&menu_box).build();
 
-        let label = Label::builder().label(label.into()).xalign(0.0).build();
+        let label = Label::builder().label(label).xalign(0.0).build();
         let entry = Entry::builder()
             .text(calendar.date().format("%F").unwrap_or_default())
             .build();

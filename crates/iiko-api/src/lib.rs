@@ -46,13 +46,17 @@ impl IikoConnection {
         Ok(Self { client, base })
     }
 
-    fn request_string(&self, path: &str, args: &[(&str, &str)]) -> Result<String, ClientError> {
-        let resp = self
-            .client
-            .get(Self::parse_url(&self.base, path, args))
-            .send()?;
+    fn get(
+        &self,
+        path: &str,
+        args: &[(&str, &str)],
+    ) -> Result<reqwest::blocking::Response, ClientError> {
+        let resp = self.client.get(self.url(path, args)).send()?;
+        check_status(resp)
+    }
 
-        Ok(check_status(resp)?.text()?)
+    fn request_string(&self, path: &str, args: &[(&str, &str)]) -> Result<String, ClientError> {
+        Ok(self.get(path, args)?.text()?)
     }
 
     fn request_json<T: DeserializeOwned>(
@@ -60,12 +64,7 @@ impl IikoConnection {
         path: &str,
         args: &[(&str, &str)],
     ) -> Result<T, ClientError> {
-        let resp = self
-            .client
-            .get(Self::parse_url(&self.base, path, args))
-            .send()?;
-
-        Ok(check_status(resp)?.json()?)
+        Ok(self.get(path, args)?.json()?)
     }
 
     fn request_xml<T: DeserializeOwned>(
@@ -73,11 +72,7 @@ impl IikoConnection {
         path: &str,
         args: &[(&str, &str)],
     ) -> Result<T, ClientError> {
-        let resp = self
-            .client
-            .get(Self::parse_url(&self.base, path, args))
-            .send()?;
-        Ok(quick_xml::de::from_str(&check_status(resp)?.text()?)?)
+        Ok(quick_xml::de::from_str(&self.get(path, args)?.text()?)?)
     }
 
     // Supports only json POST
@@ -89,7 +84,7 @@ impl IikoConnection {
     ) -> Result<T, ClientError> {
         let resp = self
             .client
-            .post(Self::parse_url(&self.base, path, args))
+            .post(self.url(path, args))
             .header("Content-Type", "application/json")
             .body(data)
             .send()?;
@@ -97,11 +92,11 @@ impl IikoConnection {
     }
 
     #[inline]
-    fn parse_url(base: &url::Url, path: &str, args: &[(&str, &str)]) -> url::Url {
-        let mut base = base.clone();
-        base.set_path(path);
-        base.query_pairs_mut().extend_pairs(args).finish();
-        base
+    fn url(&self, path: &str, args: &[(&str, &str)]) -> url::Url {
+        let mut url = self.base.clone();
+        url.set_path(path);
+        url.query_pairs_mut().extend_pairs(args).finish();
+        url
     }
 }
 
@@ -172,5 +167,24 @@ impl IikoSession {
         self.with_key(args, |args| {
             self.connection.request_post(path, args, data.clone())
         })
+    }
+}
+
+#[cfg(test)]
+pub(crate) mod test_utils {
+    use super::*;
+
+    pub const KEY: &str = "da39a3ee5e6b4b0d3255bfef95601890afd80709";
+    pub const PASSWORD: &str = "5baa61e4c9b93f3f0682250b6cf8331b7ee68fd8";
+    pub const USER: &str = "admin";
+
+    /// A session pointing at a mock server, already holding [`KEY`].
+    pub fn session(base_url: &str) -> IikoSession {
+        IikoSession {
+            connection: IikoConnection::new(base_url).unwrap(),
+            user: USER.to_string(),
+            hashed_password: PASSWORD.to_string(),
+            token: Mutex::new(KEY.to_string()),
+        }
     }
 }

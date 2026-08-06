@@ -54,7 +54,7 @@ impl Filter {
 
     pub fn custom_date_range(from: String, to: String) -> Self {
         Self::DateRange {
-            period_type: PeriodType::CUSTOM,
+            period_type: PeriodType::Custom,
             from,
             to: Some(to),
         }
@@ -110,18 +110,6 @@ pub struct OlapTable {
     pub key_count: usize,
 }
 
-impl OlapTable {
-    pub fn flat(columns: Vec<String>, rows: Vec<Vec<String>>) -> Self {
-        let row_kinds = vec![OlapRowKind::Data; rows.len()];
-        Self {
-            columns,
-            rows,
-            row_kinds,
-            key_count: 0,
-        }
-    }
-}
-
 #[derive(Debug, Clone, Copy)]
 pub struct GroupOptions<'a> {
     pub total_label: &'a str,
@@ -136,15 +124,6 @@ impl<'a> GroupOptions<'a> {
             total_label,
             blank_repeats: true,
             subtotals: true,
-            grand_total: false,
-        }
-    }
-
-    pub fn plain() -> Self {
-        Self {
-            total_label: "",
-            blank_repeats: false,
-            subtotals: false,
             grand_total: false,
         }
     }
@@ -277,12 +256,7 @@ impl OlapAnswer {
             .collect();
 
         let mut order: Vec<usize> = (0..rows.len()).collect();
-        order.sort_by(|&a, &b| {
-            (0..key_count)
-                .map(|d| Self::cmp_key(&rows[a][d], &rows[b][d]))
-                .find(|o| o.is_ne())
-                .unwrap_or(Ordering::Equal)
-        });
+        order.sort_by(|&a, &b| Self::cmp_keys(&rows[a][..key_count], &rows[b][..key_count]));
 
         let mut out = OlapTable {
             columns,
@@ -448,19 +422,11 @@ impl OlapAnswer {
             .unwrap_or_else(|| a.len().cmp(&b.len()))
     }
 
-    // case-sensitive compare
+    // case-insensitive compare, without allocating
     fn cmp_ci(a: &str, b: &str) -> Ordering {
-        let mut x = a.chars().flat_map(char::to_lowercase);
-        let mut y = b.chars().flat_map(char::to_lowercase);
-        loop {
-            match (x.next(), y.next()) {
-                (None, None) => return Ordering::Equal,
-                (None, Some(_)) => return Ordering::Less,
-                (Some(_), None) => return Ordering::Greater,
-                (Some(p), Some(q)) if p != q => return p.cmp(&q),
-                _ => {}
-            }
-        }
+        a.chars()
+            .flat_map(char::to_lowercase)
+            .cmp(b.chars().flat_map(char::to_lowercase))
     }
 
     // Classify the entry
@@ -525,7 +491,7 @@ impl OlapAnswer {
         n.is_finite().then_some(n)
     }
 
-    /* Helperss */
+    /* Helpers */
 
     // Json value to an owned string
     fn value_to_string(value: &Value) -> String {

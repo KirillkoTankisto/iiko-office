@@ -28,14 +28,13 @@ impl OfficeConfig {
         write(&path, string)
     }
 
-    pub fn servers(&self) -> Vec<String> {
-        self.servers.clone()
+    pub fn servers(&self) -> &[String] {
+        &self.servers
     }
 
     pub fn add_server(&mut self, address: &str) {
-        let address = address.to_string();
-        if !self.servers.contains(&address) {
-            self.servers.push(address)
+        if !self.servers.iter().any(|server| server == address) {
+            self.servers.push(address.to_string());
         }
     }
 

@@ -31,20 +31,10 @@ pub struct AnyTable {
     search_getters: Rc<RefCell<Vec<SearchGetter>>>,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 pub enum OlapLayout {
-    Pivot { key_count: usize },
-    Grouped { key_count: usize },
-}
-
-impl OlapLayout {
-    fn key_count(self, column_count: usize) -> usize {
-        match self {
-            OlapLayout::Pivot { key_count } | OlapLayout::Grouped { key_count } => {
-                key_count.min(column_count)
-            }
-        }
-    }
+    Pivot,
+    Grouped,
 }
 
 /// One row of a rendered OLAP table.
@@ -132,11 +122,11 @@ impl AnyTable {
             columns,
             rows,
             row_kinds,
-            ..
+            key_count,
         } = olap_table;
 
-        let key_count = layout.key_count(columns.len());
-        let is_pivot = matches!(layout, OlapLayout::Pivot { .. });
+        let key_count = key_count.min(columns.len());
+        let is_pivot = layout == OlapLayout::Pivot;
         let resolver = TitleResolver::new(id_to_name);
 
         for (index, column) in columns.iter().enumerate() {

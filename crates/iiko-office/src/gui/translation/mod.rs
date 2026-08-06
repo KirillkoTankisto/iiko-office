@@ -1,171 +1,75 @@
 use gtk4::glib;
 
-type Translations = &'static [&'static [&'static str]];
-
 #[derive(Clone, Copy, glib::Downgrade)]
 pub enum CurrentLanguage {
     EN,
     RU,
 }
 
-#[derive(Clone, Copy)]
-#[allow(nonstandard_style)]
-pub enum Line {
-    ABOUT_COMMENT,
-    ABOUT_SOURCE_CODE,
-    LOGIN_ADD_SERVER,
-    LOGIN_REMOVE_SERVER,
-    LOGIN_ADDRESS,
-    LOGIN_USERNAME,
-    LOGIN_PASSWORD,
-    LOGIN,
-    MENUBAR_LOGOUT,
-    MENUBAR_ABOUT,
-    MENUBAR_FILE,
-    CLOSE,
-    DATE_FROM,
-    DATE_TO,
-    CASH_SHIFTS,
-    REFRESH,
-    OPEN_DATE,
-    CLOSE_DATE,
-    ACCEPT_DATE,
-    SALES_SUM,
-    SALES_CARD,
-    SALES_CASH,
-    SALES_CREDIT,
-    SHIFT_NUMBER,
-    PAYMENTS,
-    DATE,
-    GROUP,
-    SUM,
-    OLAP_REPORTS,
-    OLAP_FIELDS,
-    OLAP_ROW_FIELDS,
-    OLAP_COLUMN_FIELDS,
-    OLAP_AGGREGATE_FIELDS,
-    ERROR_ADDRESS,
-    ERROR_INTERNAL,
-    ERROR_REQUEST,
-    ERROR_RESPONSE,
-    ERROR_UNAUTHORIZED,
-    PERIOD_CUSTOM,
-    PERIOD_OPEN,
-    PERIOD_TODAY,
-    PERIOD_YESTERDAY,
-    PERIOD_CURRENT_WEEK,
-    PERIOD_CURRENT_MONTH,
-    PERIOD_CURRENT_YEAR,
-    PERIOD_LAST_WEEK,
-    PERIOD_LAST_MONTH,
-    PERIOD_LAST_YEAR,
-    TOTAL,
+/// Declares the line along with its translation
+macro_rules! lines {
+    ($($name:ident => $en:literal, $ru:literal;)*) => {
+        #[derive(Clone, Copy)]
+        #[allow(nonstandard_style)]
+        pub enum Line {
+            $($name,)*
+        }
+
+        const TRANSLATIONS: &[&[&str]] = &[&[$($en,)*], &[$($ru,)*]];
+    };
 }
 
-const TRANSLATIONS: Translations = &[
-    &[
-        "iikoOffice Open-Source alternative for Linux and macOS",
-        "Source Code",
-        "Add Server",
-        "Remove Server",
-        "Server Address",
-        "Username",
-        "Password",
-        "Login",
-        "Logout",
-        "About",
-        "File",
-        "Close",
-        "Date From",
-        "Date To",
-        "Cash Shifts",
-        "Refresh",
-        "Open Date",
-        "Close Date",
-        "Accept Date",
-        "Sales Summary",
-        "Sales Card",
-        "Sales Cash",
-        "Sales Credit",
-        "Shift Number",
-        "Payments",
-        "Date",
-        "Group",
-        "Sum",
-        "OLAP Reports",
-        "OLAP Fields",
-        "Row Fields",
-        "Column Fields",
-        "Aggregate Fields",
-        "Invalid Address",
-        "Internal Error",
-        "Request Failed",
-        "Failed to Parse Response",
-        "Failed to Authorize",
-        "Custom Period",
-        "Open Period",
-        "Today",
-        "Yesterday",
-        "Current Week",
-        "Current Month",
-        "Current Year",
-        "Last Week",
-        "Last Month",
-        "Last Year",
-        "Total",
-    ],
-    &[
-        "Альтернатива iikoOffice для Linux и macOS с открытым исходным кодом",
-        "Исходный Код",
-        "Добавить Сервер",
-        "Убрать Сервер",
-        "Адрес Сервера",
-        "Имя Пользователя",
-        "Пароль",
-        "Войти",
-        "Выйти",
-        "О Программе",
-        "Файл",
-        "Закрыть",
-        "Дата От",
-        "Дата До",
-        "Кассовые Смены",
-        "Обновить",
-        "Дата Открытия",
-        "Дата Закрытия",
-        "Дата Принятия",
-        "Сумма",
-        "Оплачено Картой",
-        "Оплачено Наличными",
-        "Кредит",
-        "Номер Смены",
-        "Платежи",
-        "Дата",
-        "Группа",
-        "Сумма",
-        "Отчёты OLAP",
-        "Поля OLAP",
-        "Поля Строк",
-        "Поля Столбцов",
-        "Поля Агрегации",
-        "Неверный Адрес",
-        "Внутренняя Ошибка",
-        "Ошибка Соединения с Сервером",
-        "Не Удалось Обработать Ответ от Сервера",
-        "Не Удалось Авторизоваться",
-        "Свой Период",
-        "Период Открытия",
-        "Сегодня",
-        "Вчера",
-        "Текущая Неделя",
-        "Текущий Месяц",
-        "Текущий Год",
-        "Предыдущая Неделя",
-        "Предыдущий Месяц",
-        "Предыдущий Год",
-        "Итого",
-    ],
-];
+lines! {
+    ABOUT_COMMENT         => "iikoOffice Open-Source alternative for Linux and macOS", "Альтернатива iikoOffice для Linux и macOS с открытым исходным кодом";
+    ABOUT_SOURCE_CODE     => "Source Code", "Исходный Код";
+    LOGIN_ADD_SERVER      => "Add Server", "Добавить Сервер";
+    LOGIN_REMOVE_SERVER   => "Remove Server", "Убрать Сервер";
+    LOGIN_ADDRESS         => "Server Address", "Адрес Сервера";
+    LOGIN_USERNAME        => "Username", "Имя Пользователя";
+    LOGIN_PASSWORD        => "Password", "Пароль";
+    LOGIN                 => "Login", "Войти";
+    MENUBAR_LOGOUT        => "Logout", "Выйти";
+    MENUBAR_ABOUT         => "About", "О Программе";
+    MENUBAR_FILE          => "File", "Файл";
+    CLOSE                 => "Close", "Закрыть";
+    DATE_FROM             => "Date From", "Дата От";
+    DATE_TO               => "Date To", "Дата До";
+    CASH_SHIFTS           => "Cash Shifts", "Кассовые Смены";
+    REFRESH               => "Refresh", "Обновить";
+    OPEN_DATE             => "Open Date", "Дата Открытия";
+    CLOSE_DATE            => "Close Date", "Дата Закрытия";
+    ACCEPT_DATE           => "Accept Date", "Дата Принятия";
+    SALES_SUM             => "Sales Summary", "Сумма";
+    SALES_CARD            => "Sales Card", "Оплачено Картой";
+    SALES_CASH            => "Sales Cash", "Оплачено Наличными";
+    SALES_CREDIT          => "Sales Credit", "Кредит";
+    SHIFT_NUMBER          => "Shift Number", "Номер Смены";
+    PAYMENTS              => "Payments", "Платежи";
+    DATE                  => "Date", "Дата";
+    GROUP                 => "Group", "Группа";
+    SUM                   => "Sum", "Сумма";
+    OLAP_REPORTS          => "OLAP Reports", "Отчёты OLAP";
+    OLAP_FIELDS           => "OLAP Fields", "Поля OLAP";
+    OLAP_ROW_FIELDS       => "Row Fields", "Поля Строк";
+    OLAP_COLUMN_FIELDS    => "Column Fields", "Поля Столбцов";
+    OLAP_AGGREGATE_FIELDS => "Aggregate Fields", "Поля Агрегации";
+    ERROR_ADDRESS         => "Invalid Address", "Неверный Адрес";
+    ERROR_INTERNAL        => "Internal Error", "Внутренняя Ошибка";
+    ERROR_REQUEST         => "Request Failed", "Ошибка Соединения с Сервером";
+    ERROR_RESPONSE        => "Failed to Parse Response", "Не Удалось Обработать Ответ от Сервера";
+    ERROR_UNAUTHORIZED    => "Failed to Authorize", "Не Удалось Авторизоваться";
+    PERIOD_CUSTOM         => "Custom Period", "Свой Период";
+    PERIOD_OPEN           => "Open Period", "Период Открытия";
+    PERIOD_TODAY          => "Today", "Сегодня";
+    PERIOD_YESTERDAY      => "Yesterday", "Вчера";
+    PERIOD_CURRENT_WEEK   => "Current Week", "Текущая Неделя";
+    PERIOD_CURRENT_MONTH  => "Current Month", "Текущий Месяц";
+    PERIOD_CURRENT_YEAR   => "Current Year", "Текущий Год";
+    PERIOD_LAST_WEEK      => "Last Week", "Предыдущая Неделя";
+    PERIOD_LAST_MONTH     => "Last Month", "Предыдущий Месяц";
+    PERIOD_LAST_YEAR      => "Last Year", "Предыдущий Год";
+    TOTAL                 => "Total", "Итого";
+}
 
 pub fn translate(language: CurrentLanguage, line: Line) -> &'static str {
     TRANSLATIONS[language as usize][line as usize]

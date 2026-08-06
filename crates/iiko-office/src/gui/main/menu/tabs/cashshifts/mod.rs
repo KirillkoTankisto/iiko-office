@@ -116,7 +116,7 @@ impl AnyTab for CashShiftsTab {
                 let object = item.downcast_ref::<BoxedAnyObject>().unwrap();
                 let id = object.borrow::<CashShift>().id.clone();
 
-                view.add_tab(&CashShiftsPaymentsTab { id }, gdata, &view, None);
+                view.add_tab(&CashShiftsPaymentsTab { id }, gdata, None);
             }
         ));
 

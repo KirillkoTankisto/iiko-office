@@ -1,8 +1,8 @@
-use gtk4::{gdk::Texture, glib::Bytes, prelude::*};
+use gtk4::prelude::*;
 
 use crate::gui::{
     common::{
-        logo::LOGO,
+        logo::logo_image,
         modal::{Modal, closer, label, wrapped},
     },
     translation::{
@@ -19,9 +19,7 @@ const WEBSITE: &str = "https://github.com/KirillkoTankisto/iiko-office";
 pub async fn show_about(window: &gtk4::ApplicationWindow, language: CurrentLanguage) {
     let modal = Modal::install(window);
 
-    let logo = Texture::from_bytes(&Bytes::from_static(LOGO)).expect("invalid logo image");
-    let image = gtk4::Image::from_paintable(Some(&logo));
-    image.set_pixel_size(96);
+    let image = logo_image(96);
 
     let name = label(PROGRAMNAME, &["title-1"]);
     let version = label(env!("CARGO_PKG_VERSION"), &["dim-label"]);

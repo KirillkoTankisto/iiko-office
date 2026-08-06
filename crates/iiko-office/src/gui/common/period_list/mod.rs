@@ -1,4 +1,4 @@
-use crate::gui::translation::{CurrentLanguage, Line::*, translate};
+use crate::gui::translation::{CurrentLanguage, Line, Line::*, translate};
 use gtk4::glib;
 use iiko_api::consts::PeriodType;
 
@@ -7,39 +7,24 @@ pub struct PeriodList {
     root: gtk4::DropDown,
 }
 
-const ALL_PERIODS: &[PeriodType] = &[
-    PeriodType::CUSTOM,
-    PeriodType::OPEN_PERIOD,
-    PeriodType::TODAY,
-    PeriodType::YESTERDAY,
-    PeriodType::CURRENT_WEEK,
-    PeriodType::CURRENT_MONTH,
-    PeriodType::CURRENT_YEAR,
-    PeriodType::LAST_WEEK,
-    PeriodType::LAST_MONTH,
-    PeriodType::LAST_YEAR,
+const PERIODS: &[(PeriodType, Line)] = &[
+    (PeriodType::Custom, PERIOD_CUSTOM),
+    (PeriodType::OpenPeriod, PERIOD_OPEN),
+    (PeriodType::Today, PERIOD_TODAY),
+    (PeriodType::Yesterday, PERIOD_YESTERDAY),
+    (PeriodType::CurrentWeek, PERIOD_CURRENT_WEEK),
+    (PeriodType::CurrentMonth, PERIOD_CURRENT_MONTH),
+    (PeriodType::CurrentYear, PERIOD_CURRENT_YEAR),
+    (PeriodType::LastWeek, PERIOD_LAST_WEEK),
+    (PeriodType::LastMonth, PERIOD_LAST_MONTH),
+    (PeriodType::LastYear, PERIOD_LAST_YEAR),
 ];
-
-pub fn period_title(language: CurrentLanguage, period: PeriodType) -> &'static str {
-    match period {
-        PeriodType::CUSTOM => translate(language, PERIOD_CUSTOM),
-        PeriodType::OPEN_PERIOD => translate(language, PERIOD_OPEN),
-        PeriodType::TODAY => translate(language, PERIOD_TODAY),
-        PeriodType::YESTERDAY => translate(language, PERIOD_YESTERDAY),
-        PeriodType::CURRENT_WEEK => translate(language, PERIOD_CURRENT_WEEK),
-        PeriodType::CURRENT_MONTH => translate(language, PERIOD_CURRENT_MONTH),
-        PeriodType::CURRENT_YEAR => translate(language, PERIOD_CURRENT_YEAR),
-        PeriodType::LAST_WEEK => translate(language, PERIOD_LAST_WEEK),
-        PeriodType::LAST_MONTH => translate(language, PERIOD_LAST_MONTH),
-        PeriodType::LAST_YEAR => translate(language, PERIOD_LAST_YEAR),
-    }
-}
 
 impl PeriodList {
     pub fn new<U: Fn(bool) + 'static>(language: CurrentLanguage, ui: U) -> Self {
-        let titles: Vec<&str> = ALL_PERIODS
+        let titles: Vec<&str> = PERIODS
             .iter()
-            .map(|p| period_title(language, *p))
+            .map(|(_, line)| translate(language, *line))
             .collect();
         let list_model = gtk4::StringList::new(&titles);
 
@@ -50,20 +35,20 @@ impl PeriodList {
             .build();
 
         root.connect_selected_notify(move |dropdown| {
-            let is_custom = ALL_PERIODS
-                .get(dropdown.selected() as usize)
-                .map(|p| *p as usize == PeriodType::CUSTOM as usize)
-                .unwrap_or(false);
-            ui(is_custom);
+            ui(Self::period_at(dropdown.selected()) == PeriodType::Custom);
         });
 
         Self { root }
     }
 
+    fn period_at(index: u32) -> PeriodType {
+        PERIODS
+            .get(index as usize)
+            .map_or(PeriodType::Custom, |(period, _)| *period)
+    }
+
     pub fn get_value(&self) -> PeriodType {
-        *ALL_PERIODS
-            .get(self.root.selected() as usize)
-            .unwrap_or(&PeriodType::CUSTOM)
+        Self::period_at(self.root.selected())
     }
 
     pub fn present(&self) -> &gtk4::DropDown {
