@@ -69,6 +69,15 @@ lines! {
     PERIOD_LAST_MONTH     => "Last Month", "Предыдущий Месяц";
     PERIOD_LAST_YEAR      => "Last Year", "Предыдущий Год";
     TOTAL                 => "Total", "Итого";
+    MENUBAR_COPY          => "Copy", "Скопировать";
+    MENUBAR_CUT           => "Cut", "Вырезать";
+    MENUBAR_EDIT          => "Edit", "Редактировать";
+    MENUBAR_PASTE         => "Paste", "Вставить";
+    MENUBAR_QUIT          => "Quit", "Выйти";
+    MENUBAR_UNDO          => "Undo", "Отменить";
+    MENUBAR_REDO          => "Redo", "Повторить";
+    MENUBAR_SELECT_ALL    => "Select All", "Выделить Всё";
+    MENUBAR_WINDOW        => "Window", "Окно";
 }
 
 pub fn translate(language: CurrentLanguage, line: Line) -> &'static str {

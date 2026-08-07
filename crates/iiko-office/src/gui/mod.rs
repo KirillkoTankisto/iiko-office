@@ -5,6 +5,7 @@ pub mod about;
 pub mod common;
 pub mod translation;
 
+mod global_menu;
 mod language;
 mod login;
 mod main;

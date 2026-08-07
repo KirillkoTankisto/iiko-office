@@ -5,6 +5,7 @@ use gtk4::ApplicationWindow;
 use gtk4::prelude::*;
 
 use crate::gui::common::global_data::GlobalData;
+use crate::gui::global_menu::GlobalMenuBar;
 use crate::gui::login::LoginBox;
 use crate::gui::main::Main;
 
@@ -28,12 +29,15 @@ pub fn on_activate(app: &Application, gdata: Arc<GlobalData>) {
     window.set_child(Some(&stack));
     gdata.message_attach(&window);
 
-    let main = Main::new(gdata.clone(), &stack, app, &window);
+    let main = Main::new(gdata.clone());
     let login = LoginBox::new(gdata.clone(), &stack, &main);
 
     stack.add_named(login.present(), Some("login"));
     stack.add_named(main.present(), Some("main"));
 
     stack.set_visible_child_name("login");
+
+    GlobalMenuBar::install(gdata, &stack, app, &window);
+
     window.present();
 }

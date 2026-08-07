@@ -1,15 +1,12 @@
-use gtk4::{
-    Align::Fill, Application, ApplicationWindow, Box, Orientation::Vertical, Stack, prelude::BoxExt,
-};
+use gtk4::{Align::Fill, Box, Orientation::Vertical, prelude::BoxExt};
 use std::sync::Arc;
 
 mod menu;
-mod menubar;
 mod statusbar;
 
 use crate::gui::{
     GlobalData,
-    main::{menu::MainMenu, menubar::MainMenuBar, statusbar::StatusBar},
+    main::{menu::MainMenu, statusbar::StatusBar},
 };
 
 use gtk4::glib;
@@ -21,12 +18,7 @@ pub struct Main {
 }
 
 impl Main {
-    pub fn new(
-        gdata: Arc<GlobalData>,
-        stack: &Stack,
-        app: &Application,
-        window: &ApplicationWindow,
-    ) -> Self {
+    pub fn new(gdata: Arc<GlobalData>) -> Self {
         let root = Box::builder()
             .orientation(Vertical)
             .spacing(8)
@@ -36,7 +28,6 @@ impl Main {
 
         let statusbar = StatusBar::new(gdata.clone());
 
-        root.append(MainMenuBar::new(gdata.clone(), stack.clone(), app, window).present());
         root.append(MainMenu::new(gdata).present());
         root.append(statusbar.present());
 
