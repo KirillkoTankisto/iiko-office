@@ -45,7 +45,7 @@ jobs:
         steps:
             - uses: actions/checkout@v7
             - name: install dependencies
-              run: sudo apt-get update && sudo apt-get install libgtk-4-dev pacman-package-manager
+              run: sudo apt-get update && sudo apt-get install libgtk-4-dev pacman-package-manager libarchive-tools
             - name: build
               run: cargo build --release
             - name: deb package
