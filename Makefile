@@ -49,7 +49,7 @@ arch:
 	cp -r packaging/linux/arch $(TMP)
 	cp target/release/iiko-office packaging/linux/iiko-office.desktop packaging/linux/iiko-office.svg $(TMP)/arch
 	cd $(TMP)/arch && makepkg -g >> PKGBUILD
-	cd $(TMP)/arch && makepkg
+	cd $(TMP)/arch && makepkg -d
 	cp $(TMP)/arch/iiko-office-*.pkg.tar.zst .
 
 deb:
