@@ -53,7 +53,7 @@ arch:
 	cp $(TMP)/arch/iiko-office-*.pkg.tar.zst .
 
 deb:
-	mkdir -p $(TMP)/deb/iiko-office
+	mkdir -p $(TMP)/deb/iiko-office/usr/bin $(TMP)/deb/iiko-office/usr/share/applications $(TMP)/deb/iiko-office/usr/share/icons/hicolor/scalable/apps
 	cp -r packaging/linux/deb/* $(TMP)/deb/iiko-office
 	cp target/release/iiko-office $(TMP)/deb/iiko-office/usr/bin/iiko-office
 	cp packaging/linux/iiko-office.desktop $(TMP)/deb/iiko-office/usr/share/applications/iiko-office.desktop
