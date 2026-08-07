@@ -1,12 +1,12 @@
 use serde::Deserialize;
 
-use crate::{IikoSession, error::ClientError};
+use crate::{IikoSession, error::ClientError, macros::str_enum};
 
-#[derive(Deserialize)]
-#[serde(rename_all = "UPPERCASE")]
-pub enum CodesState {
-    Empty,
-    Null,
+str_enum! {
+    pub enum CodesState {
+        Empty => "EMPTY",
+        Null => "NULL",
+    }
 }
 
 #[derive(Deserialize)]

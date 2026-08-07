@@ -1,49 +1,42 @@
 use std::sync::Arc;
 
-use gtk4::Align;
-use gtk4::Orientation::Vertical;
-use gtk4::glib::BoxedAnyObject;
-use gtk4::prelude::*;
-
-use crate::gui::GlobalData;
-use crate::gui::common::datetime::reformat_date;
-use crate::gui::common::table::AnyTable;
-use crate::gui::common::table::AnyTableColumn;
-use crate::gui::common::table::AsTable;
-use crate::gui::common::utils::spawn_workflow;
-use crate::gui::main::menu::tabs::AnyTab;
-use crate::gui::main::menu::tabs::build_box;
-use crate::gui::main::menu::view::MainView;
-use crate::gui::translation::Line::DATE;
-use crate::gui::translation::Line::GROUP;
-use crate::gui::translation::Line::PAYMENTS;
-use crate::gui::translation::Line::SUM;
-use crate::gui::translation::translate;
+use gtk4::{Align, Orientation::Vertical, glib::BoxedAnyObject, prelude::*};
 use iiko_api::cashshifts_payments_list::CashShiftsPayment;
+
+use crate::gui::{
+    GlobalData,
+    common::{
+        datetime::reformat_date,
+        table::{AnyTable, AsTable, ColumnSpec},
+        utils::spawn_workflow,
+    },
+    main::menu::{
+        tabs::{AnyTab, build_box},
+        view::MainView,
+    },
+    translation::{
+        CurrentLanguage,
+        Line::{DATE, GROUP, PAYMENTS, SUM},
+        translate,
+    },
+};
 
 pub struct CashShiftsPaymentsTab {
     pub id: String,
 }
 
-impl AsTable for CashShiftsPaymentsTab {
-    fn as_table(language: crate::gui::translation::CurrentLanguage) -> AnyTable {
-        let table = AnyTable::new(true);
-        table.add_column(AnyTableColumn::new(
-            translate(language, DATE),
-            Align::Start,
-            |p: &CashShiftsPayment| reformat_date(Some(&p.info.creation_date)),
-        ));
-        table.add_column(AnyTableColumn::new(
-            translate(language, GROUP),
-            Align::Center,
-            |p: &CashShiftsPayment| p.info.group.to_string(),
-        ));
-        table.add_column(AnyTableColumn::new(
-            translate(language, SUM),
-            Align::End,
-            |p: &CashShiftsPayment| p.info.sum.to_string(),
-        ));
+const COLUMNS: &[ColumnSpec<CashShiftsPayment>] = &[
+    ColumnSpec::new(DATE, Align::Start, |p| {
+        reformat_date(Some(&p.info.creation_date))
+    }),
+    ColumnSpec::new(GROUP, Align::Center, |p| p.info.group.to_string()),
+    ColumnSpec::new(SUM, Align::End, |p| p.info.sum.to_string()),
+];
 
+impl AsTable for CashShiftsPaymentsTab {
+    fn as_table(language: CurrentLanguage) -> AnyTable {
+        let table = AnyTable::new(true);
+        table.add_columns(language, COLUMNS);
         table
     }
 }

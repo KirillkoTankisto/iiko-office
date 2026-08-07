@@ -20,7 +20,6 @@ impl IikoConnection {
 mod tests {
     use super::*;
     use httpmock::prelude::*;
-    use std::assert_matches;
 
     #[test]
     fn auth_correct_password() {
@@ -54,9 +53,9 @@ mod tests {
 
         let connection = IikoConnection::new(&server.base_url()).unwrap();
 
-        assert_matches!(
+        assert!(matches!(
             connection.auth("wrong", "password").unwrap_err(),
             ClientError::Unauthorized
-        );
+        ));
     }
 }

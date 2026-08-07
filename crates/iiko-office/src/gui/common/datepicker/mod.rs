@@ -1,19 +1,13 @@
-use gtk4::Box;
-use gtk4::Button;
-use gtk4::Calendar;
-use gtk4::Entry;
-use gtk4::Label;
-use gtk4::MenuButton;
-use gtk4::Orientation::Vertical;
-use gtk4::Popover;
-use gtk4::glib;
-use gtk4::prelude::*;
+use gtk4::{
+    Box, Button, Calendar, Entry, Label, MenuButton, Orientation::Vertical, Popover, glib,
+    prelude::*,
+};
 
-use crate::gui::translation::CurrentLanguage;
-use crate::gui::translation::Line::CLOSE;
-use crate::gui::translation::Line::DATE_FROM;
-use crate::gui::translation::Line::DATE_TO;
-use crate::gui::translation::translate;
+use crate::gui::translation::{
+    CurrentLanguage,
+    Line::{CLOSE, DATE_FROM, DATE_TO},
+    translate,
+};
 
 #[derive(Clone, glib::Downgrade)]
 pub struct DatePicker {

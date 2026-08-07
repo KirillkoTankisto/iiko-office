@@ -1106,7 +1106,7 @@ dependencies = [
 
 [[package]]
 name = "iiko-api"
-version = "0.11.3"
+version = "0.11.4"
 dependencies = [
  "httpmock",
  "indexmap",
@@ -1121,7 +1121,7 @@ dependencies = [
 
 [[package]]
 name = "iiko-office"
-version = "0.11.3"
+version = "0.11.4"
 dependencies = [
  "async-channel",
  "gtk4",

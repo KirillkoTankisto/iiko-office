@@ -22,20 +22,25 @@ impl Modal {
         widgets: &[&gtk4::Widget],
         closed: async_channel::Receiver<()>,
     ) {
-        let inner = gtk4::Box::new(gtk4::Orientation::Vertical, 12);
-        inner.set_margin_top(margin);
-        inner.set_margin_bottom(margin);
-        inner.set_margin_start(margin);
-        inner.set_margin_end(margin);
+        let inner = gtk4::Box::builder()
+            .orientation(gtk4::Orientation::Vertical)
+            .spacing(12)
+            .margin_top(margin)
+            .margin_bottom(margin)
+            .margin_start(margin)
+            .margin_end(margin)
+            .build();
+
         for widget in widgets {
             inner.append(*widget);
         }
 
-        let card = gtk4::Box::new(gtk4::Orientation::Vertical, 0);
-        card.add_css_class("background");
-        card.add_css_class("frame");
-        card.set_halign(gtk4::Align::Center);
-        card.set_valign(gtk4::Align::Center);
+        let card = gtk4::Box::builder()
+            .orientation(gtk4::Orientation::Vertical)
+            .css_classes(["background", "frame"])
+            .halign(gtk4::Align::Center)
+            .valign(gtk4::Align::Center)
+            .build();
         card.append(&inner);
 
         self.set_content_sensitive(false);

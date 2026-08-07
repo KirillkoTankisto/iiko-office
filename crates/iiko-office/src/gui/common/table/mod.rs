@@ -13,7 +13,7 @@ use gtk4::{
 };
 use iiko_api::olap::{OlapRowKind, OlapTable};
 
-use crate::gui::translation::CurrentLanguage;
+use crate::gui::translation::{CurrentLanguage, Line, translate};
 
 type SearchGetter = Box<dyn Fn(&BoxedAnyObject) -> String>;
 
@@ -41,7 +41,7 @@ pub enum OlapLayout {
 pub struct OlapRow {
     /// What is printed to the cell
     pub cells: Vec<String>,
-    /// Actual name of a cell which
+    /// Actual name of the cell which
     /// is used when searching for
     /// same entry names
     pub full: Vec<String>,
@@ -250,6 +250,15 @@ impl AnyTable {
         self.column_view.append_column(&col);
     }
 
+    /// Adds a whole table layout declared as data, translating each heading.
+    pub fn add_columns<T: 'static>(&self, language: CurrentLanguage, specs: &[ColumnSpec<T>]) {
+        for spec in specs {
+            let column =
+                AnyTableColumn::new(translate(language, spec.line), spec.align, spec.getter);
+            self.add_column(if spec.expand { column.expand() } else { column });
+        }
+    }
+
     pub fn present(&self) -> &ScrolledWindow {
         &self.scrolled_window
     }
@@ -404,6 +413,31 @@ where
         S: Fn(&T) -> CellStyle + 'static,
     {
         self.style = Some(Box::new(style));
+        self
+    }
+}
+
+/// One column of a fixed table layout, declared as data
+pub struct ColumnSpec<T: 'static> {
+    line: Line,
+    align: Align,
+    getter: fn(&T) -> String,
+    expand: bool,
+}
+
+impl<T: 'static> ColumnSpec<T> {
+    pub const fn new(line: Line, align: Align, getter: fn(&T) -> String) -> Self {
+        Self {
+            line,
+            align,
+            getter,
+            expand: false,
+        }
+    }
+
+    /// Let this column soak up the leftover width.
+    pub const fn expand(mut self) -> Self {
+        self.expand = true;
         self
     }
 }

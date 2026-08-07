@@ -1,4 +1,4 @@
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, MutexGuard};
 
 use gtk4::ApplicationWindow;
 use iiko_api::IikoSession;
@@ -12,6 +12,13 @@ pub struct GlobalData {
     language: CurrentLanguage,
     config: Mutex<OfficeConfig>,
     message_bus: MessageBus,
+}
+
+/// lock the value and recover if value is poisoned
+fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
+    mutex
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
 }
 
 impl GlobalData {
@@ -29,45 +36,31 @@ impl GlobalData {
     }
 
     pub fn session(&self) -> Result<Arc<IikoSession>, AppError> {
-        self.session
-            .lock()
-            .map_err(|_| AppError::Internal)?
-            .clone()
-            .ok_or(AppError::NotLoggedIn)
+        lock(&self.session).clone().ok_or(AppError::NotLoggedIn)
     }
 
     pub fn set_session(&self, session: IikoSession) {
-        if let Ok(mut locked) = self.session.lock() {
-            *locked = Some(Arc::new(session))
-        }
+        *lock(&self.session) = Some(Arc::new(session));
     }
 
     pub fn take_session(&self) -> Option<Arc<IikoSession>> {
-        self.session.lock().ok()?.take()
+        lock(&self.session).take()
     }
 
     pub fn servers(&self) -> Vec<String> {
-        self.config
-            .lock()
-            .map(|config| config.servers().to_vec())
-            .unwrap_or_default()
+        lock(&self.config).servers().to_vec()
     }
 
     pub fn add_server(&self, address: &str) {
-        if let Ok(mut config) = self.config.lock() {
-            config.add_server(address);
-        }
+        lock(&self.config).add_server(address);
     }
 
     pub fn remove_server(&self, address: &str) {
-        if let Ok(mut config) = self.config.lock() {
-            config.remove_server(address);
-        }
+        lock(&self.config).remove_server(address);
     }
 
     pub fn write_config(&self) -> Result<(), AppError> {
-        let config = self.config.lock().map_err(|_| AppError::Internal)?;
-        Ok(config.write_config()?)
+        Ok(lock(&self.config).write_config()?)
     }
 
     pub fn message_send(&self, error: AppError) {

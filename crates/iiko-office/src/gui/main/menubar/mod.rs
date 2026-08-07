@@ -2,16 +2,16 @@ use std::sync::Arc;
 
 use gtk4::{
     Application, ApplicationWindow, PopoverMenuBar, Stack,
-    gio::{Menu, prelude::*},
+    gio::{Menu, SimpleAction, prelude::*},
+    glib,
 };
-
-use gtk4::glib;
 
 use crate::gui::{
     GlobalData, about,
     common::utils::spawn_task,
     translation::{
-        Line::{MENUBAR_ABOUT, MENUBAR_FILE, MENUBAR_LOGOUT},
+        CurrentLanguage,
+        Line::{self, MENUBAR_ABOUT, MENUBAR_FILE, MENUBAR_LOGOUT},
         translate,
     },
 };
@@ -27,47 +27,45 @@ impl MainMenuBar {
         app: &Application,
         window: &ApplicationWindow,
     ) -> Self {
+        let language = gdata.language();
         let menu = Menu::new();
         let file_menu = Menu::new();
 
-        let logout_action = gtk4::gio::SimpleAction::new("logout", None);
-        file_menu.append(
-            Some(translate(gdata.language(), MENUBAR_LOGOUT)),
-            Some("app.logout"),
+        add_item(
+            app,
+            &file_menu,
+            language,
+            "logout",
+            MENUBAR_LOGOUT,
+            glib::clone!(
+                #[weak]
+                stack,
+                #[weak]
+                gdata,
+                move || Self::logout_callback(gdata, stack)
+            ),
         );
 
-        let about_action = gtk4::gio::SimpleAction::new("about", None);
-        file_menu.append(
-            Some(translate(gdata.language(), MENUBAR_ABOUT)),
-            Some("app.about"),
+        add_item(
+            app,
+            &file_menu,
+            language,
+            "about",
+            MENUBAR_ABOUT,
+            glib::clone!(
+                #[weak]
+                window,
+                #[weak]
+                gdata,
+                move || {
+                    glib::spawn_future_local(async move {
+                        about::show_about(&window, gdata.language()).await
+                    });
+                }
+            ),
         );
 
-        menu.append_submenu(Some(translate(gdata.language(), MENUBAR_FILE)), &file_menu);
-
-        logout_action.connect_activate(glib::clone!(
-            #[weak]
-            stack,
-            #[weak]
-            gdata,
-            move |_, _| {
-                Self::logout_callback(gdata, stack);
-            }
-        ));
-
-        about_action.connect_activate(glib::clone!(
-            #[weak]
-            window,
-            #[weak]
-            gdata,
-            move |_, _| {
-                gtk4::glib::spawn_future_local(async move {
-                    about::show_about(&window, gdata.language()).await
-                });
-            }
-        ));
-
-        app.add_action(&logout_action);
-        app.add_action(&about_action);
+        menu.append_submenu(Some(translate(language, MENUBAR_FILE)), &file_menu);
 
         Self {
             bar: PopoverMenuBar::from_model(Some(&menu)),
@@ -85,4 +83,23 @@ impl MainMenuBar {
         };
         spawn_task(gdata, None, move || Ok(session.logout()?), |_| {});
     }
+}
+
+/// Registers `app.<name>` and adds the matching entry to `menu`.
+fn add_item(
+    app: &Application,
+    menu: &Menu,
+    language: CurrentLanguage,
+    name: &str,
+    line: Line,
+    callback: impl Fn() + 'static,
+) {
+    let action = SimpleAction::new(name, None);
+    action.connect_activate(move |_, _| callback());
+
+    menu.append(
+        Some(translate(language, line)),
+        Some(&format!("app.{name}")),
+    );
+    app.add_action(&action);
 }

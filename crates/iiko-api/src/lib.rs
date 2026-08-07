@@ -10,6 +10,8 @@ pub mod olap_columns;
 pub mod utils;
 pub mod version;
 
+mod macros;
+
 use std::{sync::Mutex, time::Duration};
 
 use reqwest::StatusCode;
@@ -18,6 +20,7 @@ use serde::de::DeserializeOwned;
 use crate::error::ClientError;
 
 const UAGENT: &str = concat!("iiko-office-libre/", env!("CARGO_PKG_VERSION"));
+const TIMEOUT: Duration = Duration::from_secs(10);
 
 #[derive(Debug)]
 pub struct IikoConnection {
@@ -28,19 +31,21 @@ pub struct IikoConnection {
 fn check_status(
     resp: reqwest::blocking::Response,
 ) -> Result<reqwest::blocking::Response, ClientError> {
-    match resp.status() {
-        s if s == StatusCode::UNAUTHORIZED || s == StatusCode::FORBIDDEN => {
-            Err(ClientError::Unauthorized)
-        }
-        _ => Ok(resp.error_for_status().map_err(|e| e.without_url())?),
+    if matches!(
+        resp.status(),
+        StatusCode::UNAUTHORIZED | StatusCode::FORBIDDEN
+    ) {
+        return Err(ClientError::Unauthorized);
     }
+
+    Ok(resp.error_for_status().map_err(|e| e.without_url())?)
 }
 
 impl IikoConnection {
     pub fn new(address: &str) -> Result<Self, ClientError> {
         let client = reqwest::blocking::Client::builder()
             .user_agent(UAGENT)
-            .timeout(Duration::from_secs(10))
+            .timeout(TIMEOUT)
             .build()?;
         let base = url::Url::parse(address)?;
 
@@ -146,37 +151,34 @@ impl IikoSession {
             other => other,
         }
     }
+}
 
-    fn request_string(&self, path: &str, args: &[(&str, &str)]) -> Result<String, ClientError> {
-        self.with_key(args, |args| self.connection.request_string(path, args))
-    }
+/// Gives IikoSession the same calls as IikoConnection,
+/// with api key added to args
+macro_rules! forward_with_key {
+    ($( $name:ident $(<$generic:ident>)? ($($arg:ident: $argty:ty),*) -> $ret:ty ),+ $(,)?) => {
+        impl IikoSession {
+            $(
+                fn $name $(<$generic: DeserializeOwned>)? (
+                    &self,
+                    path: &str,
+                    args: &[(&str, &str)],
+                    $($arg: $argty),*
+                ) -> Result<$ret, ClientError> {
+                    self.with_key(args, |args| {
+                        self.connection.$name(path, args $(, $arg.clone())*)
+                    })
+                }
+            )+
+        }
+    };
+}
 
-    fn request_json<T: DeserializeOwned>(
-        &self,
-        path: &str,
-        args: &[(&str, &str)],
-    ) -> Result<T, ClientError> {
-        self.with_key(args, |args| self.connection.request_json(path, args))
-    }
-
-    fn request_xml<T: DeserializeOwned>(
-        &self,
-        path: &str,
-        args: &[(&str, &str)],
-    ) -> Result<T, ClientError> {
-        self.with_key(args, |args| self.connection.request_xml(path, args))
-    }
-
-    fn request_post<T: DeserializeOwned>(
-        &self,
-        path: &str,
-        args: &[(&str, &str)],
-        data: String,
-    ) -> Result<T, ClientError> {
-        self.with_key(args, |args| {
-            self.connection.request_post(path, args, data.clone())
-        })
-    }
+forward_with_key! {
+    request_string() -> String,
+    request_json<T>() -> T,
+    request_xml<T>() -> T,
+    request_post<T>(data: String) -> T,
 }
 
 #[cfg(test)]
@@ -187,7 +189,7 @@ pub(crate) mod test_utils {
     pub const PASSWORD: &str = "5baa61e4c9b93f3f0682250b6cf8331b7ee68fd8";
     pub const USER: &str = "admin";
 
-    /// A session pointing at a mock server, already holding [`KEY`].
+    /// An IikoSession, with api key
     pub fn session(base_url: &str) -> IikoSession {
         IikoSession {
             connection: IikoConnection::new(base_url).unwrap(),

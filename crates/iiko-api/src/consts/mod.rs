@@ -1,18 +1,28 @@
 use serde::Serialize;
 
-#[derive(Clone, Copy, PartialEq, Eq, Serialize)]
-#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
-pub enum PeriodType {
-    Custom,
-    OpenPeriod,
-    Today,
-    Yesterday,
-    CurrentWeek,
-    CurrentMonth,
-    CurrentYear,
-    LastWeek,
-    LastMonth,
-    LastYear,
+use crate::macros::str_enum;
+
+str_enum! {
+    pub enum PeriodType {
+        Custom => "CUSTOM",
+        OpenPeriod => "OPEN_PERIOD",
+        Today => "TODAY",
+        Yesterday => "YESTERDAY",
+        CurrentWeek => "CURRENT_WEEK",
+        CurrentMonth => "CURRENT_MONTH",
+        CurrentYear => "CURRENT_YEAR",
+        LastWeek => "LAST_WEEK",
+        LastMonth => "LAST_MONTH",
+        LastYear => "LAST_YEAR",
+    }
+}
+
+str_enum! {
+    pub enum ReportType {
+        Sales => "SALES",
+        Transactions => "TRANSACTIONS",
+        Deliveries => "DELIVERIES",
+    }
 }
 
 #[derive(Serialize)]
@@ -23,20 +33,18 @@ pub enum EnumRange {
     String(String),
 }
 
-#[derive(Serialize)]
-#[serde(rename_all = "UPPERCASE")]
-pub enum ReportType {
-    Sales,
-    Transactions,
-    Deliveries,
-}
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-impl ReportType {
-    pub const fn as_str(&self) -> &'static str {
-        match self {
-            Self::Sales => "SALES",
-            Self::Transactions => "TRANSACTIONS",
-            Self::Deliveries => "DELIVERIES",
-        }
+    #[test]
+    fn wire_strings_are_stable() {
+        assert_eq!(PeriodType::OpenPeriod.as_str(), "OPEN_PERIOD");
+        assert_eq!(PeriodType::CurrentWeek.as_str(), "CURRENT_WEEK");
+        assert_eq!(ReportType::Sales.as_str(), "SALES");
+        assert_eq!(
+            serde_json::to_string(&PeriodType::LastYear).unwrap(),
+            "\"LAST_YEAR\""
+        );
     }
 }

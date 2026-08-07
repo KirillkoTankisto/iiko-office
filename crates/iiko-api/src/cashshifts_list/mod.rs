@@ -1,38 +1,17 @@
-use std::fmt::Display;
-
 use serde::Deserialize;
 
-use crate::{IikoSession, error::ClientError};
+use crate::{IikoSession, error::ClientError, macros::str_enum};
 
 pub type CashShifts = Vec<CashShift>;
 
-#[derive(Deserialize, PartialEq, Debug)]
-#[serde(rename_all = "UPPERCASE")]
-pub enum SessionStatus {
-    Any,
-    Open,
-    Closed,
-    Accepted,
-    Unaccepted,
-    HasWarnings,
-}
-
-impl SessionStatus {
-    pub const fn as_str(&self) -> &'static str {
-        match self {
-            Self::Any => "ANY",
-            Self::Open => "OPEN",
-            Self::Closed => "CLOSED",
-            Self::Accepted => "ACCEPTED",
-            Self::Unaccepted => "UNACCEPTED",
-            Self::HasWarnings => "HASWARNINGS",
-        }
-    }
-}
-
-impl Display for SessionStatus {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(self.as_str())
+str_enum! {
+    pub enum SessionStatus {
+        Any => "ANY",
+        Open => "OPEN",
+        Closed => "CLOSED",
+        Accepted => "ACCEPTED",
+        Unaccepted => "UNACCEPTED",
+        HasWarnings => "HASWARNINGS",
     }
 }
 

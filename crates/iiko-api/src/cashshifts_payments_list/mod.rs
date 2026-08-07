@@ -1,6 +1,6 @@
 use serde::Deserialize;
 
-use crate::{IikoSession, cashshifts_list::SessionStatus, error::ClientError};
+use crate::{IikoSession, cashshifts_list::SessionStatus, error::ClientError, macros::str_enum};
 
 #[derive(Deserialize, PartialEq, Debug)]
 #[serde(rename_all = "camelCase")]
@@ -49,29 +49,12 @@ pub struct PaymentAuth {
     pub card: String,
 }
 
-#[derive(Deserialize, PartialEq, Debug)]
-#[serde(rename_all = "UPPERCASE")]
-pub enum PaymentGroup {
-    Card,
-    Credit,
-    Payout,
-    Payin,
-}
-
-impl PaymentGroup {
-    pub const fn as_str(&self) -> &'static str {
-        match self {
-            Self::Card => "CARD",
-            Self::Credit => "CREDIT",
-            Self::Payout => "PAYOUT",
-            Self::Payin => "PAYIN",
-        }
-    }
-}
-
-impl std::fmt::Display for PaymentGroup {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(self.as_str())
+str_enum! {
+    pub enum PaymentGroup {
+        Card => "CARD",
+        Credit => "CREDIT",
+        Payout => "PAYOUT",
+        Payin => "PAYIN",
     }
 }
 

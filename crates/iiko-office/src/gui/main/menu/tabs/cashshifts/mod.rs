@@ -1,79 +1,59 @@
 use std::sync::Arc;
 
-use gtk4::Align::{self};
-use gtk4::Orientation::Vertical;
-use gtk4::{Button, glib::BoxedAnyObject};
-
-use gtk4::glib;
-use gtk4::prelude::*;
+use gtk4::{Align, Button, Orientation::Vertical, glib, glib::BoxedAnyObject, prelude::*};
 use iiko_api::cashshifts_list::{CashShift, SessionStatus};
 
-use crate::gui::common::datepicker::DateFromToPicker;
-use crate::gui::common::table::{AnyTable, AnyTableColumn, AsTable};
-use crate::gui::common::utils::spawn_workflow;
-use crate::gui::main::menu::tabs::cashshifts_payments::CashShiftsPaymentsTab;
-use crate::gui::main::menu::tabs::{AnyTab, build_box};
-use crate::gui::main::menu::view::MainView;
-use crate::gui::translation::CurrentLanguage;
-use crate::gui::translation::Line::{
-    ACCEPT_DATE, CLOSE_DATE, OPEN_DATE, REFRESH, SALES_CARD, SALES_CASH, SALES_CREDIT, SALES_SUM,
-    SHIFT_NUMBER,
-};
 use crate::gui::{
     GlobalData,
-    common::datetime::reformat_date,
-    translation::{Line::CASH_SHIFTS, translate},
+    common::{
+        datepicker::DateFromToPicker,
+        datetime::reformat_date,
+        table::{AnyTable, AsTable, ColumnSpec},
+        utils::spawn_workflow,
+    },
+    main::menu::{
+        tabs::{AnyTab, build_box, cashshifts_payments::CashShiftsPaymentsTab},
+        view::MainView,
+    },
+    translation::{
+        CurrentLanguage,
+        Line::{
+            ACCEPT_DATE, CASH_SHIFTS, CLOSE_DATE, OPEN_DATE, REFRESH, SALES_CARD, SALES_CASH,
+            SALES_CREDIT, SALES_SUM, SHIFT_NUMBER,
+        },
+        translate,
+    },
 };
 
 pub struct CashShiftsTab;
 
+const COLUMNS: &[ColumnSpec<CashShift>] = &[
+    ColumnSpec::new(OPEN_DATE, Align::Start, |s| {
+        reformat_date(Some(&s.open_date))
+    }),
+    ColumnSpec::new(CLOSE_DATE, Align::Start, |s| {
+        reformat_date(s.close_date.as_deref())
+    }),
+    ColumnSpec::new(ACCEPT_DATE, Align::Start, |s| {
+        reformat_date(s.accept_date.as_deref())
+    }),
+    ColumnSpec::new(SALES_SUM, Align::End, |s| {
+        (s.sales_cash + s.sales_card + s.sales_credit).to_string()
+    }),
+    ColumnSpec::new(SALES_CARD, Align::End, |s| s.sales_card.to_string()),
+    ColumnSpec::new(SALES_CASH, Align::End, |s| s.sales_cash.to_string()),
+    ColumnSpec::new(SALES_CREDIT, Align::End, |s| s.sales_credit.to_string()),
+    // Annotated because the `.expand()` call blocks inference from the slice type.
+    ColumnSpec::new(SHIFT_NUMBER, Align::End, |s: &CashShift| {
+        s.session_number.to_string()
+    })
+    .expand(),
+];
+
 impl AsTable for CashShiftsTab {
     fn as_table(language: CurrentLanguage) -> AnyTable {
         let table = AnyTable::new(true);
-        table.add_column(AnyTableColumn::new(
-            translate(language, OPEN_DATE),
-            Align::Start,
-            |s: &CashShift| reformat_date(Some(&s.open_date)),
-        ));
-        table.add_column(AnyTableColumn::new(
-            translate(language, CLOSE_DATE),
-            Align::Start,
-            |s: &CashShift| reformat_date(s.close_date.as_deref()),
-        ));
-        table.add_column(AnyTableColumn::new(
-            translate(language, ACCEPT_DATE),
-            Align::Start,
-            |s: &CashShift| reformat_date(s.accept_date.as_deref()),
-        ));
-        table.add_column(AnyTableColumn::new(
-            translate(language, SALES_SUM),
-            Align::End,
-            |s: &CashShift| (s.sales_cash + s.sales_card + s.sales_credit).to_string(),
-        ));
-        table.add_column(AnyTableColumn::new(
-            translate(language, SALES_CARD),
-            Align::End,
-            |s: &CashShift| s.sales_card.to_string(),
-        ));
-        table.add_column(AnyTableColumn::new(
-            translate(language, SALES_CASH),
-            Align::End,
-            |s: &CashShift| s.sales_cash.to_string(),
-        ));
-        table.add_column(AnyTableColumn::new(
-            translate(language, SALES_CREDIT),
-            Align::End,
-            |s: &CashShift| s.sales_credit.to_string(),
-        ));
-        table.add_column(
-            AnyTableColumn::new(
-                translate(language, SHIFT_NUMBER),
-                Align::End,
-                |s: &CashShift| s.session_number.to_string(),
-            )
-            .expand(),
-        );
-
+        table.add_columns(language, COLUMNS);
         table
     }
 }

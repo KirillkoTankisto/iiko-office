@@ -1,6 +1,7 @@
 use std::{
-    env::home_dir,
-    fs::{create_dir_all, write},
+    env::{home_dir, var_os},
+    fs::{create_dir_all, read_to_string, write},
+    io,
     path::PathBuf,
 };
 
@@ -13,18 +14,21 @@ pub struct OfficeConfig {
 
 impl OfficeConfig {
     pub fn load_config() -> Self {
-        std::fs::read_to_string(get_config_path())
-            .ok()
+        config_path()
+            .and_then(|path| read_to_string(path).ok())
             .and_then(|s| serde_json::from_str(&s).ok())
             .unwrap_or_default()
     }
 
-    pub fn write_config(&self) -> std::io::Result<()> {
-        let path = get_config_path();
+    pub fn write_config(&self) -> io::Result<()> {
+        let path = config_path()
+            .ok_or_else(|| io::Error::other("no configuration directory available"))?;
+
         if let Some(parent) = path.parent() {
             create_dir_all(parent)?;
         }
-        let string = serde_json::to_string_pretty(self).map_err(std::io::Error::other)?;
+
+        let string = serde_json::to_string_pretty(self).map_err(io::Error::other)?;
         write(&path, string)
     }
 
@@ -43,13 +47,11 @@ impl OfficeConfig {
     }
 }
 
-fn get_config_path() -> PathBuf {
-    if let Some(mut path) = home_dir() {
-        path.push(".config");
-        path.push("iikoOffice");
-        path.push("config.json");
-        path
-    } else {
-        PathBuf::from("~/.config/iikoOffice/config.json")
-    }
+fn config_path() -> Option<PathBuf> {
+    let base = var_os("XDG_CONFIG_HOME")
+        .map(PathBuf::from)
+        .filter(|path| path.is_absolute())
+        .or_else(|| home_dir().map(|home| home.join(".config")))?;
+
+    Some(base.join("iikoOffice").join("config.json"))
 }

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=iikoOffice
+Comment=An iikoOffice Open-Source Alternative for Linux and macOS
+Path=/usr/bin
+Exec=iiko-office
+Icon=iiko-office
+Terminal=false
+Categories=Office

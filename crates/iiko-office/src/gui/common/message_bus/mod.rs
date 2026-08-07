@@ -69,7 +69,7 @@ fn describe(error: &AppError, language: CurrentLanguage) -> (&'static str, Strin
             ClientError::Json(_) | ClientError::Xml(_) => ERROR_RESPONSE,
             ClientError::Unauthorized => ERROR_UNAUTHORIZED,
         },
-        AppError::Config(_) | AppError::NotLoggedIn | AppError::Internal => ERROR_INTERNAL,
+        AppError::Config(_) | AppError::NotLoggedIn => ERROR_INTERNAL,
     };
     (translate(language, line), error.to_string())
 }

@@ -1,0 +1,10 @@
+Source: iiko-office
+Architecture: amd64
+Version: 0.11.4
+Section: gnome
+Priority: optional
+Maintainer: Kirill Sergeev <kirsergeev@icloud.com>
+Homepage: https://github.com/KirillkoTankisto/iiko-office
+Package: iiko-office
+Description: An iikoOffice Open-Source Alternative for Linux and macOS
+Depends: libc6 (>= 2.38), libgcc-s1 (>= 4.2), libglib2.0-0t64 (>= 2.56.0), libgtk-4-1 (>= 4.6.0), libpango-1.0-0 (>= 1.14.0)

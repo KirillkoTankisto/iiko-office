@@ -1,0 +1,22 @@
+pkgname=iiko-office
+pkgver=0.11.4
+pkgrel=1
+pkgdesc="iikoOffice Open-Source Alternative for Linux and macOS"
+url="https://github.com/KirillkoTankisto/iiko-office"
+arch=(x86_64)
+license=(GPL-2.0-or-later)
+depends=(
+  glib2
+  glibc
+  gtk4
+  libstdc++
+  libgcc
+)
+
+source=("iiko-office" "iiko-office.desktop" "iiko-office.svg")
+
+package() {
+  install -Dm 755 "iiko-office" "${pkgdir}/usr/bin/iiko-office"
+  install -Dm 644 "iiko-office.desktop" "${pkgdir}/usr/share/applications/iiko-office.desktop"
+  install -Dm 644 "iiko-office.svg" "${pkgdir}/usr/share/icons/hicolor/scalable/apps/iiko-office.svg"
+}

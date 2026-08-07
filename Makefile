@@ -9,7 +9,7 @@ dmg_macos: checkdeps_macos dot_app_macos
 	python3 -m venv $(TMP)/venv
 	$(TMP)/venv/bin/pip install --quiet dmgbuild
 	$(TMP)/venv/bin/dmgbuild \
-		-s crates/iiko-office/src/assets/dmg.py \
+		-s packaging/macos/dmg.py \
 		-D app=$(abspath $(TMP)/iikoOffice.app) \
 		-D icon=$(abspath $(TMP)/AppIcon.icns) \
 		-D eula=$(abspath LICENSE.rtf) \
@@ -18,7 +18,7 @@ dmg_macos: checkdeps_macos dot_app_macos
 dot_app_macos: icons_macos
 	mkdir -p $(TMP)/iikoOffice.app/Contents/{MacOS,Resources}
 	cp target/release/iiko-office $(TMP)/iikoOffice.app/Contents/MacOS
-	cp crates/iiko-office/src/assets/Info.plist $(TMP)/iikoOffice.app/Contents
+	cp packaging/macos/Info.plist $(TMP)/iikoOffice.app/Contents
 	cp $(TMP)/AppIcon.icns $(TMP)/iikoOffice.app/Contents/Resources
 	dylibbundler -cd -b -x $(TMP)/iikoOffice.app/Contents/MacOS/iiko-office -d $(TMP)/iikoOffice.app/Contents/libs -p @executable_path/../libs
 
@@ -41,7 +41,24 @@ checkdeps_macos:
 		command -v $$bin >/dev/null 2>&1 || { echo >&2 "$$bin is not installed"; exit 1; }; \
 	done
 
-clean_macos:
+clean:
 	rm -rf $(TMP)
 
-.PHONY: all dmg_macos dot_app_macos icons_macos checkdeps_macos clean_macos
+arch:
+	mkdir -p $(TMP)
+	cp -r packaging/linux/arch $(TMP)
+	cp target/release/iiko-office packaging/linux/iiko-office.desktop packaging/linux/iiko-office.svg $(TMP)/arch
+	makepkg -g -D $(TMP)/arch >> $(TMP)/arch/PKGBUILD
+	makepkg -D $(TMP)/arch
+	cp $(TMP)/arch/iiko-office-*.pkg.tar.zst .
+
+deb:
+	mkdir -p $(TMP)/deb/iiko-office
+	cp -r packaging/linux/deb/* $(TMP)/deb/iiko-office
+	cp target/release/iiko-office $(TMP)/deb/iiko-office/usr/bin/iiko-office
+	cp packaging/linux/iiko-office.desktop $(TMP)/deb/iiko-office/usr/share/applications/iiko-office.desktop
+	cp packaging/linux/iiko-office.svg $(TMP)/deb/iiko-office/usr/share/icons/hicolor/scalable/apps/iiko-office.svg
+	dpkg-deb --build --root-owner-group $(TMP)/deb/iiko-office
+	cp $(TMP)/deb/iiko-office.deb .
+
+.PHONY: all dmg_macos dot_app_macos icons_macos checkdeps_macos clean_macos arch deb

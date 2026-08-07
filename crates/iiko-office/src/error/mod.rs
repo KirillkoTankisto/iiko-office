@@ -6,6 +6,4 @@ pub enum AppError {
     Config(#[from] std::io::Error),
     #[error("Not Logged in")]
     NotLoggedIn,
-    #[error("Internal Error")]
-    Internal,
 }
