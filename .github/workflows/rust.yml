@@ -46,6 +46,8 @@ jobs:
             - uses: actions/checkout@v7
             - name: install dependencies
               run: sudo apt-get update && sudo apt-get install libgtk-4-dev pacman-package-manager libarchive-tools
+            - name: set package suffix
+              run: echo "PKGEXT='.pkg.tar.zst'" > ~/.makepkg.conf
             - name: build
               run: cargo build --release
             - name: deb package
