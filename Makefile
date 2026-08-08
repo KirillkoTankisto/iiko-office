@@ -2,7 +2,34 @@ MACOS_REQUIRED := dylibbundler python3 sips iconutil
 ICON := crates/iiko-office/src/assets/logo.png
 TMP := temp
 
-all: dmg_macos
+VERSION := $(shell sed -n '/^\[workspace\.package\]/,/^\[/{ s/^version *= *"\([^"]*\)".*/\1/p; }' Cargo.toml)
+
+all: build
+
+version:
+	@echo $(VERSION)
+
+set_version:
+	@test -n "$(VERSION)" || { echo >&2 "usage: make set-version V=X.Y.Z"; exit 1; }
+	@sed '/^\[workspace\.package\]/,/^\[/ s/^version *= *".*"/version = "$(VERSION)"/' Cargo.toml > Cargo.toml.new && mv Cargo.toml.new Cargo.toml
+	@sed -e '/^name = "iiko-api"$$/,/^version = / s/^version = ".*"/version = "$(VERSION)"/' \
+	     -e '/^name = "iiko-office"$$/,/^version = / s/^version = ".*"/version = "$(VERSION)"/' \
+	     Cargo.lock > Cargo.lock.new && mv Cargo.lock.new Cargo.lock
+	@cd packaging/linux/arch && sed 's/^pkgver=.*/pkgver=$(VERSION)/' PKGBUILD > PKGBUILD.new && mv PKGBUILD.new PKGBUILD
+	@cd packaging/linux/deb/DEBIAN && sed 's/^Version: .*/Version: $(VERSION)/' control > control.new && mv control.new control
+	@echo "version set to $(VERSION)"
+
+build_debug:
+	cargo build
+
+build_debug_cached:
+	RUSTC_WRAPPER=sccache cargo build
+
+build:
+	cargo build -r
+
+build_cached:
+	RUSTC_WRAPPER=sccache cargo build -r
 
 dmg_macos: checkdeps_macos dot_app_macos
 	rm -f iikoOffice.dmg
@@ -61,4 +88,4 @@ deb:
 	dpkg-deb --build --root-owner-group $(TMP)/deb/iiko-office
 	cp $(TMP)/deb/iiko-office.deb .
 
-.PHONY: all dmg_macos dot_app_macos icons_macos checkdeps_macos clean_macos arch deb
+.PHONY: all dmg_macos dot_app_macos icons_macos checkdeps_macos clean_macos arch deb build build_cached build_debug build_debug_cached version set_version

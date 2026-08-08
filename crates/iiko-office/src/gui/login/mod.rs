@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
 use gtk4::{
-    Align, Button, DropDown, Entry, Label, Orientation, PasswordEntry, Stack, StringList,
-    StringObject, glib, prelude::*,
+    Align, Button, DropDown, Entry, Frame, Label, Orientation, PasswordEntry, Stack, StringList,
+    StringObject, Widget, glib, prelude::*,
 };
 use iiko_api::{IikoConnection, utils::get_password_hash};
 
@@ -11,8 +11,9 @@ use crate::gui::{
     common::{logo::logo_image, utils::spawn_task},
     main::Main,
     translation::{
+        CurrentLanguage,
         Line::{
-            LOGIN, LOGIN_ADD_SERVER, LOGIN_ADDRESS, LOGIN_PASSWORD, LOGIN_REMOVE_SERVER,
+            self, LOGIN, LOGIN_ADD_SERVER, LOGIN_ADDRESS, LOGIN_PASSWORD, LOGIN_REMOVE_SERVER,
             LOGIN_USERNAME,
         },
         translate,
@@ -60,14 +61,6 @@ impl LoginBox {
                 .build(),
         );
 
-        let label = |line| {
-            Label::builder()
-                .label(translate(gdata.language(), line))
-                .halign(Align::Start)
-                .margin_top(8)
-                .build()
-        };
-
         let address = AddressBox::new(gdata.clone());
         let username = Entry::builder().hexpand(true).halign(Align::Fill).build();
         let password = PasswordEntry::builder()
@@ -75,12 +68,9 @@ impl LoginBox {
             .halign(Align::Fill)
             .build();
 
-        root.append(&label(LOGIN_ADDRESS));
-        root.append(&address.root);
-        root.append(&label(LOGIN_USERNAME));
-        root.append(&username);
-        root.append(&label(LOGIN_PASSWORD));
-        root.append(&password);
+        root.append(&Self::frame(gdata.language(), LOGIN_ADDRESS, &address.root));
+        root.append(&Self::frame(gdata.language(), LOGIN_USERNAME, &username));
+        root.append(&Self::frame(gdata.language(), LOGIN_PASSWORD, &password));
 
         let button = Button::builder()
             .label(translate(gdata.language(), LOGIN))
@@ -144,6 +134,12 @@ impl LoginBox {
 
     pub fn add_server(&self, address: &str) {
         self.address.add_server(address);
+    }
+
+    fn frame(lang: CurrentLanguage, line: Line, widget: &impl IsA<Widget>) -> Frame {
+        let frame = Frame::builder().label(translate(lang, line)).build();
+        frame.set_child(Some(widget));
+        frame
     }
 }
 
