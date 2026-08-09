@@ -1,6 +1,9 @@
 use serde::Deserialize;
 
-use crate::{IikoSession, cashshifts_list::SessionStatus, error::ClientError, macros::str_enum};
+use crate::{
+    IikoSession, cashshifts_list::SessionStatus, consts::AsStr, error::ClientError,
+    macros::str_enum,
+};
 
 #[derive(Deserialize, PartialEq, Debug)]
 #[serde(rename_all = "camelCase")]
@@ -66,7 +69,7 @@ impl IikoSession {
     ) -> Result<CashShiftsPayments, ClientError> {
         self.request_json(
             &format!("/resto/api/v2/cashshifts/payments/list/{id}"),
-            &[("hideAccepted", &hide_accepted.to_string())],
+            &[("hideAccepted", hide_accepted.as_str())],
         )
     }
 }
@@ -93,7 +96,7 @@ mod tests {
 
         let session = session(&server.base_url());
 
-        let answer = session.cashshifts_payments_list(ID, false).unwrap();
+        let answer = session.cashshifts_payments_list(ID, Bool(false)).unwrap();
 
         mock.assert();
 

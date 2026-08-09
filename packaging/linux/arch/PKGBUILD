@@ -1,5 +1,5 @@
 pkgname=iiko-office
-pkgver=0.11.6
+pkgver=0.11.7
 pkgrel=1
 pkgdesc="iikoOffice Open-Source Alternative for Linux and macOS"
 url="https://github.com/KirillkoTankisto/iiko-office"

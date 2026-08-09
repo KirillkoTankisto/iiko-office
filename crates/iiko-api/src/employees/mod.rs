@@ -1,6 +1,6 @@
 use serde::Deserialize;
 
-use crate::{IikoSession, error::ClientError, macros::str_enum};
+use crate::{IikoSession, consts::AsStr, error::ClientError, macros::str_enum};
 
 str_enum! {
     pub enum CodesState {
@@ -50,7 +50,7 @@ impl IikoSession {
         self.request_xml(
             "/resto/api/employees",
             &[
-                ("includeDeleted", &include_deleted.to_string()),
+                ("includeDeleted", include_deleted.as_str()),
                 ("revisionFrom", &revision_from.to_string()),
             ],
         )
