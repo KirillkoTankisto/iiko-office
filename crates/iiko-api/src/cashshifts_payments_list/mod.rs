@@ -96,7 +96,7 @@ mod tests {
 
         let session = session(&server.base_url());
 
-        let answer = session.cashshifts_payments_list(ID, Bool(false)).unwrap();
+        let answer = session.cashshifts_payments_list(ID, false).unwrap();
 
         mock.assert();
 
