@@ -18,8 +18,8 @@ use crate::gui::{
     translation::{
         CurrentLanguage,
         Line::{
-            ACCEPT_DATE, CASH_SHIFTS, CLOSE_DATE, OPEN_DATE, REFRESH, SALES_CARD, SALES_CASH,
-            SALES_CREDIT, SALES_SUM, SHIFT_NUMBER,
+            ACCEPT_DATE, CASH_SHIFTS, CASHREG_NUM, CLOSE_DATE, OPEN_DATE, REFRESH, SALES_CARD,
+            SALES_CASH, SALES_CREDIT, SALES_SUM, SHIFT_NUMBER,
         },
         translate,
     },
@@ -37,23 +37,21 @@ const COLUMNS: &[ColumnSpec<CashShift>] = &[
     ColumnSpec::new(ACCEPT_DATE, Align::Start, |s| {
         reformat_date(s.accept_date.as_deref())
     }),
+    ColumnSpec::new(CASHREG_NUM, Align::End, |s| s.cash_reg_number.to_string()),
     ColumnSpec::new(SALES_SUM, Align::End, |s| {
         (s.sales_cash + s.sales_card + s.sales_credit).to_string()
     }),
     ColumnSpec::new(SALES_CARD, Align::End, |s| s.sales_card.to_string()),
     ColumnSpec::new(SALES_CASH, Align::End, |s| s.sales_cash.to_string()),
     ColumnSpec::new(SALES_CREDIT, Align::End, |s| s.sales_credit.to_string()),
-    // Annotated because the `.expand()` call blocks inference from the slice type.
-    ColumnSpec::new(SHIFT_NUMBER, Align::End, |s: &CashShift| {
-        s.session_number.to_string()
-    })
-    .expand(),
+    ColumnSpec::new(SHIFT_NUMBER, Align::End, |s| s.session_number.to_string()),
 ];
 
 impl AsTable for CashShiftsTab {
     fn as_table(language: CurrentLanguage) -> AnyTable {
         let table = AnyTable::new(true);
         table.add_columns(language, COLUMNS);
+        table.add_final();
         table
     }
 }

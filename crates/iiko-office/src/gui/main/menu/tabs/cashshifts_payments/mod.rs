@@ -37,6 +37,7 @@ impl AsTable for CashShiftsPaymentsTab {
     fn as_table(language: CurrentLanguage) -> AnyTable {
         let table = AnyTable::new(true);
         table.add_columns(language, COLUMNS);
+        table.add_final();
         table
     }
 }

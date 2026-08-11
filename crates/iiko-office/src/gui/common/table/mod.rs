@@ -369,6 +369,11 @@ impl AnyTable {
             FilterChange::Different
         });
     }
+
+    pub fn add_final(&self) {
+        let column_empty = ColumnViewColumn::builder().expand(true).build();
+        self.column_view.append_column(&column_empty);
+    }
 }
 
 type Styler<T> = dyn Fn(&T) -> CellStyle + 'static;

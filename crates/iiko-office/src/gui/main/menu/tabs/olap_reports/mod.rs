@@ -235,6 +235,7 @@ fn olap_callback(
             };
 
             report_table.set_olap_table(data, &id_to_name, layout);
+            report_table.add_final();
         },
     );
 }

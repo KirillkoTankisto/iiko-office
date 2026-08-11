@@ -39,6 +39,7 @@ lines! {
     OPEN_DATE             => "Open Date", "Дата Открытия";
     CLOSE_DATE            => "Close Date", "Дата Закрытия";
     ACCEPT_DATE           => "Accept Date", "Дата Принятия";
+    CASHREG_NUM           => "Cash Reg. Number", "Номер Кассы";
     SALES_SUM             => "Sales Summary", "Сумма";
     SALES_CARD            => "Sales Card", "Оплачено Картой";
     SALES_CASH            => "Sales Cash", "Оплачено Наличными";
