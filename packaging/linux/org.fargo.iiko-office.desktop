@@ -5,6 +5,6 @@ Name=iikoOffice
 Comment=An iikoOffice Open-Source Alternative for Linux and macOS
 Path=/usr/bin
 Exec=iiko-office
-Icon=iiko-office
+Icon=org.fargo.iiko-office
 Terminal=false
 Categories=Office

@@ -1,5 +1,5 @@
 pkgname=iiko-office
-pkgver=0.11.7
+pkgver=0.11.8
 pkgrel=1
 pkgdesc="iikoOffice Open-Source Alternative for Linux and macOS"
 url="https://github.com/KirillkoTankisto/iiko-office"
@@ -13,10 +13,10 @@ depends=(
   libgcc
 )
 
-source=("iiko-office" "iiko-office.desktop" "iiko-office.svg")
+source=("iiko-office" "org.fargo.iiko-office.desktop" "org.fargo.iiko-office.svg")
 
 package() {
   install -Dm 755 "iiko-office" "${pkgdir}/usr/bin/iiko-office"
-  install -Dm 644 "iiko-office.desktop" "${pkgdir}/usr/share/applications/iiko-office.desktop"
-  install -Dm 644 "iiko-office.svg" "${pkgdir}/usr/share/icons/hicolor/scalable/apps/iiko-office.svg"
+  install -Dm 644 "org.fargo.iiko-office.desktop" "${pkgdir}/usr/share/applications/org.fargo.iiko-office.desktop"
+  install -Dm 644 "org.fargo.iiko-office.svg" "${pkgdir}/usr/share/icons/hicolor/scalable/apps/org.fargo.iiko-office.svg"
 }

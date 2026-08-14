@@ -17,6 +17,7 @@ set_version:
 	     Cargo.lock > Cargo.lock.new && mv Cargo.lock.new Cargo.lock
 	@cd packaging/linux/arch && sed 's/^pkgver=.*/pkgver=$(VERSION)/' PKGBUILD > PKGBUILD.new && mv PKGBUILD.new PKGBUILD
 	@cd packaging/linux/deb/DEBIAN && sed 's/^Version: .*/Version: $(VERSION)/' control > control.new && mv control.new control
+	@cd packaging/macos && sed -E "/<key>(CFBundleVersion|CFBundleShortVersionString)<\/key>/{n;s|<string>[^<]*</string>|<string>$(VERSION)</string>|;}" Info.plist > Info.plist.new && mv Info.plist.new Info.plist
 	@echo "version set to $(VERSION)"
 
 build_debug:
@@ -74,7 +75,7 @@ clean:
 arch:
 	mkdir -p $(TMP)
 	cp -r packaging/linux/arch $(TMP)
-	cp target/release/iiko-office packaging/linux/iiko-office.desktop packaging/linux/iiko-office.svg $(TMP)/arch
+	cp target/release/iiko-office packaging/linux/org.fargo.iiko-office.desktop packaging/linux/org.fargo.iiko-office.svg $(TMP)/arch
 	cd $(TMP)/arch && makepkg -g >> PKGBUILD
 	cd $(TMP)/arch && makepkg -d
 	cp $(TMP)/arch/iiko-office-*.pkg.tar.zst .
@@ -83,8 +84,8 @@ deb:
 	mkdir -p $(TMP)/deb/iiko-office/usr/bin $(TMP)/deb/iiko-office/usr/share/applications $(TMP)/deb/iiko-office/usr/share/icons/hicolor/scalable/apps
 	cp -r packaging/linux/deb/* $(TMP)/deb/iiko-office
 	cp target/release/iiko-office $(TMP)/deb/iiko-office/usr/bin/iiko-office
-	cp packaging/linux/iiko-office.desktop $(TMP)/deb/iiko-office/usr/share/applications/iiko-office.desktop
-	cp packaging/linux/iiko-office.svg $(TMP)/deb/iiko-office/usr/share/icons/hicolor/scalable/apps/iiko-office.svg
+	cp packaging/linux/org.fargo.iiko-office.desktop $(TMP)/deb/iiko-office/usr/share/applications/org.fargo.iiko-office.desktop
+	cp packaging/linux/org.fargo.iiko-office.svg $(TMP)/deb/iiko-office/usr/share/icons/hicolor/scalable/apps/org.fargo.iiko-office.svg
 	dpkg-deb --build --root-owner-group $(TMP)/deb/iiko-office
 	cp $(TMP)/deb/iiko-office.deb .
 
