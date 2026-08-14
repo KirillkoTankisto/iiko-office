@@ -19,7 +19,7 @@ use crate::gui::on_activate::on_activate;
 use crate::gui::on_shutdown::on_shutdown;
 use crate::gui::on_startup::on_startup;
 
-const APP_ID: &str = "org.fargo.iiko-office-libre";
+const APP_ID: &str = "org.fargo.iiko-office";
 
 pub fn start_gui() {
     set_language();
