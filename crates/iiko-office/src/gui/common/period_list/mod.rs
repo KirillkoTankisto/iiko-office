@@ -1,57 +1,56 @@
-use crate::gui::translation::{CurrentLanguage, Line, Line::*, translate};
-use gtk4::glib;
+use crate::gui::{
+    common::dropdown::{AnyDropDown, DropDownItem},
+    translation::{
+        CurrentLanguage,
+        Line::{self, *},
+        translate,
+    },
+};
 use iiko_api::consts::PeriodType;
 
-#[derive(glib::Downgrade)]
-pub struct PeriodList {
-    root: gtk4::DropDown,
-}
+pub struct PeriodList;
 
-const PERIODS: &[(PeriodType, Line)] = &[
-    (PeriodType::Custom, PERIOD_CUSTOM),
-    (PeriodType::OpenPeriod, PERIOD_OPEN),
-    (PeriodType::Today, PERIOD_TODAY),
-    (PeriodType::Yesterday, PERIOD_YESTERDAY),
-    (PeriodType::CurrentWeek, PERIOD_CURRENT_WEEK),
-    (PeriodType::CurrentMonth, PERIOD_CURRENT_MONTH),
-    (PeriodType::CurrentYear, PERIOD_CURRENT_YEAR),
-    (PeriodType::LastWeek, PERIOD_LAST_WEEK),
-    (PeriodType::LastMonth, PERIOD_LAST_MONTH),
-    (PeriodType::LastYear, PERIOD_LAST_YEAR),
+const PERIODS: &[PeriodType] = &[
+    PeriodType::Custom,
+    PeriodType::OpenPeriod,
+    PeriodType::Today,
+    PeriodType::Yesterday,
+    PeriodType::CurrentWeek,
+    PeriodType::CurrentMonth,
+    PeriodType::CurrentYear,
+    PeriodType::LastWeek,
+    PeriodType::LastMonth,
+    PeriodType::LastYear,
 ];
 
+const fn period_line(period: PeriodType) -> Line {
+    match period {
+        PeriodType::Custom => PERIOD_CUSTOM,
+        PeriodType::OpenPeriod => PERIOD_OPEN,
+        PeriodType::Today => PERIOD_TODAY,
+        PeriodType::Yesterday => PERIOD_YESTERDAY,
+        PeriodType::CurrentWeek => PERIOD_CURRENT_WEEK,
+        PeriodType::CurrentMonth => PERIOD_CURRENT_MONTH,
+        PeriodType::CurrentYear => PERIOD_CURRENT_YEAR,
+        PeriodType::LastWeek => PERIOD_LAST_WEEK,
+        PeriodType::LastMonth => PERIOD_LAST_MONTH,
+        PeriodType::LastYear => PERIOD_LAST_YEAR,
+    }
+}
+
+impl DropDownItem for PeriodType {
+    fn label(&self, language: CurrentLanguage) -> String {
+        translate(language, period_line(*self)).to_string()
+    }
+}
+
 impl PeriodList {
-    pub fn new<U: Fn(bool) + 'static>(language: CurrentLanguage, ui: U) -> Self {
-        let titles: Vec<&str> = PERIODS
-            .iter()
-            .map(|(_, line)| translate(language, *line))
-            .collect();
-        let list_model = gtk4::StringList::new(&titles);
-
-        let root = gtk4::DropDown::builder()
-            .model(&list_model)
-            .selected(0)
-            .width_request(180)
-            .build();
-
-        root.connect_selected_notify(move |dropdown| {
-            ui(Self::period_at(dropdown.selected()) == PeriodType::Custom);
-        });
-
-        Self { root }
-    }
-
-    fn period_at(index: u32) -> PeriodType {
-        PERIODS
-            .get(index as usize)
-            .map_or(PeriodType::Custom, |(period, _)| *period)
-    }
-
-    pub fn get_value(&self) -> PeriodType {
-        Self::period_at(self.root.selected())
-    }
-
-    pub fn present(&self) -> &gtk4::DropDown {
-        &self.root
+    pub fn build<U: Fn(Option<PeriodType>) + 'static>(
+        language: CurrentLanguage,
+        ui: U,
+    ) -> AnyDropDown<PeriodType> {
+        let dropdown = AnyDropDown::new(language, 180, PERIODS.to_vec());
+        dropdown.connect_selected(ui);
+        dropdown
     }
 }

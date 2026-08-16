@@ -1,5 +1,6 @@
 use std::cell::{Ref, RefCell};
 use std::collections::HashMap;
+use std::ops::Deref;
 use std::rc::Rc;
 
 use gtk4::gdk::{ContentProvider, DragAction};
@@ -74,7 +75,7 @@ impl AnyTable {
                     || getters.is_empty()
                     || getters
                         .iter()
-                        .any(|getter| getter(obj).to_lowercase().contains(&*needle))
+                        .any(|getter| getter(obj).to_lowercase().contains(needle.deref()))
             }
         });
 

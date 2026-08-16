@@ -2,18 +2,21 @@ macro_rules! str_enum {
     (
         $(#[$meta:meta])*
         $vis:vis enum $name:ident {
-            $($variant:ident => $text:literal),+ $(,)?
+            $(
+                $(#[$vmeta:meta])*
+                $variant:ident => $text:literal
+            ),+ $(,)?
         }
     ) => {
         $(#[$meta])*
         #[derive(Clone, Copy, PartialEq, Eq, Debug, ::serde::Serialize, ::serde::Deserialize)]
         $vis enum $name {
             $(
+                $(#[$vmeta])*
                 #[serde(rename = $text)]
                 $variant,
             )+
         }
-
         impl $name {
             /// The exact string this variant is sent as, and parsed from.
             pub const fn as_str(&self) -> &'static str {
@@ -21,11 +24,9 @@ macro_rules! str_enum {
                     $(Self::$variant => $text,)+
                 }
             }
-
             /// Every variant, in declaration order.
             pub const ALL: &'static [Self] = &[$(Self::$variant,)+];
         }
-
         impl ::core::fmt::Display for $name {
             fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
                 f.write_str(self.as_str())
@@ -33,7 +34,6 @@ macro_rules! str_enum {
         }
     };
 }
-
 pub(crate) use str_enum;
 
 #[cfg(test)]

@@ -22,8 +22,8 @@ impl MainView {
                 .scrollable(true)
                 .hexpand(true)
                 .vexpand(true)
-                .margin_end(16)
-                .margin_bottom(16)
+                .margin_end(0)
+                .margin_bottom(0)
                 .build(),
         }
     }

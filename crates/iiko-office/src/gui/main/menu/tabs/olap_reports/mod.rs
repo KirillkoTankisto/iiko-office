@@ -12,6 +12,7 @@ use crate::gui::{
     common::{
         datepicker::DateFromToPicker,
         drag_space::DragSpace,
+        dropdown::{AnyDropDown, DropDownItem},
         period_list::PeriodList,
         table::{AnyTable, AnyTableColumn, AsTable, OlapLayout},
         utils::spawn_workflow,
@@ -23,8 +24,7 @@ use crate::gui::{
     translation::{
         CurrentLanguage,
         Line::{
-            OLAP_AGGREGATE_FIELDS, OLAP_COLUMN_FIELDS, OLAP_FIELDS, OLAP_REPORTS, OLAP_ROW_FIELDS,
-            REFRESH, TOTAL,
+            self, OLAP_AGGREGATE_FIELDS, OLAP_COLUMN_FIELDS, OLAP_FIELDS, OLAP_REPORT_TYPE_DELIVERIES, OLAP_REPORT_TYPE_SALES, OLAP_REPORT_TYPE_TRANSACTIONS, OLAP_REPORTS, OLAP_ROW_FIELDS, REFRESH, TOTAL
         },
         translate,
     },
@@ -57,6 +57,26 @@ impl AsTable for OlapReportsTab {
     }
 }
 
+const REPORTS: &[ReportType] = &[
+    ReportType::Sales,
+    ReportType::Transactions,
+    ReportType::Deliveries,
+];
+
+const fn report_line(report_type: ReportType) -> Line {
+    match report_type {
+        ReportType::Sales => OLAP_REPORT_TYPE_SALES,
+        ReportType::Transactions => OLAP_REPORT_TYPE_TRANSACTIONS,
+        ReportType::Deliveries => OLAP_REPORT_TYPE_DELIVERIES,
+    }
+}
+
+impl DropDownItem for ReportType {
+    fn label(&self, language: CurrentLanguage) -> String {
+        translate(language, report_line(*self)).to_string()
+    }
+}
+
 impl AnyTab for OlapReportsTab {
     fn title(&self, gdata: &GlobalData) -> &str {
         translate(gdata.language(), OLAP_REPORTS)
@@ -68,19 +88,23 @@ impl AnyTab for OlapReportsTab {
 
         let date_from_to = DateFromToPicker::new(language);
         let button = Button::with_label(translate(language, REFRESH));
-        let period_list = PeriodList::new(
+        let period_list = PeriodList::build(
             language,
             glib::clone!(
                 #[weak]
                 date_from_to,
-                move |value| date_from_to.set_visible(value)
+                move |value| date_from_to.set_visible(value == Some(PeriodType::Custom))
             ),
         );
 
+        let report_type = AnyDropDown::new(language, 180, REPORTS.to_vec());
+
         let controls = grid();
-        date_from_to.attach_to(&controls, 0, 1);
-        controls.attach(period_list.present(), 0, 0, 1, 1);
-        controls.attach(&button, 0, 1, 1, 1);
+
+        controls.attach(report_type.present(), 0, 0, 1, 1);
+        date_from_to.attach_to(&controls, 1, 1);
+        controls.attach(period_list.present(), 0, 1, 1, 1);
+        controls.attach(&button, 0, 2, 1, 1);
         olap_box.append(&controls);
 
         let columns_table = Self::as_table(language);
@@ -171,11 +195,11 @@ fn olap_callback(
     report_table: AnyTable,
     date_from_to: DateFromToPicker,
     olap_fields: DraggableOlapFields,
-    period_list: PeriodList,
+    period_list: AnyDropDown<PeriodType>,
     fields_table: AnyTable,
 ) {
     let (from, to) = date_from_to.get_date();
-    let period_type = period_list.get_value();
+    let period_type = period_list.selected().unwrap_or_default();
 
     let mut name_to_id: HashMap<String, String> = HashMap::new();
     let mut id_to_name: HashMap<String, String> = HashMap::new();

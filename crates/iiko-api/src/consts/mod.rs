@@ -3,7 +3,9 @@ use serde::Serialize;
 use crate::macros::str_enum;
 
 str_enum! {
+    #[derive(Default)]
     pub enum PeriodType {
+        #[default]
         Custom => "CUSTOM",
         OpenPeriod => "OPEN_PERIOD",
         Today => "TODAY",

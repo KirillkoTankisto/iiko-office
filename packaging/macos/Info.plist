@@ -10,9 +10,9 @@
     <key>CFBundleIdentifier</key>
     <string>org.fargo.iiko-office-libre</string>
     <key>CFBundleVersion</key>
-    <string>0.11.8</string>
+    <string>0.11.9</string>
     <key>CFBundleShortVersionString</key>
-    <string>0.11.8</string>
+    <string>0.11.9</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleExecutable</key>

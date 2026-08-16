@@ -1,14 +1,17 @@
 use std::sync::Arc;
 
 use gtk4::{
-    Align, Button, DropDown, Entry, Frame, Label, Orientation, PasswordEntry, Stack, StringList,
-    StringObject, Widget, glib, prelude::*,
+    Align, Button, Entry, Frame, Label, Orientation, PasswordEntry, Stack, Widget, glib, prelude::*,
 };
-use iiko_api::{IikoConnection, utils::get_password_hash};
+use iiko_api::{IikoConnection, consts::AsStr, utils::get_password_hash};
 
 use crate::gui::{
     GlobalData,
-    common::{logo::logo_image, utils::spawn_task},
+    common::{
+        dropdown::{AnyDropDown, DropDownItem},
+        logo::logo_image,
+        utils::spawn_task,
+    },
     main::Main,
     translation::{
         CurrentLanguage,
@@ -29,7 +32,7 @@ pub struct Credentials {
     pub password: String,
 }
 
-#[derive(Clone, glib::Downgrade)]
+#[derive(glib::Downgrade)]
 pub struct LoginBox {
     root: gtk4::Box,
     address: AddressBox,
@@ -133,7 +136,7 @@ impl LoginBox {
     }
 
     pub fn add_server(&self, address: &str) {
-        self.address.add_server(address);
+        self.address.add_server(address.to_string());
     }
 
     fn frame(lang: CurrentLanguage, line: Line, widget: &impl IsA<Widget>) -> Frame {
@@ -143,19 +146,39 @@ impl LoginBox {
     }
 }
 
-#[derive(Clone, glib::Downgrade)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum Scheme {
+    #[default]
+    Https,
+    Http,
+}
+
+impl AsStr for Scheme {
+    fn as_str(&self) -> &'static str {
+        match self {
+            Self::Https => "https://",
+            Self::Http => "http://",
+        }
+    }
+}
+
+impl DropDownItem for Scheme {
+    fn label(&self, _: CurrentLanguage) -> String {
+        self.as_str().to_string()
+    }
+}
+
+#[derive(glib::Downgrade)]
 pub struct AddressBox {
     root: gtk4::Box,
-    servers: StringList,
-    server_dropdown: DropDown,
-    scheme_dropdown: DropDown,
+    server_dropdown: AnyDropDown<String>,
+    scheme_dropdown: AnyDropDown<Scheme>,
     entry: Entry,
     new_server_row: gtk4::Box,
 }
 
 impl AddressBox {
     fn new(gdata: Arc<GlobalData>) -> Self {
-        let servers = gdata.servers();
         let language = gdata.language();
 
         let root = gtk4::Box::builder()
@@ -163,57 +186,49 @@ impl AddressBox {
             .spacing(8)
             .build();
 
-        let server_list = StringList::new(&[]);
-        for server in &servers {
-            server_list.append(server);
-        }
-        server_list.append(translate(language, LOGIN_ADD_SERVER));
+        let server_dropdown =
+            AnyDropDown::with_sentinel(language, -1, gdata.servers(), LOGIN_ADD_SERVER);
+        server_dropdown.present().set_hexpand(true);
+        server_dropdown.present().set_halign(Align::Fill);
+
+        let delete_button = Button::builder()
+            .icon_name("user-trash-symbolic")
+            .tooltip_text(translate(language, LOGIN_REMOVE_SERVER))
+            .build();
 
         let server_row = gtk4::Box::builder()
             .orientation(Orientation::Horizontal)
             .spacing(8)
             .build();
-
-        let server_dropdown = DropDown::builder()
-            .model(&server_list)
-            .hexpand(true)
-            .halign(Align::Fill)
-            .build();
-
-        let delete_button = Button::builder()
-            .icon_name("user-trash-symbolic")
-            .tooltip_text(translate(gdata.language(), LOGIN_REMOVE_SERVER))
-            .build();
-
-        delete_button.set_sensitive(!servers.is_empty());
-
-        server_row.append(&server_dropdown);
+        server_row.append(server_dropdown.present());
         server_row.append(&delete_button);
+
+        let scheme_dropdown = AnyDropDown::new(language, 90, vec![Scheme::Https, Scheme::Http]);
+        let entry = Entry::builder().hexpand(true).halign(Align::Fill).build();
 
         let new_server_row = gtk4::Box::builder()
             .orientation(Orientation::Horizontal)
             .spacing(8)
             .build();
-        let scheme_dropdown = DropDown::from_strings(&["https://", "http://"]);
-        scheme_dropdown.set_size_request(90, -1);
-        let entry = Entry::builder().hexpand(true).halign(Align::Fill).build();
-        new_server_row.append(&scheme_dropdown);
+        new_server_row.append(scheme_dropdown.present());
         new_server_row.append(&entry);
 
         root.append(&server_row);
         root.append(&new_server_row);
 
-        new_server_row.set_visible(servers.is_empty());
+        Self::sync(
+            server_dropdown.is_sentinel_selected(),
+            &new_server_row,
+            &delete_button,
+        );
 
-        server_dropdown.connect_selected_notify(glib::clone!(
+        server_dropdown.connect_selected(glib::clone!(
             #[weak]
             new_server_row,
             #[weak]
-            server_list,
-            #[weak]
             delete_button,
-            move |dropdown| {
-                Self::sync_add_server_row(dropdown, &server_list, &new_server_row, &delete_button);
+            move |server: Option<String>| {
+                Self::sync(server.is_none(), &new_server_row, &delete_button);
             }
         ));
 
@@ -223,30 +238,21 @@ impl AddressBox {
             #[weak]
             server_dropdown,
             #[weak]
-            server_list,
-            #[weak]
             new_server_row,
             #[weak]
             delete_button,
             move |_| {
-                let selected = server_dropdown.selected();
-
-                if selected >= Self::add_server_index(&server_list) {
+                let Some(address) = server_dropdown.remove_selected() else {
                     return;
+                };
+
+                gdata.remove_server(&address);
+                if let Err(e) = gdata.write_config() {
+                    gdata.message_send(e);
                 }
 
-                if let Some(address) = server_list.string(selected) {
-                    gdata.remove_server(address.as_str());
-                    if let Err(e) = gdata.write_config() {
-                        gdata.message_send(e);
-                    }
-                }
-
-                server_list.remove(selected);
-
-                Self::sync_add_server_row(
-                    &server_dropdown,
-                    &server_list,
+                Self::sync(
+                    server_dropdown.is_sentinel_selected(),
                     &new_server_row,
                     &delete_button,
                 );
@@ -255,7 +261,6 @@ impl AddressBox {
 
         Self {
             root,
-            servers: server_list,
             server_dropdown,
             scheme_dropdown,
             entry,
@@ -263,53 +268,25 @@ impl AddressBox {
         }
     }
 
-    fn add_server_index(list: &StringList) -> u32 {
-        list.n_items().saturating_sub(1)
-    }
-
-    fn sync_add_server_row(
-        dropdown: &DropDown,
-        list: &StringList,
-        new_server_row: &gtk4::Box,
-        delete_button: &Button,
-    ) {
-        let adding_new = dropdown.selected() == Self::add_server_index(list);
+    fn sync(adding_new: bool, new_server_row: &gtk4::Box, delete_button: &Button) {
         new_server_row.set_visible(adding_new);
         delete_button.set_sensitive(!adding_new);
     }
 
-    fn add_server(&self, address: &str) {
-        let index = Self::add_server_index(&self.servers);
-
-        let exists = (0..index)
-            .filter_map(|i| self.servers.string(i))
-            .any(|s| s.as_str() == address);
-        if exists {
-            return;
+    fn add_server(&self, address: String) {
+        if !self.server_dropdown.contains(&address) {
+            self.server_dropdown.push(address);
         }
-
-        self.servers.splice(index, 0, &[address]);
-    }
-
-    fn is_add_server_selected(&self) -> bool {
-        self.server_dropdown.selected() == Self::add_server_index(&self.servers)
     }
 
     fn url(&self) -> String {
-        if self.is_add_server_selected() {
-            let scheme = self
-                .scheme_dropdown
-                .selected_item()
-                .and_downcast::<StringObject>()
-                .map(|s| s.string().to_string())
-                .unwrap_or("https://".into());
-
-            format!("{scheme}{}", self.entry.text())
-        } else {
-            self.servers
-                .string(self.server_dropdown.selected())
-                .map(|s| s.to_string())
-                .unwrap_or_default()
+        match self.server_dropdown.selected() {
+            Some(address) => address,
+            None => format!(
+                "{}{}",
+                self.scheme_dropdown.selected().unwrap_or_default().as_str(),
+                self.entry.text()
+            ),
         }
     }
 }
