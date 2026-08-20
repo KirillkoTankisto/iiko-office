@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::ops::Deref;
 use std::rc::Rc;
 
-use gtk4::gdk::{ContentProvider, DragAction};
+use gtk4::gdk::DragAction;
 use gtk4::gio::ListStore;
 use gtk4::glib::{self, BoxedAnyObject, object::Cast};
 use gtk4::pango::{AttrFloat, AttrInt, AttrList, EllipsizeMode, Weight};
@@ -14,6 +14,7 @@ use gtk4::{
 };
 use iiko_api::olap::{OlapRowKind, OlapTable};
 
+use crate::gui::common::drag_space::drag_content;
 use crate::gui::translation::{CurrentLanguage, Line, translate};
 
 type SearchGetter = Box<dyn Fn(&BoxedAnyObject) -> String>;
@@ -288,10 +289,11 @@ impl AnyTable {
     }
 
     // sets dragging for the last added column
-    pub fn set_row_drag<T, F>(&self, getter: F)
+    pub fn set_row_drag<T, U, F>(&self, getter: F)
     where
         T: 'static,
-        F: Fn(&T) -> String + 'static,
+        U: 'static,
+        F: Fn(&T) -> U + 'static,
     {
         let columns = self.column_view.columns();
         let Some(col) = columns.n_items().checked_sub(1).map(|last| {
@@ -326,8 +328,7 @@ impl AnyTable {
                 let list_item = weak_item.upgrade()?;
                 let obj = list_item.item()?.downcast::<BoxedAnyObject>().ok()?;
                 let value: Ref<T> = obj.borrow();
-                let payload = getter(&value);
-                Some(ContentProvider::for_value(&payload.to_value()))
+                Some(drag_content(getter(&value)))
             });
 
             child.add_controller(drag_source);

@@ -20,7 +20,9 @@ str_enum! {
 }
 
 str_enum! {
+    #[derive(Default)]
     pub enum ReportType {
+        #[default]
         Sales => "SALES",
         Transactions => "TRANSACTIONS",
         Deliveries => "DELIVERIES",
