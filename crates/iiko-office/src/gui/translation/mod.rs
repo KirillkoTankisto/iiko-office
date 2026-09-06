@@ -60,6 +60,7 @@ lines! {
     OLAP_REPORT_TYPE_SALES        => "Sales", "Продажи";
     OLAP_REPORT_TYPE_TRANSACTIONS => "Transactions", "Проводки";
     OLAP_REPORT_TYPE_DELIVERIES   => "Deliveries", "Поставки";
+    EMPLOYEES                     => "Employees", "Сотрудники";
     ERROR_ADDRESS                 => "Invalid Address", "Неверный Адрес";
     ERROR_INTERNAL                => "Internal Error", "Внутренняя Ошибка";
     ERROR_REQUEST                 => "Request Failed", "Ошибка Соединения с Сервером";

@@ -8,6 +8,7 @@ use gtk4::prelude::*;
 
 use crate::gui::main::menu::tabs::AnyTab;
 use crate::gui::main::menu::tabs::cashshifts::CashShiftsTab;
+use crate::gui::main::menu::tabs::employees::EmployeesTab;
 use crate::gui::main::menu::tabs::olap_reports::OlapReportsTab;
 use crate::gui::translation::{Line, translate};
 use crate::gui::{GlobalData, main::menu::view::MainView};
@@ -16,6 +17,7 @@ use crate::gui::{GlobalData, main::menu::view::MainView};
 const TAB_BUTTONS: &[(&dyn AnyTab, Line)] = &[
     (&CashShiftsTab, Line::CASH_SHIFTS),
     (&OlapReportsTab, Line::OLAP_REPORTS),
+    (&EmployeesTab, Line::EMPLOYEES),
 ];
 
 pub fn create_buttons(gdata: Arc<GlobalData>, view: &MainView) -> Box {

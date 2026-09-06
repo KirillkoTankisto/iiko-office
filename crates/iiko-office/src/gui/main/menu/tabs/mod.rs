@@ -7,6 +7,7 @@ use crate::gui::{GlobalData, main::menu::view::MainView};
 pub mod cashshifts;
 pub mod cashshifts_payments;
 pub mod olap_reports;
+pub mod employees;
 
 pub trait AnyTab {
     fn title(&self, gdata: &GlobalData) -> &str;

@@ -4,6 +4,7 @@ use crate::error::AppError;
 use crate::gui::GlobalData;
 
 use gtk4::glib;
+use gtk4::glib::clone::{Downgrade, Upgrade};
 use gtk4::prelude::*;
 use iiko_api::IikoSession;
 
@@ -58,4 +59,18 @@ pub fn spawn_workflow<T, E, W, U>(
         },
         ui,
     );
+}
+
+pub fn with<T, A, F>(data: &T, f: F) -> impl Fn(&A) + 'static
+where
+    T: Downgrade,
+    <T as Downgrade>::Weak: Upgrade<Strong = T> + 'static,
+    F: Fn(&A, T) + 'static,
+{
+    let weak = data.downgrade();
+    move |a| {
+        if let Some(data) = weak.upgrade() {
+            f(a, data);
+        }
+    }
 }

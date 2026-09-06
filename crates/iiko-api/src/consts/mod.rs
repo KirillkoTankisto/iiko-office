@@ -1,4 +1,4 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::macros::str_enum;
 
@@ -29,7 +29,7 @@ str_enum! {
     }
 }
 
-#[derive(Serialize)]
+#[derive(Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum EnumRange {
     I64(i64),

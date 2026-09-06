@@ -37,6 +37,7 @@ impl MessageBus {
 
         glib::spawn_future_local(async move {
             while let Ok(error) = receiver.recv().await {
+                eprintln!("Error: {error:#?}");
                 let (heading, detail) = describe(&error, language);
                 let title = label(heading, &["heading"]);
                 let body = wrapped(&detail);

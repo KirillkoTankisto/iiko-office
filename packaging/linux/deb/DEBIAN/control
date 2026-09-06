@@ -1,6 +1,6 @@
 Source: iiko-office
 Architecture: amd64
-Version: 0.11.10
+Version: 0.12.0
 Section: gnome
 Priority: optional
 Maintainer: Kirill Sergeev <kirsergeev@icloud.com>
