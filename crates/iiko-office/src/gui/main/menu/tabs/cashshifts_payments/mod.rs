@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use gtk4::{Align, Orientation::Vertical, glib::BoxedAnyObject, prelude::*};
+use gtk4::{Align, Orientation::Vertical, prelude::*};
 use iiko_api::cashshifts_payments_list::CashShiftsPayment;
 
 use crate::gui::{
@@ -33,9 +33,9 @@ const COLUMNS: &[ColumnSpec<CashShiftsPayment>] = &[
     ColumnSpec::new(SUM, Align::End, |p| p.info.sum.to_string()),
 ];
 
-impl AsTable for CashShiftsPaymentsTab {
-    fn as_table(language: CurrentLanguage) -> AnyTable {
-        let table = AnyTable::new(true);
+impl AsTable<CashShiftsPayment> for CashShiftsPaymentsTab {
+    fn as_table(language: CurrentLanguage) -> AnyTable<CashShiftsPayment> {
+        let table: AnyTable<CashShiftsPayment> = AnyTable::new(true);
         table.add_columns(language, COLUMNS);
         table.add_final();
         table
@@ -72,7 +72,7 @@ impl AnyTab for CashShiftsPaymentsTab {
                 all_payments.sort_by(|a, b| a.info.creation_date.cmp(&b.info.creation_date));
 
                 for payment in all_payments {
-                    table.add_object(&BoxedAnyObject::new(payment));
+                    table.add_object(payment);
                 }
             },
         );

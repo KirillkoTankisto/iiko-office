@@ -47,9 +47,9 @@ const COLUMNS: &[ColumnSpec<CashShift>] = &[
     ColumnSpec::new(SHIFT_NUMBER, Align::End, |s| s.session_number.to_string()),
 ];
 
-impl AsTable for CashShiftsTab {
-    fn as_table(language: CurrentLanguage) -> AnyTable {
-        let table = AnyTable::new(true);
+impl AsTable<CashShift> for CashShiftsTab {
+    fn as_table(language: CurrentLanguage) -> AnyTable<CashShift> {
+        let table: AnyTable<CashShift> = AnyTable::new(true);
         table.add_columns(language, COLUMNS);
         table.add_final();
         table
@@ -104,12 +104,12 @@ impl AnyTab for CashShiftsTab {
         refresh_button.connect_clicked(glib::clone!(
             #[weak]
             gdata,
-            #[weak]
+            #[strong]
             table,
             #[weak]
             date_from_to,
             move |button| {
-                cashshifts_callback(gdata, button, table, date_from_to);
+                cashshifts_callback(gdata, button, table.clone(), date_from_to);
             }
         ));
 
@@ -120,7 +120,7 @@ impl AnyTab for CashShiftsTab {
 fn cashshifts_callback(
     gdata: Arc<GlobalData>,
     button: &Button,
-    table: AnyTable,
+    table: AnyTable<CashShift>,
     date_from_to: DateFromToPicker,
 ) {
     let (from, to) = date_from_to.get_date();
@@ -131,7 +131,7 @@ fn cashshifts_callback(
         move |shifts| {
             table.clear_table();
             for shift in shifts {
-                table.add_object(&BoxedAnyObject::new(shift));
+                table.add_object(shift);
             }
         },
     );

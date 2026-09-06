@@ -17,20 +17,32 @@ use iiko_api::olap::{OlapRowKind, OlapTable};
 use crate::gui::common::drag_space::drag_content;
 use crate::gui::translation::{CurrentLanguage, Line, translate};
 
-type SearchGetter = Box<dyn Fn(&BoxedAnyObject) -> String>;
+type SearchGetter<T> = Box<dyn Fn(&T) -> String>;
 
 const MIN_WIDTH_CHARS: i32 = 12;
 const MAX_WIDTH_CHARS: i32 = 40;
 const INDENT_PX: i32 = 12;
 
-#[derive(Clone, glib::Downgrade)]
-pub struct AnyTable {
+pub struct AnyTable<T: 'static> {
     column_view: ColumnView,
     store: ListStore,
     scrolled_window: ScrolledWindow,
     filter: CustomFilter,
     query: Rc<RefCell<String>>,
-    search_getters: Rc<RefCell<Vec<SearchGetter>>>,
+    search_getters: Rc<RefCell<Vec<SearchGetter<T>>>>,
+}
+
+impl<T: 'static> Clone for AnyTable<T> {
+    fn clone(&self) -> Self {
+        Self {
+            column_view: self.column_view.clone(),
+            store: self.store.clone(),
+            scrolled_window: self.scrolled_window.clone(),
+            filter: self.filter.clone(),
+            query: self.query.clone(),
+            search_getters: self.search_getters.clone(),
+        }
+    }
 }
 
 #[derive(Clone, Copy, PartialEq)]
@@ -40,6 +52,7 @@ pub enum OlapLayout {
 }
 
 /// One row of a rendered OLAP table.
+#[derive(Clone)]
 pub struct OlapRow {
     /// What is printed to the cell
     pub cells: Vec<String>,
@@ -57,26 +70,31 @@ pub struct CellStyle {
     pub indent: i32,
 }
 
-impl AnyTable {
+impl<T: 'static> AnyTable<T> {
     pub fn new(expand: bool) -> Self {
         let store = ListStore::new::<BoxedAnyObject>();
         let query = Rc::new(RefCell::new(String::new()));
-        let search_getters: Rc<RefCell<Vec<SearchGetter>>> = Rc::new(RefCell::new(Vec::new()));
+        let search_getters: Rc<RefCell<Vec<SearchGetter<T>>>> = Rc::new(RefCell::new(Vec::new()));
 
         let filter = CustomFilter::new({
             let query = query.clone();
             let search_getters = search_getters.clone();
             move |obj| {
                 let needle = query.borrow();
+                if needle.is_empty() {
+                    return true;
+                }
                 let getters = search_getters.borrow();
+                if getters.is_empty() {
+                    return true;
+                }
                 let Some(obj) = obj.downcast_ref::<BoxedAnyObject>() else {
                     return true;
                 };
-                needle.is_empty()
-                    || getters.is_empty()
-                    || getters
-                        .iter()
-                        .any(|getter| getter(obj).to_lowercase().contains(needle.deref()))
+                let value: Ref<T> = obj.borrow();
+                getters
+                    .iter()
+                    .any(|getter| getter(&value).to_lowercase().contains(needle.deref()))
             }
         });
 
@@ -110,6 +128,201 @@ impl AnyTable {
         }
     }
 
+    pub fn add_column<F>(&self, column: AnyTableColumn<'_, T, F>)
+    where
+        F: Fn(&T) -> String + 'static,
+    {
+        let AnyTableColumn {
+            title,
+            align,
+            expand,
+            searchable,
+            getter,
+            style,
+        } = column;
+
+        let xalign: f32 = match align {
+            Align::End => 1.0,
+            Align::Center => 0.5,
+            _ => 0.0,
+        };
+
+        let getter = Rc::new(getter);
+
+        if searchable {
+            let getter = getter.clone();
+            self.search_getters
+                .borrow_mut()
+                .push(Box::new(move |value| getter(value)));
+        }
+
+        let factory = SignalListItemFactory::new();
+        factory.connect_setup(move |_, item| {
+            item.downcast_ref::<ListItem>().unwrap().set_child(Some(
+                &Label::builder()
+                    .halign(align)
+                    .xalign(xalign)
+                    .ellipsize(EllipsizeMode::End)
+                    .width_chars(MIN_WIDTH_CHARS)
+                    .max_width_chars(MAX_WIDTH_CHARS)
+                    .build(),
+            ));
+        });
+        factory.connect_bind(move |_, item| {
+            let item = item.downcast_ref::<ListItem>().unwrap();
+            let label = item.child().unwrap().downcast::<Label>().unwrap();
+            let obj = item.item().unwrap().downcast::<BoxedAnyObject>().unwrap();
+            let value: Ref<T> = obj.borrow();
+            label.set_label(&getter(&value)); // closure call, not a method
+
+            // Widgets are recycled, so every attribute is set on every bind —
+            // otherwise a subtotal's bold leaks onto whatever row reuses it.
+            let style = style.as_ref().map(|f| f(&value)).unwrap_or_default();
+            let attrs = AttrList::new();
+            attrs.insert(AttrFloat::new_scale(0.8333));
+            if style.bold {
+                attrs.insert(AttrInt::new_weight(Weight::Bold));
+            }
+            label.set_attributes(Some(&attrs));
+            label.set_margin_start(style.indent * INDENT_PX);
+        });
+
+        let col = ColumnViewColumn::new(Some(title), Some(factory));
+        col.set_resizable(true);
+        col.set_expand(expand);
+        self.column_view.append_column(&col);
+    }
+
+    /// Adds a whole table layout declared as data, translating each heading.
+    pub fn add_columns(&self, language: CurrentLanguage, specs: &[ColumnSpec<T>]) {
+        for spec in specs {
+            let column =
+                AnyTableColumn::new(translate(language, spec.line), spec.align, spec.getter);
+            self.add_column(if spec.expand { column.expand() } else { column });
+        }
+    }
+
+    pub fn present(&self) -> &ScrolledWindow {
+        &self.scrolled_window
+    }
+
+    pub fn add_object(&self, value: T) {
+        self.store.append(&BoxedAnyObject::new(value));
+    }
+
+    pub fn clear_table(&self) {
+        self.store.remove_all();
+    }
+
+    pub fn remove_columns(&self) {
+        while let Some(column) = self.column_view.columns().item(0) {
+            self.column_view
+                .remove_column(column.downcast_ref::<ColumnViewColumn>().unwrap());
+        }
+        self.search_getters.borrow_mut().clear();
+    }
+
+    pub fn connect<F>(&self, f: F)
+    where
+        F: Fn(&ColumnView, u32) + 'static,
+    {
+        self.column_view.connect_activate(f);
+    }
+
+    /// sets dragging for the last added column
+    pub fn set_row_drag<U, F>(&self, getter: F)
+    where
+        U: 'static,
+        F: Fn(&T) -> U + 'static,
+    {
+        let columns = self.column_view.columns();
+        let Some(col) = columns.n_items().checked_sub(1).map(|last| {
+            columns
+                .item(last)
+                .unwrap()
+                .downcast::<ColumnViewColumn>()
+                .unwrap()
+        }) else {
+            return;
+        };
+        let factory = col
+            .factory()
+            .unwrap()
+            .downcast::<SignalListItemFactory>()
+            .unwrap();
+
+        let getter = Rc::new(getter);
+
+        factory.connect_setup(move |_, item| {
+            let list_item = item.downcast_ref::<ListItem>().unwrap();
+            let Some(child) = list_item.child() else {
+                return;
+            };
+
+            let drag_source = DragSource::new();
+            drag_source.set_actions(DragAction::COPY);
+
+            let weak_item = list_item.downgrade();
+            let getter = getter.clone();
+            drag_source.connect_prepare(move |_, _, _| {
+                let list_item = weak_item.upgrade()?;
+                let obj = list_item.item()?.downcast::<BoxedAnyObject>().ok()?;
+                let value: Ref<T> = obj.borrow();
+                Some(drag_content(getter(&value)))
+            });
+
+            child.add_controller(drag_source);
+        });
+    }
+
+    pub fn get_items(&self) -> Vec<T>
+    where
+        T: 'static + Clone,
+    {
+        self.store
+            .iter::<BoxedAnyObject>()
+            .filter_map(Result::ok)
+            .map(|obj| obj.borrow::<T>().clone())
+            .collect()
+    }
+
+    pub fn search_entry(&self) -> SearchEntry {
+        let entry = SearchEntry::new();
+        entry.connect_search_changed(glib::clone!(
+            #[strong(rename_to = table)]
+            self,
+            move |entry| {
+                table.set_search_query(&entry.text());
+            }
+        ));
+        entry
+    }
+
+    pub fn set_search_query(&self, text: &str) {
+        let new = text.to_lowercase();
+        let old = self.query.replace(new.clone());
+
+        if new == old {
+            return;
+        }
+
+        self.filter.changed(if new.contains(&old) {
+            FilterChange::MoreStrict
+        } else if old.contains(&new) {
+            FilterChange::LessStrict
+        } else {
+            FilterChange::Different
+        });
+    }
+
+    /// Adds an empty column which takes all free space on the right
+    pub fn add_final(&self) {
+        let column_empty = ColumnViewColumn::builder().expand(true).build();
+        self.column_view.append_column(&column_empty);
+    }
+}
+
+impl AnyTable<OlapRow> {
     pub fn set_olap_table(
         &self,
         olap_table: OlapTable,
@@ -181,200 +394,8 @@ impl AnyTable {
                     }
                 }
             }
-            self.add_object(&BoxedAnyObject::new(OlapRow { cells, full, kind }));
+            self.add_object(OlapRow { cells, full, kind });
         }
-    }
-
-    pub fn add_column<T, F>(&self, column: AnyTableColumn<'_, T, F>)
-    where
-        T: 'static,
-        F: Fn(&T) -> String + 'static,
-    {
-        let AnyTableColumn {
-            title,
-            align,
-            expand,
-            searchable,
-            getter,
-            style,
-        } = column;
-
-        let xalign: f32 = match align {
-            Align::End => 1.0,
-            Align::Center => 0.5,
-            _ => 0.0,
-        };
-
-        let getter = Rc::new(getter);
-
-        if searchable {
-            let getter = getter.clone();
-            self.search_getters.borrow_mut().push(Box::new(move |obj| {
-                let value: Ref<T> = obj.borrow();
-                getter(&value)
-            }));
-        }
-
-        let factory = SignalListItemFactory::new();
-        factory.connect_setup(move |_, item| {
-            item.downcast_ref::<ListItem>().unwrap().set_child(Some(
-                &Label::builder()
-                    .halign(align)
-                    .xalign(xalign)
-                    .ellipsize(EllipsizeMode::End)
-                    .width_chars(MIN_WIDTH_CHARS)
-                    .max_width_chars(MAX_WIDTH_CHARS)
-                    .build(),
-            ));
-        });
-        factory.connect_bind(move |_, item| {
-            let item = item.downcast_ref::<ListItem>().unwrap();
-            let label = item.child().unwrap().downcast::<Label>().unwrap();
-            let obj = item.item().unwrap().downcast::<BoxedAnyObject>().unwrap();
-            let value: Ref<T> = obj.borrow();
-            label.set_label(&getter(&value)); // closure call, not a method
-
-            // Widgets are recycled, so every attribute is set on every bind —
-            // otherwise a subtotal's bold leaks onto whatever row reuses it.
-            let style = style.as_ref().map(|f| f(&value)).unwrap_or_default();
-            let attrs = AttrList::new();
-            attrs.insert(AttrFloat::new_scale(0.8333));
-            if style.bold {
-                attrs.insert(AttrInt::new_weight(Weight::Bold));
-            }
-            label.set_attributes(Some(&attrs));
-            label.set_margin_start(style.indent * INDENT_PX);
-        });
-
-        let col = ColumnViewColumn::new(Some(title), Some(factory));
-        col.set_resizable(true);
-        col.set_expand(expand);
-        self.column_view.append_column(&col);
-    }
-
-    /// Adds a whole table layout declared as data, translating each heading.
-    pub fn add_columns<T: 'static>(&self, language: CurrentLanguage, specs: &[ColumnSpec<T>]) {
-        for spec in specs {
-            let column =
-                AnyTableColumn::new(translate(language, spec.line), spec.align, spec.getter);
-            self.add_column(if spec.expand { column.expand() } else { column });
-        }
-    }
-
-    pub fn present(&self) -> &ScrolledWindow {
-        &self.scrolled_window
-    }
-
-    pub fn add_object(&self, object: &BoxedAnyObject) {
-        self.store.append(object);
-    }
-
-    pub fn clear_table(&self) {
-        self.store.remove_all();
-    }
-
-    pub fn remove_columns(&self) {
-        while let Some(column) = self.column_view.columns().item(0) {
-            self.column_view
-                .remove_column(column.downcast_ref::<ColumnViewColumn>().unwrap());
-        }
-        self.search_getters.borrow_mut().clear();
-    }
-
-    pub fn connect<F>(&self, f: F)
-    where
-        F: Fn(&ColumnView, u32) + 'static,
-    {
-        self.column_view.connect_activate(f);
-    }
-
-    // sets dragging for the last added column
-    pub fn set_row_drag<T, U, F>(&self, getter: F)
-    where
-        T: 'static,
-        U: 'static,
-        F: Fn(&T) -> U + 'static,
-    {
-        let columns = self.column_view.columns();
-        let Some(col) = columns.n_items().checked_sub(1).map(|last| {
-            columns
-                .item(last)
-                .unwrap()
-                .downcast::<ColumnViewColumn>()
-                .unwrap()
-        }) else {
-            return;
-        };
-        let factory = col
-            .factory()
-            .unwrap()
-            .downcast::<SignalListItemFactory>()
-            .unwrap();
-
-        let getter = Rc::new(getter);
-
-        factory.connect_setup(move |_, item| {
-            let list_item = item.downcast_ref::<ListItem>().unwrap();
-            let Some(child) = list_item.child() else {
-                return;
-            };
-
-            let drag_source = DragSource::new();
-            drag_source.set_actions(DragAction::COPY);
-
-            let weak_item = list_item.downgrade();
-            let getter = getter.clone();
-            drag_source.connect_prepare(move |_, _, _| {
-                let list_item = weak_item.upgrade()?;
-                let obj = list_item.item()?.downcast::<BoxedAnyObject>().ok()?;
-                let value: Ref<T> = obj.borrow();
-                Some(drag_content(getter(&value)))
-            });
-
-            child.add_controller(drag_source);
-        });
-    }
-
-    pub fn get_items<T: Clone + 'static>(&self) -> Vec<T> {
-        self.store
-            .iter::<BoxedAnyObject>()
-            .filter_map(Result::ok)
-            .map(|obj| obj.borrow::<T>().clone())
-            .collect()
-    }
-
-    pub fn search_entry(&self) -> SearchEntry {
-        let entry = SearchEntry::new();
-        entry.connect_search_changed(glib::clone!(
-            #[weak(rename_to = table)]
-            self,
-            move |entry| {
-                table.set_search_query(&entry.text());
-            }
-        ));
-        entry
-    }
-
-    pub fn set_search_query(&self, text: &str) {
-        let new = text.to_lowercase();
-        let old = self.query.replace(new.clone());
-
-        if new == old {
-            return;
-        }
-
-        self.filter.changed(if new.contains(&old) {
-            FilterChange::MoreStrict
-        } else if old.contains(&new) {
-            FilterChange::LessStrict
-        } else {
-            FilterChange::Different
-        });
-    }
-
-    pub fn add_final(&self) {
-        let column_empty = ColumnViewColumn::builder().expand(true).build();
-        self.column_view.append_column(&column_empty);
     }
 }
 
@@ -449,8 +470,8 @@ impl<T: 'static> ColumnSpec<T> {
     }
 }
 
-pub trait AsTable {
-    fn as_table(language: CurrentLanguage) -> AnyTable;
+pub trait AsTable<T: 'static> {
+    fn as_table(language: CurrentLanguage) -> AnyTable<T>;
 }
 
 /// Maps OLAP field ids to human names, ignoring case and padding.

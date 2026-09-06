@@ -15,7 +15,7 @@ pub struct CashShiftsPayments {
     pub pay_outs_records: Vec<CashShiftsPayment>,
 }
 
-#[derive(Deserialize, PartialEq, Debug)]
+#[derive(Deserialize, PartialEq, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CashShiftsPayment {
     pub info: PaymentInfo,
@@ -29,7 +29,7 @@ pub struct CashShiftsPayment {
     pub status: SessionStatus,
 }
 
-#[derive(Deserialize, PartialEq, Debug)]
+#[derive(Deserialize, PartialEq, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct PaymentInfo {
     pub id: String,
@@ -46,7 +46,7 @@ pub struct PaymentInfo {
     pub department_id: String,
 }
 
-#[derive(Deserialize, PartialEq, Debug)]
+#[derive(Deserialize, PartialEq, Debug, Clone)]
 pub struct PaymentAuth {
     pub user: String,
     pub card: String,
