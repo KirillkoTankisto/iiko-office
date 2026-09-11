@@ -7,7 +7,7 @@ use crate::gui::{
     GlobalData,
     common::{
         datetime::reformat_date,
-        table::{AnyTable, AsTable, ColumnSpec},
+        table::{AnyTable, GetTable, ColumnSpec},
         utils::spawn_workflow,
     },
     main::menu::{
@@ -33,8 +33,8 @@ const COLUMNS: &[ColumnSpec<CashShiftsPayment>] = &[
     ColumnSpec::new(SUM, Align::End, |p| p.info.sum.to_string()),
 ];
 
-impl AsTable<CashShiftsPayment> for CashShiftsPaymentsTab {
-    fn as_table(language: CurrentLanguage) -> AnyTable<CashShiftsPayment> {
+impl GetTable<CashShiftsPayment> for CashShiftsPaymentsTab {
+    fn get_table(language: CurrentLanguage) -> AnyTable<CashShiftsPayment> {
         let table: AnyTable<CashShiftsPayment> = AnyTable::new(true);
         table.add_columns(language, COLUMNS);
         table.add_final();
@@ -50,7 +50,7 @@ impl AnyTab for CashShiftsPaymentsTab {
     fn build(&self, gdata: Arc<GlobalData>, _view: &MainView) -> gtk4::Widget {
         let cashshifts_payments_box = build_box(Vertical);
 
-        let table = Self::as_table(gdata.language());
+        let table = Self::get_table(gdata.language());
 
         cashshifts_payments_box.append(table.present());
 

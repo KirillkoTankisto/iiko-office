@@ -18,7 +18,7 @@ use crate::gui::{
         drag_space::DragSpace,
         dropdown::{AnyDropDown, DropDownItem},
         period_list::PeriodList,
-        table::{AnyTable, AnyTableColumn, AsTable, OlapLayout, OlapRow},
+        table::{AnyTable, AnyTableColumn, GetTable, OlapLayout, OlapRow},
         utils::spawn_workflow,
     },
     main::menu::{
@@ -206,8 +206,8 @@ impl PivotSpec {
 
 pub struct OlapReportsTab;
 
-impl AsTable<(String, OlapColumn)> for OlapReportsTab {
-    fn as_table(language: CurrentLanguage) -> AnyTable<(String, OlapColumn)> {
+impl GetTable<(String, OlapColumn)> for OlapReportsTab {
+    fn get_table(language: CurrentLanguage) -> AnyTable<(String, OlapColumn)> {
         let table = AnyTable::new(false);
         table.add_column(
             AnyTableColumn::new(translate(language, OLAP_FIELDS), Align::Start, column_name)
@@ -227,7 +227,7 @@ impl AnyTab for OlapReportsTab {
         let language = gdata.language();
 
         let controls = ReportControls::new(language);
-        let columns_table: AnyTable<(String, OlapColumn)> = Self::as_table(language);
+        let columns_table: AnyTable<(String, OlapColumn)> = Self::get_table(language);
         let report_table: AnyTable<OlapRow> = AnyTable::new(true);
         let olap_fields = DraggableOlapFields::new(language);
 

@@ -8,7 +8,7 @@ use crate::gui::{
     common::{
         datepicker::DateFromToPicker,
         datetime::reformat_date,
-        table::{AnyTable, AsTable, ColumnSpec},
+        table::{AnyTable, GetTable, ColumnSpec},
         utils::spawn_workflow,
     },
     main::menu::{
@@ -47,8 +47,8 @@ const COLUMNS: &[ColumnSpec<CashShift>] = &[
     ColumnSpec::new(SHIFT_NUMBER, Align::End, |s| s.session_number.to_string()),
 ];
 
-impl AsTable<CashShift> for CashShiftsTab {
-    fn as_table(language: CurrentLanguage) -> AnyTable<CashShift> {
+impl GetTable<CashShift> for CashShiftsTab {
+    fn get_table(language: CurrentLanguage) -> AnyTable<CashShift> {
         let table: AnyTable<CashShift> = AnyTable::new(true);
         table.add_columns(language, COLUMNS);
         table.add_final();
@@ -77,7 +77,7 @@ impl AnyTab for CashShiftsTab {
         let refresh_button = Button::with_label(translate(gdata.language(), REFRESH));
         grid.attach(&refresh_button, 1, 2, 1, 1);
 
-        let table = Self::as_table(gdata.language());
+        let table = Self::get_table(gdata.language());
 
         table.connect(glib::clone!(
             #[weak]

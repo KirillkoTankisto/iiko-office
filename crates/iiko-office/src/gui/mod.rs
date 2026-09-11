@@ -24,8 +24,7 @@ use crate::gui::on_startup::on_startup;
 pub fn start_gui() {
     set_language();
 
-    let app = create_app();
-    let gdata = GlobalData::new();
+    let (app, gdata) = (create_app(), GlobalData::new());
 
     app.connect_startup(on_startup);
     app.connect_activate(with(&gdata, on_activate));

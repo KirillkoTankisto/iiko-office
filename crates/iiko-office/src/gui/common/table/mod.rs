@@ -470,8 +470,8 @@ impl<T: 'static> ColumnSpec<T> {
     }
 }
 
-pub trait AsTable<T: 'static> {
-    fn as_table(language: CurrentLanguage) -> AnyTable<T>;
+pub trait GetTable<T: 'static> {
+    fn get_table(language: CurrentLanguage) -> AnyTable<T>;
 }
 
 /// Maps OLAP field ids to human names, ignoring case and padding.
