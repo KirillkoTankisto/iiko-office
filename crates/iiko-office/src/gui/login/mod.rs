@@ -1,14 +1,13 @@
 use std::sync::Arc;
 
-use gtk4::{
-    Align, Button, Entry, Frame, Label, Orientation, PasswordEntry, Stack, Widget, glib, prelude::*,
-};
+use gtk4::{Align, Button, Entry, Label, Orientation, PasswordEntry, Stack, glib, prelude::*};
 use iiko_api::{IikoConnection, consts::AsStr, utils::get_password_hash};
 
 use crate::gui::{
     GlobalData,
     common::{
         dropdown::{AnyDropDown, DropDownItem},
+        frame::frame,
         logo::logo_image,
         utils::spawn_task,
     },
@@ -16,7 +15,7 @@ use crate::gui::{
     translation::{
         CurrentLanguage,
         Line::{
-            self, LOGIN, LOGIN_ADD_SERVER, LOGIN_ADDRESS, LOGIN_PASSWORD, LOGIN_REMOVE_SERVER,
+            LOGIN, LOGIN_ADD_SERVER, LOGIN_ADDRESS, LOGIN_PASSWORD, LOGIN_REMOVE_SERVER,
             LOGIN_USERNAME,
         },
         translate,
@@ -71,9 +70,9 @@ impl LoginBox {
             .halign(Align::Fill)
             .build();
 
-        root.append(&Self::frame(gdata.language(), LOGIN_ADDRESS, &address.root));
-        root.append(&Self::frame(gdata.language(), LOGIN_USERNAME, &username));
-        root.append(&Self::frame(gdata.language(), LOGIN_PASSWORD, &password));
+        root.append(&frame(gdata.language(), LOGIN_ADDRESS, &address.root));
+        root.append(&frame(gdata.language(), LOGIN_USERNAME, &username));
+        root.append(&frame(gdata.language(), LOGIN_PASSWORD, &password));
 
         let button = Button::builder()
             .label(translate(gdata.language(), LOGIN))
@@ -137,12 +136,6 @@ impl LoginBox {
 
     pub fn add_server(&self, address: &str) {
         self.address.add_server(address.to_string());
-    }
-
-    fn frame(lang: CurrentLanguage, line: Line, widget: &impl IsA<Widget>) -> Frame {
-        let frame = Frame::builder().label(translate(lang, line)).build();
-        frame.set_child(Some(widget));
-        frame
     }
 }
 

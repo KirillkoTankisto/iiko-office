@@ -8,7 +8,7 @@ use crate::gui::{
     common::{
         datepicker::DateFromToPicker,
         datetime::reformat_date,
-        table::{AnyTable, GetTable, ColumnSpec},
+        table::{AnyTable, ColumnSpec, GetTable},
         utils::spawn_workflow,
     },
     main::menu::{

@@ -162,7 +162,7 @@ pub struct DraggableOlapFields {
 
 impl DraggableOlapFields {
     fn new(language: CurrentLanguage) -> Self {
-        let space = |line, orientation| DragSpace::new(translate(language, line), orientation);
+        let space = |line, orientation| DragSpace::new(language, line, orientation);
         Self {
             row_field: space(OLAP_ROW_FIELDS, Vertical),
             column_field: space(OLAP_COLUMN_FIELDS, Horizontal),

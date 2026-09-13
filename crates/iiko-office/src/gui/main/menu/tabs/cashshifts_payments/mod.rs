@@ -7,7 +7,7 @@ use crate::gui::{
     GlobalData,
     common::{
         datetime::reformat_date,
-        table::{AnyTable, GetTable, ColumnSpec},
+        table::{AnyTable, ColumnSpec, GetTable},
         utils::spawn_workflow,
     },
     main::menu::{

@@ -11,6 +11,9 @@ use gtk4::pango::EllipsizeMode;
 use gtk4::{Align, DragSource, DropTarget, Frame, GestureClick, Label, Orientation, Widget};
 use gtk4::{StringList, prelude::*};
 
+use crate::gui::common::frame::frame;
+use crate::gui::translation::{CurrentLanguage, Line};
+
 type DragPayload = Option<Box<dyn Any>>;
 
 pub fn drag_content<T: 'static>(value: T) -> ContentProvider {
@@ -37,8 +40,7 @@ pub struct DragSpace<T> {
 }
 
 impl<T: Display + 'static> DragSpace<T> {
-    pub fn new(title: &str, orientation: Orientation) -> Self {
-        let root = Frame::new(Some(title));
+    pub fn new(lang: CurrentLanguage, line: Line, orientation: Orientation) -> Self {
         let container = gtk4::Box::builder()
             .homogeneous(false)
             .orientation(orientation)
@@ -46,7 +48,8 @@ impl<T: Display + 'static> DragSpace<T> {
             .height_request(30)
             .spacing(8)
             .build();
-        root.set_child(Some(&container));
+
+        let root = frame(lang, line, &container);
 
         let items = StringList::default();
         let inner: Rc<RefCell<Vec<T>>> = Rc::new(RefCell::new(Vec::new()));
