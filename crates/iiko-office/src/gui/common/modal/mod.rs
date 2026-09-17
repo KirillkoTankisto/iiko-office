@@ -80,8 +80,10 @@ pub fn label(text: &str, classes: &[&str]) -> gtk4::Label {
 }
 
 pub fn wrapped(text: &str) -> gtk4::Label {
-    let label = gtk4::Label::new(Some(text));
-    label.set_wrap(true);
-    label.set_max_width_chars(40);
-    label
+    gtk4::Label::builder()
+        .label(text)
+        .wrap(true)
+        .max_width_chars(40)
+        .justify(gtk4::Justification::Center)
+        .build()
 }
