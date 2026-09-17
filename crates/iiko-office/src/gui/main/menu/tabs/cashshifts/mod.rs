@@ -1,18 +1,19 @@
 use std::sync::Arc;
 
-use gtk4::{Align, Button, Orientation::Vertical, glib, glib::BoxedAnyObject, prelude::*};
+use gtk4::{Align, Button, glib, glib::BoxedAnyObject, prelude::*};
 use iiko_api::cashshifts_list::{CashShift, SessionStatus};
 
 use crate::gui::{
     GlobalData,
     common::{
+        anybox::AnyBox,
         datepicker::DateFromToPicker,
         datetime::reformat_date,
         table::{AnyTable, ColumnSpec, GetTable},
         utils::spawn_workflow,
     },
     main::menu::{
-        tabs::{AnyTab, build_box, cashshifts_payments::CashShiftsPaymentsTab},
+        tabs::{AnyTab, cashshifts_payments::CashShiftsPaymentsTab},
         view::MainView,
     },
     translation::{
@@ -64,8 +65,6 @@ impl AnyTab for CashShiftsTab {
     fn build(&self, gdata: Arc<GlobalData>, view: &MainView) -> gtk4::Widget {
         let view = view.clone();
 
-        let cashshifts_box = build_box(Vertical);
-
         let grid = gtk4::Grid::builder()
             .column_spacing(8)
             .row_spacing(8)
@@ -98,9 +97,6 @@ impl AnyTab for CashShiftsTab {
             }
         ));
 
-        cashshifts_box.append(&grid);
-        cashshifts_box.append(table.present());
-
         refresh_button.connect_clicked(glib::clone!(
             #[weak]
             gdata,
@@ -113,7 +109,11 @@ impl AnyTab for CashShiftsTab {
             }
         ));
 
-        cashshifts_box.upcast()
+        AnyBox::vertical()
+            .margin(8)
+            .add_widgets([grid.upcast_ref(), table.present().upcast_ref()])
+            .consume()
+            .upcast()
     }
 }
 

@@ -1,9 +1,10 @@
 use std::sync::Arc;
 
-use gtk4::{Box, Orientation::Horizontal, prelude::BoxExt};
+use gtk4::{Box, prelude::*};
 
 use crate::gui::{
     GlobalData,
+    common::anybox::AnyBox,
     main::menu::{buttons::create_buttons, view::MainView},
 };
 
@@ -17,14 +18,12 @@ pub struct MainMenu {
 
 impl MainMenu {
     pub fn new(gdata: Arc<GlobalData>) -> Self {
-        let root = Box::builder().spacing(0).orientation(Horizontal).build();
-
         let view = MainView::new();
-
         let buttons = create_buttons(gdata, &view);
 
-        root.append(&buttons);
-        root.append(view.present());
+        let root = AnyBox::horizontal()
+            .add_widgets([buttons.upcast_ref(), view.present().upcast_ref()])
+            .consume();
 
         Self { root }
     }

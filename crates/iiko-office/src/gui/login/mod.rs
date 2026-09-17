@@ -1,11 +1,12 @@
 use std::sync::Arc;
 
-use gtk4::{Align, Button, Entry, Label, Orientation, PasswordEntry, Stack, glib, prelude::*};
+use gtk4::{Align, Button, Entry, Label, PasswordEntry, Stack, glib, prelude::*};
 use iiko_api::{IikoConnection, consts::AsStr, utils::get_password_hash};
 
 use crate::gui::{
     GlobalData,
     common::{
+        anybox::AnyBox,
         dropdown::{AnyDropDown, DropDownItem},
         frame::frame,
         logo::logo_image,
@@ -42,26 +43,12 @@ pub struct LoginBox {
 
 impl LoginBox {
     pub fn new(gdata: Arc<GlobalData>, stack: &Stack, main: &Main) -> Self {
-        let root = gtk4::Box::builder()
-            .orientation(Orientation::Vertical)
-            .spacing(6)
-            .margin_start(64)
-            .margin_end(64)
+        let logo = &logo_image(LOGO_SIZE);
+        let title = &Label::builder()
+            .label("iikoOffice")
             .margin_bottom(16)
-            .margin_top(16)
-            .halign(Align::Center)
-            .valign(Align::Center)
-            .width_request(FORM_WIDTH)
+            .css_classes(["title-2"])
             .build();
-
-        root.append(&logo_image(LOGO_SIZE));
-        root.append(
-            &Label::builder()
-                .label("iikoOffice")
-                .margin_bottom(16)
-                .css_classes(["title-2"])
-                .build(),
-        );
 
         let address = AddressBox::new(gdata.clone());
         let username = Entry::builder().hexpand(true).halign(Align::Fill).build();
@@ -70,10 +57,6 @@ impl LoginBox {
             .halign(Align::Fill)
             .build();
 
-        root.append(&frame(gdata.language(), LOGIN_ADDRESS, &address.root));
-        root.append(&frame(gdata.language(), LOGIN_USERNAME, &username));
-        root.append(&frame(gdata.language(), LOGIN_PASSWORD, &password));
-
         let button = Button::builder()
             .label(translate(gdata.language(), LOGIN))
             .margin_top(24)
@@ -81,13 +64,25 @@ impl LoginBox {
             .halign(Align::Fill)
             .build();
 
-        root.append(&button);
-
         password.connect_activate(glib::clone!(
             #[weak]
             button,
             move |_| button.emit_clicked()
         ));
+
+        let root = AnyBox::vertical()
+            .align(Align::Center)
+            .margin(16)
+            .width_request(FORM_WIDTH)
+            .add_widgets([
+                logo.upcast_ref(),
+                title.upcast_ref(),
+                frame(gdata.language(), LOGIN_ADDRESS, &address.root).upcast_ref(),
+                frame(gdata.language(), LOGIN_USERNAME, &username).upcast_ref(),
+                frame(gdata.language(), LOGIN_PASSWORD, &password).upcast_ref(),
+                button.upcast_ref(),
+            ])
+            .consume();
 
         let login_box = Self {
             root,
@@ -174,11 +169,6 @@ impl AddressBox {
     fn new(gdata: Arc<GlobalData>) -> Self {
         let language = gdata.language();
 
-        let root = gtk4::Box::builder()
-            .orientation(Orientation::Vertical)
-            .spacing(8)
-            .build();
-
         let server_dropdown =
             AnyDropDown::with_sentinel(language, -1, gdata.servers(), LOGIN_ADD_SERVER);
         server_dropdown.present().set_hexpand(true);
@@ -189,25 +179,21 @@ impl AddressBox {
             .tooltip_text(translate(language, LOGIN_REMOVE_SERVER))
             .build();
 
-        let server_row = gtk4::Box::builder()
-            .orientation(Orientation::Horizontal)
-            .spacing(8)
-            .build();
-        server_row.append(server_dropdown.present());
-        server_row.append(&delete_button);
+        let server_row = AnyBox::horizontal().add_widgets([
+            server_dropdown.present().upcast_ref(),
+            delete_button.upcast_ref(),
+        ]);
 
         let scheme_dropdown = AnyDropDown::new(language, 90, vec![Scheme::Https, Scheme::Http]);
         let entry = Entry::builder().hexpand(true).halign(Align::Fill).build();
 
-        let new_server_row = gtk4::Box::builder()
-            .orientation(Orientation::Horizontal)
-            .spacing(8)
-            .build();
-        new_server_row.append(scheme_dropdown.present());
-        new_server_row.append(&entry);
+        let new_server_row = AnyBox::horizontal()
+            .add_widgets([scheme_dropdown.present().upcast_ref(), entry.upcast_ref()]);
 
-        root.append(&server_row);
-        root.append(&new_server_row);
+        let root = AnyBox::vertical().add_widgets([
+            server_row.root().upcast_ref(),
+            new_server_row.root().upcast_ref(),
+        ]).consume();
 
         Self::sync(
             server_dropdown.is_sentinel_selected(),
@@ -257,11 +243,11 @@ impl AddressBox {
             server_dropdown,
             scheme_dropdown,
             entry,
-            new_server_row,
+            new_server_row: new_server_row.consume(),
         }
     }
 
-    fn sync(adding_new: bool, new_server_row: &gtk4::Box, delete_button: &Button) {
+    fn sync(adding_new: bool, new_server_row: &AnyBox, delete_button: &Button) {
         new_server_row.set_visible(adding_new);
         delete_button.set_sensitive(!adding_new);
     }

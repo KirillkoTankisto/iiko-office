@@ -1,18 +1,16 @@
 use std::sync::Arc;
 
-use gtk4::{Align, Orientation, glib::object::Cast, prelude::BoxExt};
+use gtk4::{Align, prelude::*};
 use iiko_api::{consts::AsStr, employees::Employee};
 
 use crate::gui::{
     common::{
+        anybox::AnyBox,
         global_data::GlobalData,
         table::{AnyTable, ColumnSpec, GetTable},
         utils::spawn_workflow,
     },
-    main::menu::{
-        tabs::{AnyTab, build_box},
-        view::MainView,
-    },
+    main::menu::{tabs::AnyTab, view::MainView},
     translation::{CurrentLanguage, Line, translate},
 };
 
@@ -24,11 +22,13 @@ impl AnyTab for EmployeesTab {
     }
 
     fn build(&self, gdata: Arc<GlobalData>, _view: &MainView) -> gtk4::Widget {
-        let root = build_box(Orientation::Horizontal);
-
         let employees_table: AnyTable<Employee> = Self::get_table(gdata.language());
 
-        root.append(employees_table.present());
+        let root = AnyBox::horizontal()
+            .margin(8)
+            .add_widgets([employees_table.present().upcast_ref()])
+            .consume()
+            .upcast();
 
         spawn_workflow(
             gdata,
@@ -41,7 +41,7 @@ impl AnyTab for EmployeesTab {
             },
         );
 
-        root.upcast()
+        root
     }
 }
 

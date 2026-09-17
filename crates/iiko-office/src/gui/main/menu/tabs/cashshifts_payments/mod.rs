@@ -1,19 +1,17 @@
 use std::sync::Arc;
 
-use gtk4::{Align, Orientation::Vertical, prelude::*};
+use gtk4::{Align, glib, prelude::*};
 use iiko_api::cashshifts_payments_list::CashShiftsPayment;
 
 use crate::gui::{
     GlobalData,
     common::{
+        anybox::AnyBox,
         datetime::reformat_date,
         table::{AnyTable, ColumnSpec, GetTable},
         utils::spawn_workflow,
     },
-    main::menu::{
-        tabs::{AnyTab, build_box},
-        view::MainView,
-    },
+    main::menu::{tabs::AnyTab, view::MainView},
     translation::{
         CurrentLanguage,
         Line::{DATE, GROUP, PAYMENTS, SUM},
@@ -48,18 +46,23 @@ impl AnyTab for CashShiftsPaymentsTab {
     }
 
     fn build(&self, gdata: Arc<GlobalData>, _view: &MainView) -> gtk4::Widget {
-        let cashshifts_payments_box = build_box(Vertical);
-
         let table = Self::get_table(gdata.language());
 
-        cashshifts_payments_box.append(table.present());
+        let abox = AnyBox::vertical()
+            .margin(8)
+            .add_widgets([table.present().upcast_ref()])
+            .consume();
 
-        let id = self.id.clone();
+        let id = &self.id;
 
         spawn_workflow(
             gdata,
             None,
-            move |session| session.cashshifts_payments_list(&id, false),
+            glib::clone!(
+                #[strong]
+                id,
+                move |session| session.cashshifts_payments_list(&id, false)
+            ),
             move |payments| {
                 let mut all_payments: Vec<CashShiftsPayment> = [
                     payments.cashless_records,
@@ -77,6 +80,6 @@ impl AnyTab for CashShiftsPaymentsTab {
             },
         );
 
-        cashshifts_payments_box.upcast()
+        abox.upcast()
     }
 }

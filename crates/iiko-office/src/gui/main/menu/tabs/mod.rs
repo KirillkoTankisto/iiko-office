@@ -1,7 +1,5 @@
 use std::sync::Arc;
 
-use gtk4::Orientation;
-
 use crate::gui::{GlobalData, main::menu::view::MainView};
 
 pub mod cashshifts;
@@ -13,15 +11,4 @@ pub trait AnyTab {
     fn title(&self, gdata: &GlobalData) -> &str;
 
     fn build(&self, gdata: Arc<GlobalData>, view: &MainView) -> gtk4::Widget;
-}
-
-pub fn build_box(orientation: Orientation) -> gtk4::Box {
-    gtk4::Box::builder()
-        .orientation(orientation)
-        .spacing(8)
-        .margin_start(8)
-        .margin_end(8)
-        .margin_top(8)
-        .margin_bottom(8)
-        .build()
 }

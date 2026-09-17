@@ -1,7 +1,10 @@
 use std::sync::Arc;
 
-use crate::gui::{GlobalData, common::utils::spawn_workflow};
-use gtk4::{glib, prelude::BoxExt};
+use crate::gui::{
+    GlobalData,
+    common::{anybox::AnyBox, utils::spawn_workflow},
+};
+use gtk4::{glib, prelude::*};
 
 #[derive(glib::Downgrade)]
 pub struct StatusBar {
@@ -13,25 +16,17 @@ pub struct StatusBar {
 
 impl StatusBar {
     pub fn new(gdata: Arc<GlobalData>) -> Self {
-        let root = gtk4::Box::builder()
-            .spacing(8)
-            .orientation(gtk4::Orientation::Horizontal)
-            .halign(gtk4::Align::Fill)
-            .hexpand(true)
-            .margin_bottom(16)
-            .margin_top(0)
-            .margin_start(16)
-            .margin_end(16)
-            .build();
-
         let left = gtk4::Label::builder()
             .halign(gtk4::Align::Start)
             .hexpand(true)
             .build();
         let right = gtk4::Label::builder().halign(gtk4::Align::End).build();
 
-        root.append(&left);
-        root.append(&right);
+        let root = AnyBox::horizontal()
+            .align(gtk4::Align::Fill)
+            .margin(16)
+            .add_widgets([left.upcast_ref(), right.upcast_ref()])
+            .consume();
 
         Self {
             root,
@@ -42,8 +37,8 @@ impl StatusBar {
     }
 
     pub fn update(&self) {
-        let sleft = self.left.clone();
-        let sright = self.right.clone();
+        let left = self.left.clone();
+        let right = self.right.clone();
 
         spawn_workflow(
             self.gdata.clone(),
@@ -53,13 +48,13 @@ impl StatusBar {
                 session.version().map(|version| (user, version))
             },
             move |(user, version)| {
-                let left = format!(
+                let left_text = format!(
                     "{} {}, {} ({})",
                     version.version, version.edition, version.server_name, version.computer_name
                 );
-                let right = format!("{}, {}", user, version.server_state);
-                sleft.set_label(&left);
-                sright.set_label(&right);
+                let right_text = format!("{}, {}", user, version.server_state);
+                left.set_label(&left_text);
+                right.set_label(&right_text);
             },
         );
     }

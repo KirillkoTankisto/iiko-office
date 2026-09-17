@@ -1,11 +1,8 @@
 use std::sync::Arc;
 
-use gtk4::glib;
+use gtk4::{Box, Button, glib, prelude::*};
 
-use gtk4::{Box, Button, Orientation::Vertical};
-
-use gtk4::prelude::*;
-
+use crate::gui::common::anybox::AnyBox;
 use crate::gui::main::menu::tabs::AnyTab;
 use crate::gui::main::menu::tabs::cashshifts::CashShiftsTab;
 use crate::gui::main::menu::tabs::employees::EmployeesTab;
@@ -13,7 +10,7 @@ use crate::gui::main::menu::tabs::olap_reports::OlapReportsTab;
 use crate::gui::translation::{Line, translate};
 use crate::gui::{GlobalData, main::menu::view::MainView};
 
-/// Every entry becomes one sidebar button that opens the associated tab.
+/// Every entry becomes a sidebar button that opens the associated tab.
 const TAB_BUTTONS: &[(&dyn AnyTab, Line)] = &[
     (&CashShiftsTab, Line::CASH_SHIFTS),
     (&OlapReportsTab, Line::OLAP_REPORTS),
@@ -21,17 +18,10 @@ const TAB_BUTTONS: &[(&dyn AnyTab, Line)] = &[
 ];
 
 pub fn create_buttons(gdata: Arc<GlobalData>, view: &MainView) -> Box {
-    let buttons_box = Box::builder()
-        .spacing(8)
-        .margin_start(8)
-        .margin_end(8)
-        .margin_bottom(8)
-        .margin_top(8)
-        .orientation(Vertical)
-        .build();
+    let abox = AnyBox::vertical().margin(8);
 
     for (tab, line) in TAB_BUTTONS {
-        buttons_box.append(&create_any_button(
+        abox.add(&create_any_button(
             *tab,
             translate(gdata.language(), *line),
             gdata.clone(),
@@ -39,7 +29,7 @@ pub fn create_buttons(gdata: Arc<GlobalData>, view: &MainView) -> Box {
         ));
     }
 
-    buttons_box
+    abox.consume()
 }
 
 pub fn create_any_button(

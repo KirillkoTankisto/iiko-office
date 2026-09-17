@@ -14,6 +14,7 @@ use gtk4::{
 use crate::gui::{
     GlobalData,
     common::{
+        anybox::AnyBox,
         datepicker::DateFromToPicker,
         drag_space::DragSpace,
         dropdown::{AnyDropDown, DropDownItem},
@@ -21,10 +22,7 @@ use crate::gui::{
         table::{AnyTable, AnyTableColumn, GetTable, OlapLayout, OlapRow},
         utils::spawn_workflow,
     },
-    main::menu::{
-        tabs::{AnyTab, build_box},
-        view::MainView,
-    },
+    main::menu::{tabs::AnyTab, view::MainView},
     translation::{
         CurrentLanguage,
         Line::{
@@ -42,11 +40,15 @@ use iiko_api::{
     olap_columns::OlapColumn,
 };
 
+type FieldEntry = (String, OlapColumn);
+
 const REPORTS: &[ReportType] = &[
     ReportType::Sales,
     ReportType::Transactions,
     ReportType::Deliveries,
 ];
+
+const REPORT_DROPDOWN_WIDTH: i32 = 180;
 
 const fn report_line(report_type: ReportType) -> Line {
     match report_type {
@@ -74,19 +76,18 @@ impl Display for FieldRef {
     }
 }
 
-fn field_ref((id, column): &(String, OlapColumn)) -> FieldRef {
+fn field_ref((id, column): &FieldEntry) -> FieldRef {
     FieldRef {
         id: id.clone(),
         name: column.name.clone(),
     }
 }
 
-fn column_name(column: &(String, OlapColumn)) -> String {
+fn column_name(column: &FieldEntry) -> String {
     column.1.name.clone()
 }
 
-/// get Field Id => Column Name map from AnyTable
-fn field_names(fields_table: &AnyTable<(String, OlapColumn)>) -> HashMap<String, String> {
+fn field_names(fields_table: &AnyTable<FieldEntry>) -> HashMap<String, String> {
     fields_table
         .get_items()
         .into_iter()
@@ -94,7 +95,6 @@ fn field_names(fields_table: &AnyTable<(String, OlapColumn)>) -> HashMap<String,
         .collect()
 }
 
-/// Builds a simple grid
 fn grid() -> Grid {
     Grid::builder().column_spacing(8).row_spacing(8).build()
 }
@@ -111,7 +111,6 @@ impl ReportControls {
     fn new(language: CurrentLanguage) -> Self {
         let date_from_to = DateFromToPicker::new(language);
 
-        // The from/to pickers are only meaningful for a custom period.
         let period_list = PeriodList::build(
             language,
             glib::clone!(
@@ -122,7 +121,7 @@ impl ReportControls {
         );
 
         Self {
-            report_type: AnyDropDown::new(language, 180, REPORTS.to_vec()),
+            report_type: AnyDropDown::new(language, REPORT_DROPDOWN_WIDTH, REPORTS.to_vec()),
             period_list,
             date_from_to,
             refresh: Button::with_label(translate(language, REFRESH)),
@@ -132,8 +131,8 @@ impl ReportControls {
     fn present(&self) -> Grid {
         let controls = grid();
         controls.attach(self.report_type.present(), 0, 0, 1, 1);
-        self.date_from_to.attach_to(&controls, 1, 1);
         controls.attach(self.period_list.present(), 0, 1, 1, 1);
+        self.date_from_to.attach_to(&controls, 1, 1);
         controls.attach(&self.refresh, 0, 2, 1, 1);
         controls
     }
@@ -149,6 +148,20 @@ impl ReportControls {
                 Filter::custom_date_range(from, to)
             }
             period_type => Filter::preset_date_range(period_type),
+        }
+    }
+
+    fn build_request(&self, fields: SelectedFields) -> OlapRequest {
+        OlapRequest {
+            report_type: self.selected_report(),
+            build_summary: false,
+            group_by_row_fields: fields.rows,
+            group_by_col_fields: fields.cols,
+            aggregate_fields: fields.aggregates,
+            filters: indexmap::IndexMap::from([(
+                String::from(Filter::OPEN_DATE_FIELD),
+                self.date_filter(),
+            )]),
         }
     }
 }
@@ -186,28 +199,39 @@ struct SelectedFields {
     aggregates: Vec<String>,
 }
 
+struct PivotAxes {
+    column_field: String,
+    value_field: String,
+}
+
 struct PivotSpec {
     rows: Vec<String>,
-    pivot: Option<(String, String)>,
+    pivot: Option<PivotAxes>,
 }
 
 impl PivotSpec {
     fn new(fields: &SelectedFields) -> Self {
+        let pivot = fields
+            .cols
+            .first()
+            .cloned()
+            .zip(fields.aggregates.first().cloned())
+            .map(|(column_field, value_field)| PivotAxes {
+                column_field,
+                value_field,
+            });
+
         Self {
             rows: fields.rows.clone(),
-            pivot: fields
-                .cols
-                .first()
-                .cloned()
-                .zip(fields.aggregates.first().cloned()),
+            pivot,
         }
     }
 }
 
 pub struct OlapReportsTab;
 
-impl GetTable<(String, OlapColumn)> for OlapReportsTab {
-    fn get_table(language: CurrentLanguage) -> AnyTable<(String, OlapColumn)> {
+impl GetTable<FieldEntry> for OlapReportsTab {
+    fn get_table(language: CurrentLanguage) -> AnyTable<FieldEntry> {
         let table = AnyTable::new(false);
         table.add_column(
             AnyTableColumn::new(translate(language, OLAP_FIELDS), Align::Start, column_name)
@@ -227,7 +251,7 @@ impl AnyTab for OlapReportsTab {
         let language = gdata.language();
 
         let controls = ReportControls::new(language);
-        let columns_table: AnyTable<(String, OlapColumn)> = Self::get_table(language);
+        let columns_table: AnyTable<FieldEntry> = Self::get_table(language);
         let report_table: AnyTable<OlapRow> = AnyTable::new(true);
         let olap_fields = DraggableOlapFields::new(language);
 
@@ -270,46 +294,52 @@ impl AnyTab for OlapReportsTab {
         ));
 
         let widget = layout(&controls, &columns_table, &report_table, &olap_fields);
-        load_columns(gdata, columns_table, ReportType::Sales);
+
+        load_columns(gdata, columns_table, controls.selected_report());
         widget
     }
 }
 
 fn layout(
     controls: &ReportControls,
-    columns_table: &AnyTable<(String, OlapColumn)>,
+    columns_table: &AnyTable<FieldEntry>,
     report_table: &AnyTable<OlapRow>,
     olap_fields: &DraggableOlapFields,
 ) -> gtk4::Widget {
-    let content = build_box(Horizontal);
-    content.append(&columns_panel(columns_table));
-    content.append(&pivot_grid(olap_fields, report_table));
+    let content = AnyBox::horizontal().margin(8).add_widgets([
+        columns_panel(columns_table).upcast_ref(),
+        pivot_grid(olap_fields, report_table).upcast_ref(),
+    ]);
 
-    let olap_box = build_box(Vertical);
-    olap_box.append(&controls.present());
-    olap_box.append(&content);
-    olap_box.upcast()
+    let olap_box = AnyBox::vertical().margin(8).add_widgets([
+        controls.present().upcast_ref(),
+        content.consume().upcast_ref(),
+    ]);
+
+    olap_box.consume().upcast()
 }
 
-fn columns_panel(columns_table: &AnyTable<(String, OlapColumn)>) -> GtkBox {
-    let panel = build_box(Vertical);
-    panel.append(&columns_table.search_entry());
-    panel.append(columns_table.present());
-    panel
+fn columns_panel(columns_table: &AnyTable<FieldEntry>) -> GtkBox {
+    let panel = AnyBox::vertical().margin(8).add_widgets([
+        columns_table.search_entry().upcast_ref(),
+        columns_table.present().upcast_ref(),
+    ]);
+
+    panel.consume().upcast()
 }
 
 fn pivot_grid(olap_fields: &DraggableOlapFields, report_table: &AnyTable<OlapRow>) -> Grid {
     let table_grid = grid();
     table_grid.attach(olap_fields.aggregation_field.present(), 1, 0, 1, 1);
     table_grid.attach(olap_fields.column_field.present(), 1, 1, 1, 1);
-    table_grid.attach(report_table.present(), 1, 2, 1, 1);
     table_grid.attach(olap_fields.row_field.present(), 0, 2, 1, 1);
+    table_grid.attach(report_table.present(), 1, 2, 1, 1);
     table_grid
 }
 
 fn load_columns(
     gdata: Arc<GlobalData>,
-    columns_table: AnyTable<(String, OlapColumn)>,
+    columns_table: AnyTable<FieldEntry>,
     report_type: ReportType,
 ) {
     spawn_workflow(
@@ -330,24 +360,13 @@ fn run_report(
     button: &Button,
     controls: &ReportControls,
     olap_fields: &DraggableOlapFields,
-    columns_table: &AnyTable<(String, OlapColumn)>,
+    columns_table: &AnyTable<FieldEntry>,
     report_table: AnyTable<OlapRow>,
 ) {
     let id_to_name = field_names(columns_table);
     let fields = olap_fields.selected();
     let pivot = PivotSpec::new(&fields);
-
-    let request = OlapRequest {
-        report_type: controls.selected_report(),
-        build_summary: false,
-        group_by_row_fields: fields.rows,
-        group_by_col_fields: fields.cols,
-        aggregate_fields: fields.aggregates,
-        filters: indexmap::IndexMap::from([(
-            String::from(Filter::OPEN_DATE_FIELD),
-            controls.date_filter(),
-        )]),
-    };
+    let request = controls.build_request(fields);
 
     spawn_workflow(
         gdata.clone(),
@@ -357,8 +376,8 @@ fn run_report(
             let total = translate(gdata.language(), TOTAL);
 
             let (data, olap_layout) = match &pivot.pivot {
-                Some((col, value)) => (
-                    olap.to_pivot_table(&pivot.rows, col, value, total),
+                Some(axes) => (
+                    olap.to_pivot_table(&pivot.rows, &axes.column_field, &axes.value_field, total),
                     OlapLayout::Pivot,
                 ),
                 None => (
