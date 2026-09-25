@@ -190,10 +190,12 @@ impl AddressBox {
         let new_server_row = AnyBox::horizontal()
             .add_widgets([scheme_dropdown.present().upcast_ref(), entry.upcast_ref()]);
 
-        let root = AnyBox::vertical().add_widgets([
-            server_row.root().upcast_ref(),
-            new_server_row.root().upcast_ref(),
-        ]).consume();
+        let root = AnyBox::vertical()
+            .add_widgets([
+                server_row.root().upcast_ref(),
+                new_server_row.root().upcast_ref(),
+            ])
+            .consume();
 
         Self::sync(
             server_dropdown.is_sentinel_selected(),

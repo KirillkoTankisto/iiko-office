@@ -1,9 +1,12 @@
+//! Информация о сервере iiko
+
 use serde::Deserialize;
 
 use crate::{IikoConnection, IikoSession, error::ClientError};
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
+/// Данные сервера iiko
 pub struct VersionInfo {
     pub server_name: String,
     pub edition: String,
@@ -13,12 +16,14 @@ pub struct VersionInfo {
 }
 
 impl IikoConnection {
+    /// Получить данные сервера
     pub fn version(&self) -> Result<VersionInfo, ClientError> {
         self.request_xml("/resto/get_server_info.jsp", &[("encoding", "UTF-8")])
     }
 }
 
 impl IikoSession {
+    /// Получить данные сервера (Копия для IikoSession)
     pub fn version(&self) -> Result<VersionInfo, ClientError> {
         self.connection.version()
     }

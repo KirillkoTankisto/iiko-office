@@ -1,3 +1,5 @@
+//! Авторизация, получение токена
+
 use std::sync::Mutex;
 
 use crate::{IikoConnection, IikoSession, error::ClientError};

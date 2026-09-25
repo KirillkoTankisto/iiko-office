@@ -23,15 +23,15 @@ impl Main {
         let status_bar = StatusBar::new(gdata.clone());
         let main_menu = MainMenu::new(gdata);
 
-        let root = AnyBox::vertical().align(Fill).add_widgets([
-            main_menu.present().upcast_ref::<Widget>(),
-            status_bar.present().upcast_ref::<Widget>(),
-        ]).consume();
+        let root = AnyBox::vertical()
+            .align(Fill)
+            .add_widgets([
+                main_menu.present().upcast_ref::<Widget>(),
+                status_bar.present().upcast_ref::<Widget>(),
+            ])
+            .consume();
 
-        Self {
-            root,
-            status_bar,
-        }
+        Self { root, status_bar }
     }
 
     pub fn present(&self) -> &Box {

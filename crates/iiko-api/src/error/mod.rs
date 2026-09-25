@@ -1,4 +1,7 @@
+//! Ошибки
+
 #[derive(Debug, thiserror::Error)]
+/// Суперструктура с всеми ошибками
 pub enum ClientError {
     #[error(transparent)]
     Http(#[from] reqwest::Error),

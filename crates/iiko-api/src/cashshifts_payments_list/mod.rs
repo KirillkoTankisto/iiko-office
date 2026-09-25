@@ -1,3 +1,5 @@
+//! Операции за кассовую смену
+
 use serde::Deserialize;
 
 use crate::{
@@ -7,6 +9,7 @@ use crate::{
 
 #[derive(Deserialize, PartialEq, Debug)]
 #[serde(rename_all = "camelCase")]
+/// Операции за кассовую смену
 pub struct CashShiftsPayments {
     pub session_id: String,
     pub operation_day: String,
@@ -17,6 +20,7 @@ pub struct CashShiftsPayments {
 
 #[derive(Deserialize, PartialEq, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
+/// Операция
 pub struct CashShiftsPayment {
     pub info: PaymentInfo,
     pub actual_sum: f64,
@@ -31,6 +35,7 @@ pub struct CashShiftsPayment {
 
 #[derive(Deserialize, PartialEq, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
+/// Детали об операции
 pub struct PaymentInfo {
     pub id: String,
     pub date: String,
@@ -47,6 +52,7 @@ pub struct PaymentInfo {
 }
 
 #[derive(Deserialize, PartialEq, Debug, Clone)]
+/// Данные пользователя, обычно пусто
 pub struct PaymentAuth {
     pub user: String,
     pub card: String,
@@ -62,6 +68,7 @@ str_enum! {
 }
 
 impl IikoSession {
+    /// Получить список внесений | изъятий | оплат картой за смену
     pub fn cashshifts_payments_list(
         &self,
         id: &str,

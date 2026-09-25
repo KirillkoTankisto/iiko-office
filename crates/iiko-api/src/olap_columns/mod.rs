@@ -1,3 +1,5 @@
+//! Строки для OLAP отчёта
+
 use indexmap::IndexMap;
 use serde::Deserialize;
 
@@ -5,6 +7,7 @@ use crate::{IikoSession, consts::ReportType, error::ClientError};
 
 #[derive(Deserialize, Clone, PartialEq, Debug)]
 #[serde(rename_all = "camelCase")]
+/// Данные об одной строке OLAP
 pub struct OlapColumn {
     pub name: String,
     #[serde(rename = "type")]
@@ -15,9 +18,11 @@ pub struct OlapColumn {
     pub tags: Vec<String>,
 }
 
+/// Список OLAP строк
 pub type OlapColumns = IndexMap<String, OlapColumn>;
 
 impl IikoSession {
+    /// Получить список OLAP строк
     pub fn olap_columns(&self, report_type: ReportType) -> Result<OlapColumns, ClientError> {
         self.request_json(
             "/resto/api/v2/reports/olap/columns",

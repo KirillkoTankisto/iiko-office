@@ -1,7 +1,10 @@
+//! Утилиты для iiko-api
+
 use std::fmt::Write;
 
 use sha1::{Digest, Sha1};
 
+/// Получить хэш-сумму пароля (SHA1), в hex формате
 pub fn get_password_hash(password: &str) -> String {
     let mut hex = String::with_capacity(40);
     for byte in Sha1::digest(password.as_bytes()).iter() {

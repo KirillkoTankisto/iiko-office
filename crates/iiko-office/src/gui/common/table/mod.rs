@@ -12,7 +12,7 @@ use gtk4::{
     Label, ListItem, ScrolledWindow, SearchEntry, SignalListItemFactory, SingleSelection,
     prelude::*,
 };
-use iiko_api::olap::{OlapRowKind, OlapTable};
+use iiko_api::olap::{OlapTable, Row, RowKind};
 
 use crate::gui::common::drag_space::drag_content;
 use crate::gui::translation::{CurrentLanguage, Line, translate};
@@ -60,7 +60,7 @@ pub struct OlapRow {
     /// is used when searching for
     /// same entry names
     pub full: Vec<String>,
-    pub kind: OlapRowKind,
+    pub kind: RowKind,
 }
 
 #[derive(Clone, Copy, Default)]
@@ -336,7 +336,6 @@ impl AnyTable<OlapRow> {
         let OlapTable {
             columns,
             rows,
-            row_kinds,
             key_count,
         } = olap_table;
 
@@ -353,7 +352,7 @@ impl AnyTable<OlapRow> {
                 column.clone()
             };
 
-            let align = if !is_key && (is_pivot || column_is_numeric(&rows, &row_kinds, index)) {
+            let align = if !is_key && (is_pivot || column_is_numeric(&rows, index)) {
                 Align::End
             } else {
                 Align::Start
@@ -371,10 +370,13 @@ impl AnyTable<OlapRow> {
                     source.get(index).cloned().unwrap_or_default()
                 })
                 .style(move |row: &OlapRow| CellStyle {
-                    bold: !matches!(row.kind, OlapRowKind::Data),
-                    indent: match row.kind {
-                        OlapRowKind::Subtotal { level } if is_key => level as i32,
-                        _ => 0,
+                    bold: row.kind != RowKind::Data,
+                    // A subtotal is labelled in the key column of its own
+                    // level, so the column index is the indent.
+                    indent: if is_key && row.kind == RowKind::Subtotal {
+                        index as i32
+                    } else {
+                        0
                     },
                 })
                 .searchable(),
@@ -383,9 +385,9 @@ impl AnyTable<OlapRow> {
 
         let mut carry = vec![String::new(); columns.len()];
 
-        for (cells, kind) in rows.into_iter().zip(row_kinds) {
+        for Row { kind, cells } in rows {
             let mut full = cells.clone();
-            if matches!(kind, OlapRowKind::Data) {
+            if kind == RowKind::Data {
                 for (slot, value) in carry.iter_mut().zip(full.iter_mut()).take(key_count) {
                     if value.is_empty() {
                         value.clone_from(slot);
@@ -512,23 +514,19 @@ fn normalise_id(id: &str) -> String {
     id.trim().to_lowercase()
 }
 
-fn column_is_numeric(rows: &[Vec<String>], kinds: &[OlapRowKind], index: usize) -> bool {
+fn column_is_numeric(rows: &[Row], index: usize) -> bool {
     let mut seen = false;
-    for (row, _) in rows
-        .iter()
-        .zip(kinds)
-        .filter(|(_, kind)| matches!(kind, OlapRowKind::Data))
-    {
-        let Some(cell) = row.get(index).map(|c| c.trim()).filter(|c| !c.is_empty()) else {
+    for row in rows.iter().filter(|row| row.kind == RowKind::Data) {
+        let Some(cell) = row
+            .cells
+            .get(index)
+            .map(|c| c.trim())
+            .filter(|c| !c.is_empty())
+        else {
             continue;
         };
 
-        let numeric = cell
-            .as_bytes()
-            .first()
-            .is_some_and(|b| b.is_ascii_digit() || *b == b'-' || *b == b'+')
-            && cell.parse::<f64>().is_ok();
-        if !numeric {
+        if !cell.parse::<f64>().is_ok_and(f64::is_finite) {
             return false;
         }
         seen = true;

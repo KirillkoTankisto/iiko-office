@@ -1,3 +1,7 @@
+//! Библиотека для работы с iikoServer API
+//!
+//! Предоставляет объект iikoConnection и iikoSession для взаимодействия с iikoServer API
+
 pub mod auth;
 pub mod cashshifts_list;
 pub mod cashshifts_payments_list;
@@ -23,6 +27,7 @@ const UAGENT: &str = concat!("iiko-office-libre/", env!("CARGO_PKG_VERSION"));
 const TIMEOUT: Duration = Duration::from_secs(10);
 
 #[derive(Debug)]
+/// Клиент для взаимодействия с API без аутентификации
 pub struct IikoConnection {
     client: reqwest::blocking::Client,
     base: url::Url,
@@ -42,6 +47,8 @@ fn check_status(
 }
 
 impl IikoConnection {
+    /// Создаёт новый клиент.
+    /// Выдаст ошибку при некорректном адресе
     pub fn new(address: &str) -> Result<Self, ClientError> {
         let client = reqwest::blocking::Client::builder()
             .user_agent(UAGENT)
@@ -107,6 +114,7 @@ impl IikoConnection {
 }
 
 #[derive(Debug)]
+/// Сессия, которая хранит клиент и данные для авторизации
 pub struct IikoSession {
     connection: IikoConnection,
     user: String,

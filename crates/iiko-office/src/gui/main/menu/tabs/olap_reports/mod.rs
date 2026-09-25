@@ -1,5 +1,5 @@
 use std::{
-    collections::HashMap,
+    collections::{BTreeMap, HashMap},
     fmt::{self, Display},
     sync::Arc,
 };
@@ -36,7 +36,7 @@ use crate::gui::{
 
 use iiko_api::{
     consts::{PeriodType, ReportType},
-    olap::{Filter, GroupOptions, OlapRequest},
+    olap::{Filter, OlapRequest},
     olap_columns::OlapColumn,
 };
 
@@ -158,10 +158,7 @@ impl ReportControls {
             group_by_row_fields: fields.rows,
             group_by_col_fields: fields.cols,
             aggregate_fields: fields.aggregates,
-            filters: indexmap::IndexMap::from([(
-                String::from(Filter::OPEN_DATE_FIELD),
-                self.date_filter(),
-            )]),
+            filters: BTreeMap::from([(String::from(Filter::OPEN_DATE_FIELD), self.date_filter())]),
         }
     }
 }
@@ -377,11 +374,11 @@ fn run_report(
 
             let (data, olap_layout) = match &pivot.pivot {
                 Some(axes) => (
-                    olap.to_pivot_table(&pivot.rows, &axes.column_field, &axes.value_field, total),
+                    olap.to_cross_table(&pivot.rows, &axes.column_field, &axes.value_field, total),
                     OlapLayout::Pivot,
                 ),
                 None => (
-                    olap.to_table_grouped(&pivot.rows, GroupOptions::grouped(total)),
+                    olap.to_grouped_table(&pivot.rows, total),
                     OlapLayout::Grouped,
                 ),
             };

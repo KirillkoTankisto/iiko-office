@@ -1,5 +1,7 @@
-mod cell;
-mod sort;
+//! OLAP отчёты: формирование, получение и преобразование в таблицу
+
+use std::cmp::Ordering;
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 use indexmap::{IndexMap, IndexSet};
 use serde::{Deserialize, Serialize};
@@ -13,6 +15,7 @@ use crate::{
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
+/// Запрос OLAP
 pub struct OlapRequest {
     pub report_type: ReportType,
     pub build_summary: bool,
@@ -22,25 +25,29 @@ pub struct OlapRequest {
     pub group_by_col_fields: Vec<String>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub aggregate_fields: Vec<String>,
-    #[serde(skip_serializing_if = "IndexMap::is_empty")]
-    pub filters: IndexMap<String, Filter>,
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+    pub filters: FilterMap,
 }
+
+/// Таблица фильтров
+pub type FilterMap = BTreeMap<String, Filter>;
 
 #[derive(Serialize)]
 #[serde(tag = "filterType", rename_all_fields = "camelCase")]
+/// Фильтр для OLAP отчёта
 pub enum Filter {
-    IncludeValues {
-        values: Vec<String>,
-    },
-    ExcludeValues {
-        values: Vec<String>,
-    },
+    /// Включить значения
+    IncludeValues { values: Vec<String> },
+    /// Исключить значения
+    ExcludeValues { values: Vec<String> },
+    /// Выбрать временной промежуток
     DateRange {
         period_type: PeriodType,
         from: String,
         #[serde(skip_serializing_if = "Option::is_none")]
         to: Option<String>,
     },
+    /// Выбрать промежуток значений
     ValueRange {
         from: EnumRange,
         to: EnumRange,
@@ -50,9 +57,10 @@ pub enum Filter {
 }
 
 impl Filter {
+    /// ID поля с фильтром даты
     pub const OPEN_DATE_FIELD: &str = "OpenDate.Typed";
-    const DATE_STUB: &str = "2000-01-01T00:00:00.000";
 
+    /// Выбрать свой промежуток даты
     pub fn custom_date_range(from: String, to: String) -> Self {
         Self::DateRange {
             period_type: PeriodType::Custom,
@@ -61,14 +69,16 @@ impl Filter {
         }
     }
 
+    /// Выбрать предустановленный промежуток даты
     pub fn preset_date_range(period_type: PeriodType) -> Self {
         Self::DateRange {
             period_type,
-            from: Self::DATE_STUB.to_string(),
+            from: "2000-01-01T00:00:00.000".into(), // Заглушка, не трогать
             to: None,
         }
     }
 
+    /// Выбрать промежуток значений
     pub fn closed_value_range(from: EnumRange, to: EnumRange) -> Self {
         Self::ValueRange {
             from,
@@ -79,9 +89,11 @@ impl Filter {
     }
 }
 
+/// Блок с итоговыми суммами
 pub type SummaryBlock = Vec<IndexMap<String, String>>;
 
 #[derive(Deserialize, Debug)]
+/// Ответ с OLAP отчётом
 pub struct OlapAnswer {
     pub data: Vec<IndexMap<String, Value>>,
     #[serde(default)]
@@ -89,320 +101,276 @@ pub struct OlapAnswer {
 }
 
 impl IikoSession {
+    /// OLAP отчёт
     pub fn olap(&self, request: &OlapRequest) -> Result<OlapAnswer, ClientError> {
         let body = serde_json::to_string(request)?;
         self.request_post("/resto/api/v2/reports/olap", &[], body)
     }
 }
 
-#[derive(Clone, Copy, Default)]
-pub enum OlapRowKind {
-    #[default]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/// Тип строки
+pub enum RowKind {
     Data,
-    Subtotal {
-        level: usize,
-    },
-    GrandTotal,
+    Subtotal,
+    Total,
 }
 
+#[derive(Debug)]
+/// Строка
+pub struct Row {
+    pub kind: RowKind,
+    pub cells: Vec<String>,
+}
+
+#[derive(Debug)]
+/// Готовая таблица с отчётом
 pub struct OlapTable {
     pub columns: Vec<String>,
-    pub rows: Vec<Vec<String>>,
-    pub row_kinds: Vec<OlapRowKind>,
+    pub rows: Vec<Row>,
+    /// Количество столбцов с ключами группировки
     pub key_count: usize,
 }
 
-#[derive(Debug, Clone, Copy)]
-pub struct GroupOptions<'a> {
-    pub total_label: &'a str,
-    pub blank_repeats: bool,
-    pub subtotals: bool,
-    pub grand_total: bool,
-}
-
-impl<'a> GroupOptions<'a> {
-    pub fn grouped(total_label: &'a str) -> Self {
-        Self {
-            total_label,
-            blank_repeats: true,
-            subtotals: true,
-            grand_total: false,
-        }
-    }
-
-    pub fn with_grand_total(mut self, grand_total: bool) -> Self {
-        self.grand_total = grand_total;
-        self
-    }
-}
-
 impl OlapAnswer {
-    pub fn to_pivot_table(
+    /// Построить кросс-таблицу
+    pub fn to_cross_table(
         &self,
         row_fields: &[String],
         col_field: &str,
         value_field: &str,
         total_label: &str,
     ) -> OlapTable {
-        let mut column_keys: IndexSet<String> = IndexSet::new();
-        // row key -> column name -> aggregate
-        let mut cells: IndexMap<Vec<String>, IndexMap<String, f64>> = IndexMap::new();
-
+        let mut grid: BTreeMap<Vec<String>, HashMap<String, f64>> = BTreeMap::new();
         for record in &self.data {
             let Some(value) = record.get(col_field) else {
                 continue;
             };
-
-            let keys: Vec<String> = row_fields
+            let key = row_fields
                 .iter()
-                .map(|f| record.get(f).map(cell::text).unwrap_or_default())
+                .map(|f| record.get(f).map(text).unwrap_or_default())
                 .collect();
-
-            let row_sums = cells.entry(keys).or_default();
-
-            let mut add = |col: String, val: f64| {
-                column_keys.insert(col.clone());
-                *row_sums.entry(col).or_insert(0.0) += val;
-            };
+            let sums = grid.entry(key).or_default();
 
             match value {
-                // Dig one level deeper
                 Value::Object(map) => {
-                    for (col, sub) in map {
-                        add(
-                            col.clone(),
-                            cell::number(sub.get(value_field).unwrap_or(sub)),
-                        );
+                    for (col, v) in map {
+                        *sums.entry(col.clone()).or_default() +=
+                            number(v.get(value_field).unwrap_or(v));
                     }
                 }
-                // Flat value
-                other => add(
-                    cell::text(other),
-                    record.get(value_field).map_or(0.0, cell::number),
-                ),
+                other => {
+                    *sums.entry(text(other)).or_default() +=
+                        record.get(value_field).map_or(0.0, number);
+                }
             }
         }
 
-        let mut column_headers: Vec<String> = column_keys.into_iter().collect();
-        column_headers.sort_by(|a, b| sort::compare(a, b));
-        cells.sort_by(|a, _, b, _| sort::compare_keys(a, b));
+        let headers: BTreeSet<&String> = grid.values().flat_map(HashMap::keys).collect();
+        let mut headers: Vec<String> = headers.into_iter().cloned().collect();
+        headers.sort_by(|a, b| compare(a, b));
 
-        let mut columns = row_fields.to_vec();
-        columns.extend_from_slice(&column_headers);
-
-        let mut column_totals = vec![0.0; column_headers.len()];
-        let mut rows: Vec<Vec<String>> = Vec::with_capacity(cells.len() + 1);
-
-        for (keys, row_sums) in cells {
-            let mut row = keys;
-            for (col, total) in column_headers.iter().zip(&mut column_totals) {
-                let v = row_sums.get(col).copied().unwrap_or(0.0);
-                *total += v;
-                row.push(cell::format_total(v));
-            }
-            rows.push(row);
-        }
-
-        // Totals row
-        let mut totals = vec![String::new(); row_fields.len()];
-
-        // Insert total_label as the first item in a Totals row
-        if let Some(first) = totals.first_mut() {
-            *first = total_label.to_string();
-        }
-
-        totals.extend(column_totals.into_iter().map(cell::format_total));
-        rows.push(totals);
-
-        let mut row_kinds = vec![OlapRowKind::Data; rows.len()];
-        if let Some(last) = row_kinds.last_mut() {
-            *last = OlapRowKind::GrandTotal;
-        }
-
-        OlapTable {
-            columns,
-            rows,
-            row_kinds,
-            key_count: row_fields.len(),
-        }
-    }
-
-    pub fn to_table_grouped(&self, row_fields: &[String], opts: GroupOptions<'_>) -> OlapTable {
-        let (all_columns, flat_rows) = self.flatten_records();
-
-        let mut columns: IndexSet<String> = IndexSet::new();
-        for field in row_fields {
-            let hit = all_columns
-                .iter()
-                .find(|c| *c == field)
-                .or_else(|| all_columns.iter().find(|c| c.starts_with(field)));
-            if let Some(name) = hit {
-                columns.insert(name.clone());
-            }
-        }
-
-        let key_count = columns.len();
-        columns.extend(all_columns.iter().cloned());
-
-        let columns: Vec<String> = columns.into_iter().collect();
-        let width = columns.len();
-
-        let rows: Vec<Vec<String>> = flat_rows
+        let key_count = row_fields.len();
+        let mut totals = vec![0.0; headers.len()];
+        let mut rows: Vec<Row> = grid
             .into_iter()
-            .map(|flat| {
-                columns
-                    .iter()
-                    .map(|c| flat.get(c).cloned().unwrap_or_default())
-                    .collect()
+            .map(|(mut cells, sums)| {
+                for (col, total) in headers.iter().zip(&mut totals) {
+                    let n = sums.get(col).copied().unwrap_or(0.0);
+                    *total += n;
+                    cells.push(fmt_total(n));
+                }
+                Row {
+                    kind: RowKind::Data,
+                    cells,
+                }
             })
             .collect();
+        rows.sort_by(|a, b| compare_keys(&a.cells[..key_count], &b.cells[..key_count]));
 
-        let mut order: Vec<usize> = (0..rows.len()).collect();
-        order.sort_by(|&a, &b| sort::compare_keys(&rows[a][..key_count], &rows[b][..key_count]));
+        let mut cells = vec![String::new(); key_count];
+        if let Some(first) = cells.first_mut() {
+            *first = total_label.to_string();
+        }
+        cells.extend(totals.into_iter().map(fmt_total));
+        rows.push(Row {
+            kind: RowKind::Total,
+            cells,
+        });
 
-        let mut out = OlapTable {
-            columns,
-            rows: Vec::with_capacity(order.len()),
-            row_kinds: Vec::with_capacity(order.len()),
+        OlapTable {
+            columns: row_fields.iter().chain(&headers).cloned().collect(),
+            rows,
             key_count,
-        };
-
-        let mut group_start = vec![0usize; key_count];
-
-        for pos in 0..order.len() {
-            let row = &rows[order[pos]];
-
-            let start_level = if pos == 0 {
-                0
-            } else {
-                let prev = &rows[order[pos - 1]];
-                (0..key_count)
-                    .find(|&d| row[d] != prev[d])
-                    .unwrap_or(key_count)
-            };
-
-            if pos > 0 && opts.subtotals && start_level < key_count {
-                close_groups(
-                    &mut out,
-                    &rows,
-                    &order,
-                    &group_start,
-                    start_level,
-                    pos,
-                    &opts,
-                );
-            }
-            for slot in group_start.iter_mut().skip(start_level) {
-                *slot = pos;
-            }
-
-            let mut cells = row.clone();
-            if opts.blank_repeats {
-                for cell in cells.iter_mut().take(start_level) {
-                    cell.clear();
-                }
-            }
-            out.rows.push(cells);
-            out.row_kinds.push(OlapRowKind::Data);
         }
-
-        if !order.is_empty() {
-            if opts.subtotals {
-                close_groups(&mut out, &rows, &order, &group_start, 0, order.len(), &opts);
-            }
-            if opts.grand_total {
-                let sums: Vec<Option<f64>> = (key_count..width)
-                    .map(|col| sum_column(&rows, &order, col))
-                    .collect();
-
-                if sums.iter().any(Option::is_some) {
-                    let mut row = vec![String::new(); width];
-                    row[0] = opts.total_label.to_string();
-                    for (col, sum) in (key_count..width).zip(sums) {
-                        if let Some(sum) = sum {
-                            row[col] = cell::format_total(sum);
-                        }
-                    }
-                    out.rows.push(row);
-                    out.row_kinds.push(OlapRowKind::GrandTotal);
-                }
-            }
-        }
-
-        out
     }
 
-    fn flatten_records(&self) -> (Vec<String>, Vec<IndexMap<String, String>>) {
-        let mut column_set: IndexSet<String> = IndexSet::new();
-        let mut flat_rows: Vec<IndexMap<String, String>> = Vec::with_capacity(self.data.len());
-
+    /// Построить сгруппированную таблицу
+    pub fn to_grouped_table(&self, row_fields: &[String], total_label: &str) -> OlapTable {
+        let mut all = IndexSet::new();
+        let mut records = Vec::with_capacity(self.data.len());
         for record in &self.data {
             let mut flat = IndexMap::new();
             for (key, value) in record {
-                cell::flatten(key, value, &mut flat);
+                flatten(key, value, &mut flat);
             }
-            column_set.extend(flat.keys().cloned());
-            flat_rows.push(flat);
+            all.extend(flat.keys().cloned());
+            records.push(flat);
         }
 
-        (column_set.into_iter().collect(), flat_rows)
-    }
-}
-
-/// Emits a subtotal row for every group that ends at 'end_pos'
-fn close_groups(
-    out: &mut OlapTable,
-    rows: &[Vec<String>],
-    order: &[usize],
-    group_start: &[usize],
-    from_level: usize,
-    end_pos: usize,
-    opts: &GroupOptions<'_>,
-) {
-    let width = out.columns.len();
-    let key_count = out.key_count;
-
-    for level in (from_level..key_count.saturating_sub(1)).rev() {
-        let start = group_start[level];
-        if end_pos.saturating_sub(start) < 2 {
-            continue; // No total is needed
-        }
-
-        let sums: Vec<Option<f64>> = (key_count..width)
-            .map(|col| sum_column(rows, &order[start..end_pos], col))
+        let mut columns: IndexSet<String> = row_fields
+            .iter()
+            .filter_map(|f| all.iter().find(|c| c.starts_with(f.as_str())).cloned())
             .collect();
+        let key_count = columns.len();
+        columns.extend(all);
 
-        if sums.iter().all(Option::is_none) {
-            continue;
+        let mut grid: Vec<Vec<String>> = records
+            .into_iter()
+            .map(|mut flat| {
+                columns
+                    .iter()
+                    .map(|c| flat.swap_remove(c).unwrap_or_default())
+                    .collect()
+            })
+            .collect();
+        grid.sort_by(|a, b| compare_keys(&a[..key_count], &b[..key_count]));
+
+        let mut rows = Vec::new();
+        group(&grid, 0, key_count, total_label, &mut rows);
+        if let Some(cells) = total_row(&grid, key_count, 0, total_label) {
+            rows.push(Row {
+                kind: RowKind::Total,
+                cells,
+            });
         }
 
-        let mut row = vec![String::new(); width];
-        row[level] = format!("{} {}", rows[order[start]][level], opts.total_label);
-        for (col, sum) in (key_count..width).zip(sums) {
-            if let Some(sum) = sum {
-                row[col] = cell::format_total(sum);
-            }
+        OlapTable {
+            columns: columns.into_iter().collect(),
+            rows,
+            key_count,
         }
-        out.rows.push(row);
-        out.row_kinds.push(OlapRowKind::Subtotal { level });
     }
 }
 
-/// Sums one column over the given rows, or `None` if nothing there is numeric.
-fn sum_column(rows: &[Vec<String>], members: &[usize], col: usize) -> Option<f64> {
-    let mut optional_sum = None;
-    for &i in members {
-        let cell = rows[i]
-            .get(col)
-            .map(String::as_str)
-            .unwrap_or_default()
-            .trim();
-        if cell.is_empty() {
-            continue;
-        }
-        optional_sum = Some(optional_sum.unwrap_or(0.0) + cell::parse_number(cell)?);
+fn group(grid: &[Vec<String>], level: usize, key_count: usize, label: &str, out: &mut Vec<Row>) {
+    if level == key_count {
+        out.extend(grid.iter().map(|cells| Row {
+            kind: RowKind::Data,
+            cells: cells.clone(),
+        }));
+        return;
     }
-    optional_sum
+
+    for chunk in grid.chunk_by(|a, b| a[level] == b[level]) {
+        let start = out.len();
+        group(chunk, level + 1, key_count, label, out);
+
+        for row in &mut out[start + 1..] {
+            row.cells[level].clear();
+        }
+
+        if chunk.len() > 1 && level + 1 < key_count {
+            let label = format!("{} {label}", chunk[0][level]);
+            if let Some(cells) = total_row(chunk, key_count, level, &label) {
+                out.push(Row {
+                    kind: RowKind::Subtotal,
+                    cells,
+                });
+            }
+        }
+    }
+}
+
+fn total_row(
+    grid: &[Vec<String>],
+    key_count: usize,
+    level: usize,
+    label: &str,
+) -> Option<Vec<String>> {
+    let mut cells = vec![String::new(); grid.first()?.len()];
+    cells[level] = label.to_string();
+
+    let mut numeric = false;
+    for (col, cell) in cells.iter_mut().enumerate().skip(key_count) {
+        let sum = grid
+            .iter()
+            .filter_map(|row| parse_number(&row[col]))
+            .reduce(|a, b| a + b);
+        if let Some(sum) = sum {
+            *cell = fmt_total(sum);
+            numeric = true;
+        }
+    }
+    numeric.then_some(cells)
+}
+
+fn flatten(prefix: &str, value: &Value, out: &mut IndexMap<String, String>) {
+    match value {
+        Value::Object(map) => {
+            for (key, value) in map {
+                flatten(&format!("{prefix} / {key}"), value, out);
+            }
+        }
+        scalar => {
+            out.insert(prefix.to_string(), text(scalar));
+        }
+    }
+}
+
+fn text(value: &Value) -> String {
+    match value {
+        Value::Null => String::new(),
+        Value::String(s) => s.clone(),
+        Value::Number(n) => n.as_f64().map_or_else(|| n.to_string(), fmt),
+        Value::Array(arr) => arr.iter().map(text).collect::<Vec<_>>().join(", "),
+        other => other.to_string(),
+    }
+}
+
+fn number(value: &Value) -> f64 {
+    match value {
+        Value::Number(n) => n.as_f64().unwrap_or(0.0),
+        Value::String(s) => parse_number(s).unwrap_or(0.0),
+        _ => 0.0,
+    }
+}
+
+fn parse_number(cell: &str) -> Option<f64> {
+    cell.trim()
+        .replace(',', ".")
+        .parse::<f64>()
+        .ok()
+        .filter(|n| n.is_finite())
+}
+
+fn fmt(n: f64) -> String {
+    let mut s = format!("{n:.2}");
+    if s.ends_with(".00") {
+        s.truncate(s.len() - 3);
+    }
+    s
+}
+
+fn fmt_total(n: f64) -> String {
+    if n == 0.0 { String::new() } else { fmt(n) }
+}
+
+fn compare(a: &str, b: &str) -> Ordering {
+    match (parse_number(a), parse_number(b)) {
+        (Some(x), Some(y)) => x.total_cmp(&y),
+        (Some(_), None) => Ordering::Less,
+        (None, Some(_)) => Ordering::Greater,
+        (None, None) => a.to_lowercase().cmp(&b.to_lowercase()),
+    }
+}
+
+fn compare_keys(a: &[String], b: &[String]) -> Ordering {
+    a.iter()
+        .zip(b)
+        .map(|(x, y)| compare(x, y))
+        .find(|o| o.is_ne())
+        .unwrap_or_else(|| a.len().cmp(&b.len()))
 }
 
 #[cfg(test)]
@@ -418,33 +386,23 @@ mod tests {
         names.iter().map(|s| s.to_string()).collect()
     }
 
-    #[test]
-    fn pivot_sums_duplicate_keys_into_one_row() {
-        let table = answer(json!([
-            { "Dish": "Tea", "Pay": "Cash", "Sum": 10 },
-            { "Dish": "Tea", "Pay": "Cash", "Sum": 5 },
-            { "Dish": "Tea", "Pay": "Card", "Sum": 2 },
-        ]))
-        .to_pivot_table(&fields(&["Dish"]), "Pay", "Sum", "Total");
-
-        assert_eq!(table.columns, fields(&["Dish", "Card", "Cash"]));
-        assert_eq!(table.key_count, 1);
-        assert_eq!(table.rows.len(), 2);
-        assert_eq!(table.rows[0], fields(&["Tea", "2", "15"]));
-        assert_eq!(table.rows[1], fields(&["Total", "2", "15"]));
-        assert!(matches!(table.row_kinds[1], OlapRowKind::GrandTotal));
+    fn column(table: &OlapTable, i: usize) -> Vec<&str> {
+        table.rows.iter().map(|r| r.cells[i].as_str()).collect()
     }
 
     #[test]
-    fn pivot_leaves_missing_combinations_blank() {
+    fn pivot_sums_repeated_keys_and_totals_the_columns() {
         let table = answer(json!([
             { "Dish": "Tea", "Pay": "Cash", "Sum": 10 },
-            { "Dish": "Pie", "Pay": "Card", "Sum": 4 },
+            { "Dish": "Tea", "Pay": "Cash", "Sum": 5 },
+            { "Dish": "Pie", "Pay": "Card", "Sum": 2 },
         ]))
-        .to_pivot_table(&fields(&["Dish"]), "Pay", "Sum", "Total");
+        .to_cross_table(&fields(&["Dish"]), "Pay", "Sum", "Total");
 
-        assert_eq!(table.rows[0], fields(&["Pie", "4", ""]));
-        assert_eq!(table.rows[1], fields(&["Tea", "", "10"]));
+        assert_eq!(table.columns, fields(&["Dish", "Card", "Cash"]));
+        assert_eq!(column(&table, 0), ["Pie", "Tea", "Total"]);
+        assert_eq!(column(&table, 1), ["2", "", "2"]);
+        assert_eq!(column(&table, 2), ["", "15", "15"]);
     }
 
     #[test]
@@ -452,63 +410,73 @@ mod tests {
         let table = answer(json!([
             { "Dish": "Tea", "Pay": { "Cash": { "Sum": 3 }, "Card": { "Sum": 7 } } },
         ]))
-        .to_pivot_table(&fields(&["Dish"]), "Pay", "Sum", "Total");
+        .to_cross_table(&fields(&["Dish"]), "Pay", "Sum", "Total");
 
         assert_eq!(table.columns, fields(&["Dish", "Card", "Cash"]));
-        assert_eq!(table.rows[0], fields(&["Tea", "7", "3"]));
+        assert_eq!(table.rows[0].cells, fields(&["Tea", "7", "3"]));
     }
 
     #[test]
-    fn grouped_blanks_repeated_keys_and_adds_subtotals() {
+    fn grouped_blanks_repeats_and_adds_totals() {
         let table = answer(json!([
             { "Shop": "North", "Dish": "Tea", "Sum": 10 },
             { "Shop": "North", "Dish": "Pie", "Sum": 5 },
             { "Shop": "South", "Dish": "Tea", "Sum": 3 },
         ]))
-        .to_table_grouped(
-            &fields(&["Shop", "Dish"]),
-            GroupOptions::grouped("Total").with_grand_total(true),
+        .to_grouped_table(&fields(&["Shop", "Dish"]), "Total");
+
+        assert_eq!(
+            column(&table, 0),
+            ["North", "", "North Total", "South", "Total"]
         );
-
-        let shop: Vec<&str> = table.rows.iter().map(|r| r[0].as_str()).collect();
-        let dish: Vec<&str> = table.rows.iter().map(|r| r[1].as_str()).collect();
-
-        assert_eq!(shop, ["North", "", "North Total", "South", "Total"]);
-        assert_eq!(dish, ["Pie", "Tea", "", "Tea", ""]);
-
-        assert!(matches!(
-            table.row_kinds[2],
-            OlapRowKind::Subtotal { level: 0 }
-        ));
-        assert!(matches!(table.row_kinds[4], OlapRowKind::GrandTotal));
-
-        let sums: Vec<&str> = table.rows.iter().map(|r| r[2].as_str()).collect();
-        assert_eq!(sums, ["5", "10", "15", "3", "18"]);
+        assert_eq!(column(&table, 1), ["Pie", "Tea", "", "Tea", ""]);
+        assert_eq!(column(&table, 2), ["5", "10", "15", "3", "18"]);
+        assert_eq!(table.rows[2].kind, RowKind::Subtotal);
+        assert_eq!(table.rows[4].kind, RowKind::Total);
     }
 
     #[test]
-    fn grouped_skips_subtotals_for_non_numeric_columns() {
+    fn grouped_skips_totals_when_nothing_is_numeric() {
         let table = answer(json!([
             { "Shop": "North", "Dish": "Tea", "Note": "hot" },
             { "Shop": "North", "Dish": "Pie", "Note": "cold" },
         ]))
-        .to_table_grouped(&fields(&["Shop", "Dish"]), GroupOptions::grouped("Total"));
+        .to_grouped_table(&fields(&["Shop", "Dish"]), "Total");
 
         assert_eq!(table.rows.len(), 2);
-        assert!(
-            table
-                .row_kinds
-                .iter()
-                .all(|k| matches!(k, OlapRowKind::Data))
-        );
+        assert!(table.rows.iter().all(|r| r.kind == RowKind::Data));
     }
 
     #[test]
-    fn empty_data_produces_an_empty_grouped_table() {
-        let table =
-            answer(json!([])).to_table_grouped(&fields(&["Shop"]), GroupOptions::grouped("Total"));
+    fn nested_objects_become_their_own_columns() {
+        let table = answer(json!([{ "Shop": "North", "Sales": { "Cash": 10 } }]))
+            .to_grouped_table(&fields(&["Shop"]), "Total");
 
+        assert_eq!(table.columns, fields(&["Shop", "Sales / Cash"]));
+        assert_eq!(table.rows[0].cells, fields(&["North", "10"]));
+    }
+
+    #[test]
+    fn empty_data_gives_an_empty_table() {
+        let table = answer(json!([])).to_grouped_table(&fields(&["Shop"]), "Total");
         assert!(table.rows.is_empty());
-        assert!(table.row_kinds.is_empty());
+    }
+
+    #[test]
+    fn numbers_sort_by_value_and_before_text() {
+        let mut values = fields(&["text", "10", "9", ""]);
+        values.sort_by(|a, b| compare(a, b));
+        assert_eq!(values, fields(&["9", "10", "", "text"]));
+        assert_eq!(compare("apple", "APPLE"), Ordering::Equal);
+    }
+
+    #[test]
+    fn numbers_lose_a_pointless_fraction() {
+        assert_eq!(fmt(12.0), "12");
+        assert_eq!(fmt(12.001), "12");
+        assert_eq!(fmt(12.567), "12.57");
+        assert_eq!(fmt_total(0.0), "");
+        assert_eq!(number(&json!("1,5")), 1.5);
+        assert_eq!(parse_number("12 items"), None);
     }
 }

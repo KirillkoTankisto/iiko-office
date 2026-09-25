@@ -1,3 +1,5 @@
+//! Постоянные, необходимые для API запросов
+
 use serde::{Deserialize, Serialize};
 
 use crate::macros::str_enum;
@@ -37,6 +39,7 @@ pub enum EnumRange {
     String(String),
 }
 
+/// Статический перевод данных в строку, без выделения памяти
 pub trait AsStr {
     fn as_str(&self) -> &'static str;
 }

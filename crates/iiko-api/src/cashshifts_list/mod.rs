@@ -1,8 +1,8 @@
+//! Получение списка кассовых смен
+
 use serde::Deserialize;
 
 use crate::{IikoSession, error::ClientError, macros::str_enum};
-
-pub type CashShifts = Vec<CashShift>;
 
 str_enum! {
     pub enum SessionStatus {
@@ -17,6 +17,7 @@ str_enum! {
 
 #[derive(Deserialize, PartialEq, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
+/// Кассовая смена.
 pub struct CashShift {
     pub id: String,
     pub session_number: u32,
@@ -44,12 +45,13 @@ pub struct CashShift {
 }
 
 impl IikoSession {
+    /// Получить список кассовых смен
     pub fn cashshifts_list(
         &self,
         from: &str,
         to: &str,
         session_status: SessionStatus,
-    ) -> Result<CashShifts, ClientError> {
+    ) -> Result<Vec<CashShift>, ClientError> {
         self.request_json(
             "/resto/api/v2/cashshifts/list",
             &[
@@ -94,7 +96,7 @@ mod tests {
         mock.assert();
 
         assert_eq!(
-            serde_json::from_str::<CashShifts>(CASH_SHIFTS_ANSWER).unwrap(),
+            serde_json::from_str::<Vec<CashShift>>(CASH_SHIFTS_ANSWER).unwrap(),
             answer
         );
     }

@@ -1,3 +1,5 @@
+//! Макросы для упрощения кода
+
 macro_rules! str_enum {
     (
         $(#[$meta:meta])*

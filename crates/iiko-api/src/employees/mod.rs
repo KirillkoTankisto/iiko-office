@@ -1,3 +1,5 @@
+//! !!!КРАЙНЕ НЕСТАБИЛЕН!!! Список сотрудников
+
 use serde::Deserialize;
 
 use crate::{IikoSession, consts::AsStr, error::ClientError, macros::str_enum};
@@ -11,6 +13,7 @@ str_enum! {
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
+/// Данные о сотруднике
 pub struct Employee {
     pub id: String,
     pub code: String,
@@ -41,6 +44,7 @@ pub struct Employee {
 }
 
 impl Employee {
+    /// Получить полное имя сотрудника
     pub fn full_name(&self) -> Option<String> {
         let parts: Vec<&str> = [&self.first_name, &self.middle_name, &self.last_name]
             .into_iter()
@@ -53,16 +57,18 @@ impl Employee {
 }
 
 #[derive(Deserialize)]
-pub struct EmployeeList {
+/// приватный, нужен для правильного парсинга ответа
+struct EmployeeList {
     #[serde(rename = "employee", default)]
     pub employees: Vec<Employee>,
 }
 
 impl IikoSession {
+    /// !!!НЕСТАБИЛЕН!!! Получить список сотрудников
     pub fn employees(
         &self,
         include_deleted: bool,
-        revision_from: i32,
+        revision_from: i32, // -1 for all
     ) -> Result<Vec<Employee>, ClientError> {
         let result: EmployeeList = self.request_xml(
             "/resto/api/employees",
