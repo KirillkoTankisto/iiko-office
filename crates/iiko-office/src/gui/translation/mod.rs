@@ -82,10 +82,6 @@ lines! {
     EMPLOYEE_FULL_NAME            => "Full Name", "Полное Имя";
     EMPLOYEE_NOTE                 => "Note", "Заметка";
     EMPLOYEE_LOGIN                => "Login", "Логин";
-    EMPLOYEE_SUPPLIER             => "Supplier", "Поставщик";
-    EMPLOYEE_EMPLOYEE             => "Employee", "Сотрудник";
-    EMPLOYEE_CLIENT               => "Client", "Клиент";
-    EMPLOYEE_REPRESENTS_STORE     => "Represents Store", "Представитель Магазина";
     MENUBAR_COPY                  => "Copy", "Скопировать";
     MENUBAR_CUT                   => "Cut", "Вырезать";
     MENUBAR_EDIT                  => "Edit", "Редактировать";

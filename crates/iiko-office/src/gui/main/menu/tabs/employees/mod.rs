@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use gtk4::{Align, prelude::*};
-use iiko_api::{consts::AsStr, employees::Employee};
+use iiko_api::employees::Employee;
 
 use crate::gui::{
     common::{
@@ -58,18 +58,6 @@ const COLUMNS: &[ColumnSpec<Employee>] = &[
     }),
     ColumnSpec::new(Line::EMPLOYEE_LOGIN, Align::Start, |e| {
         e.login.to_owned().unwrap_or_default()
-    }),
-    ColumnSpec::new(Line::EMPLOYEE_SUPPLIER, Align::Start, |e| {
-        e.supplier.as_str().to_owned()
-    }),
-    ColumnSpec::new(Line::EMPLOYEE_EMPLOYEE, Align::Start, |e| {
-        e.employee.as_str().to_owned()
-    }),
-    ColumnSpec::new(Line::EMPLOYEE_CLIENT, Align::Start, |e| {
-        e.client.as_str().to_owned()
-    }),
-    ColumnSpec::new(Line::EMPLOYEE_REPRESENTS_STORE, Align::Start, |e| {
-        e.represents_store.as_str().to_owned()
     }),
 ];
 
