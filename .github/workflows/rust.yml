@@ -9,7 +9,7 @@ env:
 jobs:
     test:
         name: test
-        runs-on: ubuntu-26_04
+        runs-on: ubuntu-26.04
 
         steps:
             - uses: actions/checkout@v7
@@ -39,7 +39,7 @@ jobs:
                   path: iikoOffice.dmg
     build-linux:
         name: build for Linux
-        runs-on: ubuntu-26_04
+        runs-on: ubuntu-26.04
         needs: test
 
         steps:
