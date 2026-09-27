@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<xs:schema version="1.0" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+
+    <!-- Данная схема взята из референса iikoServer API
+    [https://ru.iiko.help/articles/#!api-documentations/rabota-s-dannymi-sotrudnikovv/a/v1.API%D1%81%D0%BE%D1%82%D1%80%D1%83%D0%B4%D0%BD%D0%B8%D0%BA%D0%BE%D0%B2-%D0%9E%D0%BF%D0%B8%D1%81%D0%B0%D0%BD%D0%B8%D1%8F%D1%81%D1%83%D1%89%D0%BD%D0%BE%D1%81%D1%82%D0%B5%D0%B9%D0%B4%D0%BB%D1%8F%D0%BF%D1%80%D0%B5%D0%B4%D1%81%D1%82%D0%B0%D0%B2%D0%BB%D0%B5%D0%BD%D0%B8%D1%8F%D0%B2%D1%84%D0%BE%D1%80%D0%BC%D0%B0%D1%82%D0%B5XML(XSD-%D1%81%D1%85%D0%B5%D0%BC%D0%B0)]
+    -->
+    <xs:element name="employee" type="employee" />
+
+    <xs:complexType name="employee">
+        <xs:sequence>
+            <xs:element name="id" type="xs:string" minOccurs="1" />
+            <!-- Табельный номер сотрудника. Пуст у системных учетных записей. -->
+            <xs:element name="code" type="xs:string" minOccurs="1" />
+            <xs:element name="name" type="xs:string" minOccurs="1" />
+            <!-- Логин для входа в бекофис -->
+            <xs:element name="login" type="xs:string" minOccurs="0" />
+            <!-- Пароль для входа в бекофис. Доступен только на изменение, не отображается. -->
+            <xs:element name="password" type="xs:string" minOccurs="0" />
+
+            <!--
+            Основная должность сотрудника. Входит в rolesIds.
+            -->
+            <xs:element name="mainRoleId" type="xs:string" minOccurs="0" />
+            <xs:element name="rolesIds" type="xs:string" nillable="true" minOccurs="0"
+                maxOccurs="unbounded" />
+
+            <!--
+            Основная должность сотрудника.
+            Входит в roleCodes (кроме системных учетных записей, у них не заполнено roleCodes).
+            -->
+            <xs:element name="mainRoleCode" type="xs:string" minOccurs="0" />
+            <xs:element name="roleCodes" type="xs:string" nillable="true" minOccurs="0"
+                maxOccurs="unbounded" />
+            <!-- Справочная информация -->
+            <xs:element name="phone" type="xs:string" minOccurs="0" />
+            <xs:element name="cellPhone" type="xs:string" minOccurs="0" />
+            <xs:element name="firstName" type="xs:string" minOccurs="0" />
+            <xs:element name="middleName" type="xs:string" minOccurs="0" />
+            <xs:element name="lastName" type="xs:string" minOccurs="0" />
+            <xs:element name="birthday" type="xs:dateTime" minOccurs="0" />
+            <xs:element name="email" type="xs:string" minOccurs="0" />
+            <xs:element name="address" type="xs:string" minOccurs="0" />
+            <xs:element name="hireDate" type="xs:string" minOccurs="0" />
+            <xs:element name="hireDocumentNumber" type="xs:string" minOccurs="0" />
+            <!--
+            Дата увольнения.
+            @since 5.4
+            -->
+            <xs:element name="fireDate" type="xs:date" nillable="true" minOccurs="0" />
+            <xs:element name="note" type="xs:string" minOccurs="0" />
+            <!-- Slip карты сотрудника -->
+            <xs:element name="cardNumber" type="xs:string" minOccurs="0" />
+            <!-- Pin-код для входа в iikoFront. Доступен только на изменение, не отображается. -->
+            <xs:element name="pinCode" type="xs:string" minOccurs="0" />
+            <!-- ИНН -->
+            <xs:element name="taxpayerIdNumber" type="xs:string" minOccurs="0" />
+            <!--
+            СНИЛС.
+            @since 5.4
+            -->
+            <xs:element name="snils" type="xs:string" nillable="true" minOccurs="0" />
+            <!--
+            Global Location Number для поставщиков
+            @since 6.0
+            -->
+            <xs:element name="gln" type="xs:string" minOccurs="0" />
+            <xs:element name="activationDate" type="xs:dateTime" minOccurs="0" />
+            <xs:element name="deactivationDate" type="xs:dateTime" minOccurs="0" />
+            <!--
+            Подразделение (одно из departmentCodes), в котором сотруднику назначаются смены в первую очередь.
+            @since 5.0
+            -->
+            <xs:element name="preferredDepartmentCode" type="xs:string" minOccurs="0" />
+            <!--
+            Назначенные подразделения.
+            Если null - сотруднику назначены все подразделения (существующие и будущие).
+            -->
+            <xs:element name="departmentCodes" type="xs:string"
+                nillable="true" minOccurs="0" maxOccurs="unbounded" />
+            <!--
+            Подразделения, в которых сотрудник является ответственным.
+            Если null - сотруднику является ответственным во всех существующих и будущих подразделениях.
+            -->
+            <xs:element name="responsibilityDepartmentCodes" type="xs:string"
+                nillable="true" minOccurs="0" maxOccurs="unbounded" />
+
+            <xs:element name="deleted" type="xs:string" minOccurs="0" />
+            <xs:element name="supplier" type="xs:string" minOccurs="0" />
+            <xs:element name="employee" type="xs:string" minOccurs="0" />
+            <xs:element name="client" type="xs:string" minOccurs="0" />
+
+            <!--
+            Произвольные данные в формате строковый ключ -> строковое значение,
+            семантика которых определяется внешней системой.
+            Сервер никак не интерпретирует эти данные.
+            -->
+            <xs:element name="publicExternalData">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element name="entry" minOccurs="0" maxOccurs="unbounded">
+                            <xs:complexType>
+                                <xs:sequence>
+                                    <xs:element name="key" type="xs:string" />
+                                    <xs:element name="value" type="xs:string" minOccurs="0" />
+                                </xs:sequence>
+                            </xs:complexType>
+                        </xs:element>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+</xs:schema>

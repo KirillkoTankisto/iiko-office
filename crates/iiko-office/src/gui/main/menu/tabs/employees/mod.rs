@@ -48,7 +48,7 @@ impl AnyTab for EmployeesTab {
 const COLUMNS: &[ColumnSpec<Employee>] = &[
     ColumnSpec::new(Line::EMPLOYEE_NAME, Align::Start, |e| e.name.clone()),
     ColumnSpec::new(Line::EMPLOYEE_MAIN_ROLE, Align::Start, |e| {
-        e.main_role_code.clone()
+        e.main_role_code.clone().unwrap_or_default()
     }),
     ColumnSpec::new(Line::EMPLOYEE_FULL_NAME, Align::Start, |e| {
         e.full_name().unwrap_or_default()

@@ -1,4 +1,4 @@
-//! !!!КРАЙНЕ НЕСТАБИЛЕН!!! Список сотрудников
+//! Список сотрудников
 
 use serde::Deserialize;
 
@@ -19,28 +19,37 @@ pub struct Employee {
     pub code: String,
     pub name: String,
     pub login: Option<String>,
-    pub main_role_id: String,
+    pub password: Option<String>,
+    pub main_role_id: Option<String>,
     pub roles_ids: Option<Vec<String>>,
-    pub main_role_code: String,
+    pub main_role_code: Option<String>,
     pub role_codes: Option<Vec<String>>,
+    pub phone: Option<String>,
+    pub cell_phone: Option<String>,
     pub first_name: Option<String>,
     pub middle_name: Option<String>,
     pub last_name: Option<String>,
     pub birthday: Option<String>,
+    pub email: Option<String>,
+    pub address: Option<String>,
+    pub hire_date: Option<String>,
+    pub hire_document_number: Option<String>,
+    pub fire_date: Option<String>,
     pub note: Option<String>,
     pub card_number: Option<String>,
+    pub pin_code: Option<String>,
     pub taxpayer_id_number: Option<String>,
     pub snils: Option<String>,
-    pub preferred_department_code: Option<u32>,
-    pub department_codes_state: Option<CodesState>,
-    pub responsibility_department_codes_state: Option<CodesState>,
-    pub deleted: bool,
-    pub personal_data_consent: bool,
-    pub supplier: bool,
-    pub employee: bool,
-    pub client: bool,
-    pub represents_store: bool,
-    pub public_external_data: Option<String>,
+    pub gln: Option<String>,
+    pub activation_date: Option<String>,
+    pub deactivation_date: Option<String>,
+    pub preferred_department_code: Option<String>,
+    pub department_codes: Option<Vec<String>>,
+    pub responsibility_department_codes: Option<Vec<String>>,
+    pub deleted: Option<bool>,
+    pub supplier: Option<bool>,
+    pub employee: Option<bool>,
+    pub client: Option<bool>,
 }
 
 impl Employee {
@@ -64,7 +73,7 @@ struct EmployeeList {
 }
 
 impl IikoSession {
-    /// !!!НЕСТАБИЛЕН!!! Получить список сотрудников
+    /// Получить список сотрудников
     pub fn employees(
         &self,
         include_deleted: bool,
