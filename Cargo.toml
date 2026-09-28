@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/iiko-api", "crates/iiko-office", "crates/xsd-parse"]
+members = ["crates/iiko-api", "crates/iiko-office"]
 
 [workspace.package]
 version = "0.12.0"
