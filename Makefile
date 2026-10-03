@@ -20,12 +20,6 @@ set_version:
 	@cd packaging/macos && sed -E "/<key>(CFBundleVersion|CFBundleShortVersionString)<\/key>/{n;s|<string>[^<]*</string>|<string>$(VERSION)</string>|;}" Info.plist > Info.plist.new && mv Info.plist.new Info.plist
 	@echo "version set to $(VERSION)"
 
-build_debug:
-	cargo build
-
-build_debug_cached:
-	RUSTC_WRAPPER=sccache cargo build
-
 build:
 	cargo build -r
 
