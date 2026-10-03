@@ -20,8 +20,10 @@ pub fn on_activate(app: &Application, gdata: Arc<GlobalData>) {
     let window = ApplicationWindow::builder()
         .application(app)
         .title(WINDOW_TITLE)
-        .width_request(1600)
-        .height_request(900)
+        .default_width(1280)
+        .default_height(720)
+        .width_request(800)
+        .height_request(600)
         .build();
 
     let stack = gtk4::Stack::builder()

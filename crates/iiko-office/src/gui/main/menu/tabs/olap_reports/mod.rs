@@ -303,26 +303,35 @@ fn layout(
     report_table: &AnyTable<OlapRow>,
     olap_fields: &DraggableOlapFields,
 ) -> gtk4::Widget {
-    let content = AnyBox::horizontal().margin(8).add_widgets([
-        columns_panel(columns_table).upcast_ref(),
-        pivot_grid(olap_fields, report_table).upcast_ref(),
-    ]);
+    let fields_panel = columns_panel(columns_table);
+    fields_panel.set_size_request(200, -1);
 
-    let olap_box = AnyBox::vertical().margin(8).add_widgets([
-        controls.present().upcast_ref(),
-        content.consume().upcast_ref(),
-    ]);
+    let split = gtk4::Paned::builder()
+        .orientation(Horizontal)
+        .start_child(&fields_panel)
+        .end_child(&pivot_grid(olap_fields, report_table))
+        .resize_start_child(false)
+        .shrink_start_child(false)
+        .shrink_end_child(false)
+        .position(260)
+        .wide_handle(true)
+        .vexpand(true)
+        .build();
 
-    olap_box.consume().upcast()
+    AnyBox::vertical()
+        .margin(8)
+        .add_widgets([controls.present().upcast_ref(), split.upcast_ref()])
+        .consume()
+        .upcast()
 }
 
 fn columns_panel(columns_table: &AnyTable<FieldEntry>) -> GtkBox {
-    let panel = AnyBox::vertical().margin(8).add_widgets([
-        columns_table.search_entry().upcast_ref(),
-        columns_table.present().upcast_ref(),
-    ]);
-
-    panel.consume().upcast()
+    AnyBox::vertical()
+        .add_widgets([
+            columns_table.search_entry().upcast_ref(),
+            columns_table.present().upcast_ref(),
+        ])
+        .consume()
 }
 
 fn pivot_grid(olap_fields: &DraggableOlapFields, report_table: &AnyTable<OlapRow>) -> Grid {
