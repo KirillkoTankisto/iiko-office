@@ -18,58 +18,101 @@ mod macros;
 
 use std::{sync::Mutex, time::Duration};
 
-use reqwest::StatusCode;
 use serde::de::DeserializeOwned;
+use ureq::{
+    Agent, Body,
+    http::{Response, Uri},
+    tls::{RootCerts, TlsConfig},
+};
 
 use crate::error::ClientError;
 
 const UAGENT: &str = concat!("iiko-office-libre/", env!("CARGO_PKG_VERSION"));
-const TIMEOUT: Duration = Duration::from_secs(10);
+const CONNECT_TIMEOUT: Duration = Duration::from_secs(5);
+const REQUEST_TIMEOUT: Duration = Duration::from_secs(120);
+const MAX_BODY: u64 = 512 * 1024 * 1024;
 
 #[derive(Debug)]
 /// Клиент для взаимодействия с API без аутентификации
 pub struct IikoConnection {
-    client: reqwest::blocking::Client,
-    base: url::Url,
+    agent: ureq::Agent,
+    base: String,
 }
 
 fn check_status(
-    resp: reqwest::blocking::Response,
-) -> Result<reqwest::blocking::Response, ClientError> {
-    if matches!(
-        resp.status(),
-        StatusCode::UNAUTHORIZED | StatusCode::FORBIDDEN
-    ) {
-        return Err(ClientError::Unauthorized);
+    resp: ureq::http::Response<ureq::Body>,
+) -> Result<ureq::http::Response<ureq::Body>, ClientError> {
+    match resp.status().as_u16() {
+        200..=299 => Ok(resp),
+        401 => Err(ClientError::Unauthorized),
+        403 => Err(ClientError::Forbidden),
+        code => Err(ClientError::Status(code)),
     }
+}
 
-    Ok(resp.error_for_status().map_err(|e| e.without_url())?)
+fn read_string(mut resp: Response<Body>) -> Result<String, ClientError> {
+    Ok(resp
+        .body_mut()
+        .with_config()
+        .limit(MAX_BODY)
+        .read_to_string()?)
+}
+
+fn read_json<T: DeserializeOwned>(mut resp: Response<Body>) -> Result<T, ClientError> {
+    let bytes = resp
+        .body_mut()
+        .with_config()
+        .limit(MAX_BODY)
+        .read_to_vec()?;
+    Ok(serde_json::from_slice(&bytes)?)
 }
 
 impl IikoConnection {
     /// Создаёт новый клиент.
     /// Выдаст ошибку при некорректном адресе
     pub fn new(address: &str) -> Result<Self, ClientError> {
-        let client = reqwest::blocking::Client::builder()
-            .user_agent(UAGENT)
-            .timeout(TIMEOUT)
-            .build()?;
-        let base = url::Url::parse(address)?;
+        let uri: Uri = address.trim().parse().map_err(|_| ClientError::Address)?;
 
-        Ok(Self { client, base })
+        let base = match (uri.scheme_str(), uri.authority()) {
+            (Some(scheme @ ("http" | "https")), Some(authority)) => {
+                format!("{scheme}://{authority}")
+            }
+            _ => return Err(ClientError::Address),
+        };
+
+        let agent = Agent::config_builder()
+            .user_agent(UAGENT)
+            .http_status_as_error(false)
+            .timeout_connect(Some(CONNECT_TIMEOUT))
+            .timeout_global(Some(REQUEST_TIMEOUT))
+            .tls_config(
+                TlsConfig::builder()
+                    .root_certs(RootCerts::PlatformVerifier)
+                    .build(),
+            )
+            .build()
+            .into();
+
+        Ok(Self { agent, base })
     }
 
-    fn get(
-        &self,
-        path: &str,
-        args: &[(&str, &str)],
-    ) -> Result<reqwest::blocking::Response, ClientError> {
-        let resp = self.client.get(self.url(path, args)).send()?;
+    #[inline]
+    fn url(&self, path: &str) -> String {
+        debug_assert!(path.starts_with('/'));
+        format!("{}{}", self.base, path)
+    }
+
+    fn get(&self, path: &str, args: &[(&str, &str)]) -> Result<Response<Body>, ClientError> {
+        let resp = self
+            .agent
+            .get(self.url(path))
+            .query_pairs(args.iter().copied()) // percent-encoded by ureq
+            .call()?;
         check_status(resp)
     }
 
     fn request_string(&self, path: &str, args: &[(&str, &str)]) -> Result<String, ClientError> {
-        Ok(self.get(path, args)?.text()?)
+        read_string(self.get(path, args)?)
     }
 
     fn request_json<T: DeserializeOwned>(
@@ -77,7 +120,7 @@ impl IikoConnection {
         path: &str,
         args: &[(&str, &str)],
     ) -> Result<T, ClientError> {
-        Ok(self.get(path, args)?.json()?)
+        read_json(self.get(path, args)?)
     }
 
     fn request_xml<T: DeserializeOwned>(
@@ -85,7 +128,7 @@ impl IikoConnection {
         path: &str,
         args: &[(&str, &str)],
     ) -> Result<T, ClientError> {
-        Ok(quick_xml::de::from_str(&self.get(path, args)?.text()?)?)
+        Ok(quick_xml::de::from_str(&self.request_string(path, args)?)?)
     }
 
     // Supports only json POST
@@ -96,20 +139,12 @@ impl IikoConnection {
         data: String,
     ) -> Result<T, ClientError> {
         let resp = self
-            .client
-            .post(self.url(path, args))
+            .agent
+            .post(self.url(path))
+            .query_pairs(args.iter().copied())
             .header("Content-Type", "application/json")
-            .body(data)
-            .send()?;
-        Ok(check_status(resp)?.json()?)
-    }
-
-    #[inline]
-    fn url(&self, path: &str, args: &[(&str, &str)]) -> url::Url {
-        let mut url = self.base.clone();
-        url.set_path(path);
-        url.query_pairs_mut().extend_pairs(args).finish();
-        url
+            .send(data)?;
+        read_json(check_status(resp)?)
     }
 }
 
