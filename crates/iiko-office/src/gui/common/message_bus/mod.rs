@@ -65,10 +65,10 @@ impl Default for MessageBus {
 fn describe(error: &AppError, language: CurrentLanguage) -> (&'static str, String) {
     let line = match error {
         AppError::Api(api) => match api {
-            ClientError::Url(_) => ERROR_ADDRESS,
-            ClientError::Http(_) => ERROR_REQUEST,
+            ClientError::Uri(_) | ClientError::Address => ERROR_ADDRESS,
+            ClientError::Http(_) | ClientError::Status(_) => ERROR_REQUEST,
             ClientError::Json(_) | ClientError::Xml(_) => ERROR_RESPONSE,
-            ClientError::Unauthorized => ERROR_UNAUTHORIZED,
+            ClientError::Unauthorized | ClientError::Forbidden => ERROR_UNAUTHORIZED,
         },
         AppError::Config(_) | AppError::NotLoggedIn => ERROR_INTERNAL,
     };
